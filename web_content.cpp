@@ -44,12 +44,17 @@ const char PROGMEM webServerFormBegin2[] =
   "</h2><br>\r\n"
   "<table>\r\n";
 
-
 const char PROGMEM webServerFormInputBegin[] =
   "<tr><td>";
 
 const char PROGMEM webServerFormInputInput[] =
   "</td><td><input type=\"text\" name=\"";
+
+const char PROGMEM webServerFormInputRadioHeaderEnd[] = 
+  "</td><td></td></tr>\n";
+
+const char PROGMEM webServerFormInputRadio[] =
+  "<tr><td><input type=\"radio\" name=\"";
 
 const char PROGMEM webServerFormInputValue[] =
   "\" value=\"";
@@ -57,13 +62,26 @@ const char PROGMEM webServerFormInputValue[] =
 const char PROGMEM webServerFormInputEnd[] =
   "\"></td></tr>\r\n";
 
+const char PROGMEM webServerFormInputRadioEnd[] =
+  "\"></td><td>";
+
+const char PROGMEM webServerFormInputRadioEndChecked[] =
+  "\" checked></td><td>";
+
+
+const char PROGMEM webServerFormInputRadioFinish[] =
+  "</td></tr>\r\n";
+
 const char PROGMEM webServerFormEnd[] =
   "</table><br>\r\n"
   "<input type=\"submit\" value=\"Save settings\">\r\n"
   "</form></div>\r\n<br>\r\n";
 
+const char PROGMEM webServerFormParameterDisplayNameCommonOff[] = "Off";
+const char PROGMEM webServerFormParameterDisplayNameCommonOn[] = "On";
+
 const char PROGMEM webServerWifiFormCaption[] = "Connection settings";
-const char PROGMEM webServerMG811FormCaption[] = "MG811 calibration points";
+const char PROGMEM webServerMG811FormCaption[] = "MG811 calibration & filtering";
 const char PROGMEM webServerMiscFormCaption[] = "Miscellaneous";
 
 const char PROGMEM webServerWifiFormParameterSsid[] = "ssid";
@@ -83,4 +101,18 @@ const char PROGMEM webServerMG811FormParameterDisplayNameCalPoint0Ppm[] = "Calib
 const char PROGMEM webServerMG811FormParameterDisplayNameCalPoint0Adc[] = "Calibration point 0: uncalibrated ADC value";
 const char PROGMEM webServerMG811FormParameterDisplayNameCalPoint1Ppm[] = "Calibration point 1: PPM value";
 const char PROGMEM webServerMG811FormParameterDisplayNameCalPoint1Adc[] = "Calibration point 1: uncalibrated ADC value";
+
+const char PROGMEM webServerMG811FormParameterRejectCal[] = "calreject";
+const char PROGMEM webServerMG811FormParameterFilter[] = "filter";
+const char PROGMEM webServerMG811FormParameterFilterFreq[] = "fltfreq";
+const char PROGMEM webServerFormParameterSensorSerialOutput[] = "sout";
+
+const char PROGMEM webServerMG811FormParameterDisplayNameRejectCal[] = "Reject calibration data and use inverted uncalibrated value (no exact ppm calculation, trend only):";
+const char PROGMEM webServerMG811FormParameterDisplayNameFilter[] = "Filter:";
+const char PROGMEM webServerMG811FormParameterDisplayNameFilterFreq[] = "Low-pass filter frequency (x 0.01 Hz)";
+const char PROGMEM webServerFormParameterDisplayNameSensorSerialOutput[] = "Serial output";
+
+const char PROGMEM webServerMG811FormParameterDisplayFilterOff[] = "Off";
+const char PROGMEM webServerMG811FormParameterDisplayFilterAverage[] = "Averaging";
+const char PROGMEM webServerMG811FormParameterDisplayFilterLowpass[] = "Low-pass";
 

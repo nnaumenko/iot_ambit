@@ -17,6 +17,8 @@
 #include <OneWire.h>
 #include <DallasTemperature.h>
 
+#include "mg811.h"
+
 #include "eeprom_config.h"
 #include "webconfig.h"
 #include "web_content.h"
@@ -50,9 +52,10 @@ const int PIN_SENSOR_MG811 = A0;  //ADC = MG811 analog signal
  */
 
 const unsigned long UPDATE_TIME_SENSORS = 2500;//ms
+const unsigned long UPDATE_TIME_MG811 = 200;//ms
 const unsigned long UPDATE_TIME_STATUS_LEDS = 250;//ms
-const unsigned long UPDATE_TIME_STATUS_VPINS = 499;//ms
-const unsigned long UPDATE_TIME_VALUE_VPINS = 2500;//ms
+const unsigned long UPDATE_TIME_STATUS_VPINS = 500;//ms
+const unsigned long UPDATE_TIME_VALUE_VPINS = 500;//ms
 
 /*
  * Data and status values
@@ -140,17 +143,45 @@ void calcCalDataMG811(void) {
       isinf(tempCalDataMG811_a) ||
       isnan(tempCalDataMG811_b) ||
       isinf(tempCalDataMG811_b)) {
-    Serial.println("Calibration data rejected");
+    Serial.println(F("Calibration data error: calibration data rejected"));
   }
   else {
     calDataMG811_a = tempCalDataMG811_a;
     calDataMG811_b = tempCalDataMG811_b;
-    Serial.println("Calibration data accepted");
+    Serial.println(F("Calibration data accepted"));
+  }
+  if (rejectCalibrationMG811) {
+    Serial.println(F("Uncalibrated mode selected, no ppm value will be calculated, the output value is 1024 - ADC_value."));
   }
 }
 
 unsigned int calcConcentrationCO2 (unsigned int rawAdcValue) {
+  if (rejectCalibrationMG811) return (1024 - rawAdcValue);
   return ((unsigned int)exp(calDataMG811_a * ((double)rawAdcValue) + calDataMG811_b));
+}
+
+unsigned int movingAverage(unsigned int input) {
+  const static unsigned int AVERAGE_POINTS = 64;
+  static unsigned int inputValuesHistory[AVERAGE_POINTS] = {0};
+  static unsigned int currentValue = 0;
+  static unsigned long totalValue = 0;
+  totalValue += input;
+  totalValue -= inputValuesHistory[currentValue];
+  inputValuesHistory[currentValue] = input;
+  currentValue++;
+  if (currentValue >= AVERAGE_POINTS) currentValue = 0;
+  return ((unsigned int)(totalValue / (unsigned long)AVERAGE_POINTS));
+}
+
+unsigned int lowPass(unsigned int input, float dt, float fc) {
+  //See https://en.wikipedia.org/wiki/Low-pass_filter#Simple_infinite_impulse_response_filter for details
+  if ((dt == 0.0) || (fc == 0.0)) return (0);
+  float rc = 1 / (2 * PI * fc);
+  float alpha = dt / (dt + rc);
+  static float lastOutput = 0.0;
+  float currentOutput = lastOutput + alpha * ((float)input - lastOutput);
+  lastOutput = currentOutput;
+  return ((unsigned int)currentOutput);
 }
 
 void updateSensorMG811(void) {
@@ -161,8 +192,22 @@ void updateSensorMG811(void) {
     valueMG811 = NAN;
     return;
   }
-  //this does not work properly due to sensor drift
   valueMG811 = calcConcentrationCO2(raw);
+  const float millisPerSecond = 1000.0;
+  const float unitsPerHz = 100.0;
+  switch (filterMG811) {
+    case MG811_FILTER_OFF:
+      break;
+    case MG811_FILTER_AVERAGE:
+      valueMG811 = movingAverage(valueMG811);
+      break;
+    case MG811_FILTER_LOWPASS:
+      valueMG811 = lowPass(valueMG811, (float)UPDATE_TIME_MG811 / millisPerSecond, (float)filterMG811LowPassFrequency / unitsPerHz);
+      break;
+    default:
+      filterMG811 = MG811_FILTER_OFF;
+      break;
+  }
 }
 
 /*
@@ -247,19 +292,28 @@ void updateStatusVirtualPins(void) {
 }
 
 void printSensorDebugInfo(void) {
+  if (!SensorSerialOutput) return;
+
   Serial.print(F("["));
   Serial.print(millis());
   Serial.print(F("] sensor values:"));
+
   Serial.print(F(" DHT T = "));
   Serial.print(valueTemperatureDHT);
   Serial.print(F(" RH = "));
   Serial.print(valueHumidityDHT);
+
   Serial.print(F(" OneWire(0) T = "));
   Serial.print(valueTemperatureOneWire);
-  Serial.print(F(" MG811 calibrated = "));
+
+  if (!rejectCalibrationMG811)
+    Serial.print(F(" MG811 ppm = "));
+  else
+    Serial.print(F(" MG811 value = "));
   Serial.print(valueMG811);
-  Serial.print(F(" MG811 uncalibrated = "));
+  Serial.print(F(" raw = "));
   Serial.print(valueMG811uncal);
+
   Serial.println();
 }
 
@@ -332,8 +386,12 @@ void loop() {
   if (checkTimedEvent(UPDATE_TIME_SENSORS, &lastMillisSensors)) {
     updateSensorDHT();
     updateSensorOneWire();
-    updateSensorMG811();
     printSensorDebugInfo();
+  }
+
+  static unsigned long lastMillisMG811 = 0;
+  if (checkTimedEvent(UPDATE_TIME_MG811, &lastMillisMG811)) {
+    updateSensorMG811();
   }
 
   static unsigned long lastMillisStatusLEDs = 0;

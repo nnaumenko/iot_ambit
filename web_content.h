@@ -21,10 +21,18 @@ extern const char PROGMEM webServerBodyEnd[];
 extern const char PROGMEM webServerFormBegin1[];
 extern const char PROGMEM webServerFormBegin2[];
 extern const char PROGMEM webServerFormInputBegin[];
+extern const char PROGMEM webServerFormInputRadio[];
 extern const char PROGMEM webServerFormInputInput[];
+extern const char PROGMEM webServerFormInputRadioHeaderEnd[];
 extern const char PROGMEM webServerFormInputValue[];
 extern const char PROGMEM webServerFormInputEnd[];
+extern const char PROGMEM webServerFormInputRadioEnd[];
+extern const char PROGMEM webServerFormInputRadioEndChecked[];
+extern const char PROGMEM webServerFormInputRadioFinish[];
 extern const char PROGMEM webServerFormEnd[];
+
+extern const char PROGMEM webServerFormParameterDisplayNameCommonOff[];
+extern const char PROGMEM webServerFormParameterDisplayNameCommonOn[];
 
 extern const char PROGMEM webServerWifiFormCaption[];
 extern const char PROGMEM webServerMG811FormCaption[];
@@ -47,5 +55,19 @@ extern const char PROGMEM webServerMG811FormParameterDisplayNameCalPoint0Ppm[];
 extern const char PROGMEM webServerMG811FormParameterDisplayNameCalPoint0Adc[];
 extern const char PROGMEM webServerMG811FormParameterDisplayNameCalPoint1Ppm[];
 extern const char PROGMEM webServerMG811FormParameterDisplayNameCalPoint1Adc[];
+
+extern const char PROGMEM webServerMG811FormParameterRejectCal[];
+extern const char PROGMEM webServerMG811FormParameterFilter[];
+extern const char PROGMEM webServerMG811FormParameterFilterFreq[];
+extern const char PROGMEM webServerFormParameterSensorSerialOutput[];
+
+extern const char PROGMEM webServerMG811FormParameterDisplayNameRejectCal[];
+extern const char PROGMEM webServerMG811FormParameterDisplayNameFilter[];
+extern const char PROGMEM webServerMG811FormParameterDisplayNameFilterFreq[];
+extern const char PROGMEM webServerFormParameterDisplayNameSensorSerialOutput[];
+
+extern const char PROGMEM webServerMG811FormParameterDisplayFilterOff[];
+extern const char PROGMEM webServerMG811FormParameterDisplayFilterAverage[];
+extern const char PROGMEM webServerMG811FormParameterDisplayFilterLowpass[];
 
 #endif

@@ -128,25 +128,49 @@ void parseQuery(const String &query) {//this function using c string functions t
       Serial.println(valueAsNumber);
       calPointsMG811[0][MG811_CAL_POINT_PPM] = (unsigned int)valueAsNumber;
       configUpdated = true;
-    }   
+    }
     if (!compareWithProgmem(parameterBuffer, webServerMG811FormParameterCalPoint1Ppm)) {
       Serial.print(F("Setting MG811 calibration point 1 PPM value to "));
       Serial.println(valueAsNumber);
       calPointsMG811[1][MG811_CAL_POINT_PPM] = (unsigned int)valueAsNumber;
       configUpdated = true;
-    }   
+    }
     if (!compareWithProgmem(parameterBuffer, webServerMG811FormParameterCalPoint0Adc)) {
       Serial.print(F("Setting MG811 calibration point 0 ADC value to "));
       Serial.println(valueAsNumber);
       calPointsMG811[0][MG811_CAL_POINT_ADC] = (unsigned int)valueAsNumber;
       configUpdated = true;
-    }   
+    }
     if (!compareWithProgmem(parameterBuffer, webServerMG811FormParameterCalPoint1Adc)) {
       Serial.print(F("Setting MG811 calibration point 1 ADC value to "));
       Serial.println(valueAsNumber);
       calPointsMG811[1][MG811_CAL_POINT_ADC] = (unsigned int)valueAsNumber;
       configUpdated = true;
-    }   
+    }
+    if (!compareWithProgmem(parameterBuffer, webServerMG811FormParameterRejectCal)) {
+      Serial.print(F("Setting MG811 calibration reject to "));
+      Serial.println(valueAsNumber);
+      rejectCalibrationMG811 = (byte)valueAsNumber;
+      configUpdated = true;
+    }
+    if (!compareWithProgmem(parameterBuffer, webServerMG811FormParameterFilter)) {
+      Serial.print(F("Setting MG811 filter to "));
+      Serial.println(valueAsNumber);
+      filterMG811 = (MG811Filter)valueAsNumber;
+      configUpdated = true;
+    }
+    if (!compareWithProgmem(parameterBuffer, webServerMG811FormParameterFilterFreq)) {
+      Serial.print(F("Setting MG811 low-pass frequency to "));
+      Serial.println(valueAsNumber);
+      filterMG811LowPassFrequency = (unsigned int)valueAsNumber;
+      configUpdated = true;
+    }
+    if (!compareWithProgmem(parameterBuffer, webServerFormParameterSensorSerialOutput)) {
+      Serial.print(F("Setting sensor readings' serial output to "));
+      Serial.println(valueAsNumber);
+      SensorSerialOutput = (byte)valueAsNumber;
+      configUpdated = true;
+    }
     if (currentParameter == NULL) break;
     currentParameter++;
   } while (1);
@@ -178,6 +202,34 @@ void webServerParameter(WiFiClient &client, const char * progmemDisplayName, con
   client.print(value);
   webServerPrintProgmem(client, webServerFormInputEnd);
 }
+
+void webServerParameterRadioButtonsHeader(WiFiClient &client, const char * progmemDisplayName) {
+  webServerPrintProgmem(client, webServerFormInputBegin);
+  webServerPrintProgmem(client, progmemDisplayName);
+  webServerPrintProgmem(client, webServerFormInputRadioHeaderEnd);
+}
+
+void webServerParameterRadioButtonsFooter(WiFiClient &client) {
+
+}
+
+void webServerParameterRadioButtonsOption(WiFiClient &client, const char * progmemDisplayName, const char * progmemParameterName, int optionValue, int actualValue) {
+  const int maxChars = 7; // 5 digits + minus sign + trailing zero
+  const int decimalRadix = 10;
+  char optionValueAsChar[maxChars] = {0};
+  itoa (optionValue, optionValueAsChar, decimalRadix);
+  webServerPrintProgmem(client, webServerFormInputRadio);
+  webServerPrintProgmem(client, progmemParameterName);
+  webServerPrintProgmem(client, webServerFormInputValue);
+  webServerPrintProgmem(client, optionValueAsChar);
+  if (optionValue == actualValue)
+    webServerPrintProgmem(client, webServerFormInputRadioEndChecked);
+  else
+    webServerPrintProgmem(client, webServerFormInputRadioEnd);
+  webServerPrintProgmem(client, progmemDisplayName);
+  webServerPrintProgmem(client, webServerFormInputRadioFinish);
+}
+
 
 void webServerBegin(void) {
   webServer.begin();
@@ -272,13 +324,56 @@ void webServerRun(void) {
   webServerParameter(client, webServerMG811FormParameterDisplayNameCalPoint0Adc, webServerMG811FormParameterCalPoint0Adc, (long)calPointsMG811[0][MG811_CAL_POINT_ADC]);
   webServerParameter(client, webServerMG811FormParameterDisplayNameCalPoint1Ppm, webServerMG811FormParameterCalPoint1Ppm, (long)calPointsMG811[1][MG811_CAL_POINT_PPM]);
   webServerParameter(client, webServerMG811FormParameterDisplayNameCalPoint1Adc, webServerMG811FormParameterCalPoint1Adc, (long)calPointsMG811[1][MG811_CAL_POINT_ADC]);
+  webServerParameterRadioButtonsHeader(client, webServerMG811FormParameterDisplayNameRejectCal);
+  webServerParameterRadioButtonsOption(client,
+                                       webServerFormParameterDisplayNameCommonOff,
+                                       webServerMG811FormParameterRejectCal,
+                                       0,
+                                       (int)rejectCalibrationMG811);
+  webServerParameterRadioButtonsOption(client,
+                                       webServerFormParameterDisplayNameCommonOn,
+                                       webServerMG811FormParameterRejectCal,
+                                       1,
+                                       (int)rejectCalibrationMG811);
+  webServerParameterRadioButtonsFooter(client);
+  webServerParameterRadioButtonsHeader(client, webServerMG811FormParameterDisplayNameFilter);
+  webServerParameterRadioButtonsOption(client,
+                                       webServerMG811FormParameterDisplayFilterOff,
+                                       webServerMG811FormParameterFilter,
+                                       (unsigned int)MG811_FILTER_OFF,
+                                       (unsigned int)filterMG811);
+  webServerParameterRadioButtonsOption(client,
+                                       webServerMG811FormParameterDisplayFilterAverage,
+                                       webServerMG811FormParameterFilter,
+                                       (unsigned int)MG811_FILTER_AVERAGE,
+                                       (unsigned int)filterMG811);
+  webServerParameterRadioButtonsOption(client,
+                                       webServerMG811FormParameterDisplayFilterLowpass,
+                                       webServerMG811FormParameterFilter,
+                                       (unsigned int)MG811_FILTER_LOWPASS,
+                                       (unsigned int)filterMG811);
+  webServerParameterRadioButtonsFooter(client);
+  webServerParameter(client, webServerMG811FormParameterDisplayNameFilterFreq, webServerMG811FormParameterFilterFreq, filterMG811LowPassFrequency);
   webServerPrintProgmem(client, webServerFormEnd);
 
-//  webServerPrintProgmem(client, webServerFormBegin1);
-//  webServerPrintProgmem(client, webServerMiscFormCaption);
-//  webServerPrintProgmem(client, webServerFormBegin2);
-//  webServerPrintProgmem(client, webServerFormEnd);
-  
+  webServerPrintProgmem(client, webServerFormBegin1);
+  webServerPrintProgmem(client, webServerMiscFormCaption);
+  webServerPrintProgmem(client, webServerFormBegin2);
+  //  webServerParameter(client, webServerFormParameterDisplayNameSensorSerialOutput, webServerFormParameterSensorSerialOutput, (int)SensorSerialOutput);
+  webServerParameterRadioButtonsHeader(client, webServerFormParameterDisplayNameSensorSerialOutput);
+  webServerParameterRadioButtonsOption(client,
+                                       webServerFormParameterDisplayNameCommonOff,
+                                       webServerFormParameterSensorSerialOutput,
+                                       0,
+                                       (int)SensorSerialOutput);
+  webServerParameterRadioButtonsOption(client,
+                                       webServerFormParameterDisplayNameCommonOn,
+                                       webServerFormParameterSensorSerialOutput,
+                                       1,
+                                       (int)SensorSerialOutput);
+  webServerParameterRadioButtonsFooter(client);
+  webServerPrintProgmem(client, webServerFormEnd);
+
   webServerPrintProgmem(client, webServerBodyEnd);
 
   Serial.print(F("["));

@@ -9,6 +9,7 @@
 #define EEPROM_CONFIG_H
 
 #include <Arduino.h>
+#include "mg811.h"
 
 #define CONFIG_TEXT_LENGTH 32 //NOT including trailing 0 character
 
@@ -22,6 +23,11 @@ extern char wifiPassword[CONFIG_TEXT_LENGTH + 1];
 #define MG811_CAL_POINT_ADC 1
 
 extern unsigned int calPointsMG811 [MG811_CAL_POINTS][MG811_NUMBERS_PER_CAL_POINT];
+extern MG811Filter filterMG811;
+extern unsigned int filterMG811LowPassFrequency;
+extern byte rejectCalibrationMG811;
+
+extern byte SensorSerialOutput;
 
 void saveConfig(void);
 void loadConfig(void);
