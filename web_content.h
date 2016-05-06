@@ -14,60 +14,37 @@ extern const char PROGMEM httpStatusCode200[];
 extern const char PROGMEM httpStatusCode404[];
 extern const char PROGMEM httpStatusCode405[];
 
-extern const char PROGMEM webServerHeadBegin[];
-extern const char PROGMEM webServerHeadBody[];
-extern const char PROGMEM webServerBodyEnd[];
+extern const char PROGMEM htmlConfigBodyBegin[];
+extern const char PROGMEM htmlConfigBodyEnd[];
 
-extern const char PROGMEM webServerFormBegin1[];
-extern const char PROGMEM webServerFormBegin2[];
-extern const char PROGMEM webServerFormInputBegin[];
-extern const char PROGMEM webServerFormInputRadio[];
-extern const char PROGMEM webServerFormInputInput[];
-extern const char PROGMEM webServerFormInputRadioHeaderEnd[];
-extern const char PROGMEM webServerFormInputValue[];
-extern const char PROGMEM webServerFormInputEnd[];
-extern const char PROGMEM webServerFormInputRadioEnd[];
-extern const char PROGMEM webServerFormInputRadioEndChecked[];
-extern const char PROGMEM webServerFormInputRadioFinish[];
-extern const char PROGMEM webServerFormEnd[];
+extern const char PROGMEM htmlConfigSectionBegin1[];
+extern const char PROGMEM htmlConfigSectionBegin2[];
+extern const char PROGMEM htmlConfigSectionEnd[];
 
-extern const char PROGMEM webServerFormParameterDisplayNameCommonOff[];
-extern const char PROGMEM webServerFormParameterDisplayNameCommonOn[];
+extern const char PROGMEM htmlConfigSubsectionBegin1[];
+extern const char PROGMEM htmlConfigSubsectionBegin2[];
+extern const char PROGMEM htmlConfigSubsectionEnd[];
 
-extern const char PROGMEM webServerWifiFormCaption[];
-extern const char PROGMEM webServerMG811FormCaption[];
-extern const char PROGMEM webServerMiscFormCaption[];
+extern const char PROGMEM htmlConfigSave[];
 
-extern const char PROGMEM webServerWifiFormParameterSsid[];
-extern const char PROGMEM webServerWifiFormParameterPassword[];
-extern const char PROGMEM webServerWifiFormParameterAuth[];
+extern const char PROGMEM htmlConfigTooltipBegin[];
+extern const char PROGMEM htmlConfigTooltipEnd[];
 
-extern const char PROGMEM webServerWifiFormParameterDisplayNameSsid[];
-extern const char PROGMEM webServerWifiFormParameterDisplayNamePassword[];
-extern const char PROGMEM webServerWifiFormParameterDisplayNameAuth[];
+extern const char PROGMEM htmlConfigParameterTextPart1[];
+extern const char PROGMEM htmlConfigParameterTextPart2[];
+extern const char PROGMEM htmlConfigParameterTextPart3[];
+extern const char PROGMEM htmlConfigParameterTextPart4[];
+extern const char PROGMEM htmlConfigParameterTextPart5[];
 
-extern const char PROGMEM webServerMG811FormParameterCalPoint0Ppm[];
-extern const char PROGMEM webServerMG811FormParameterCalPoint0Adc[];
-extern const char PROGMEM webServerMG811FormParameterCalPoint1Ppm[];
-extern const char PROGMEM webServerMG811FormParameterCalPoint1Adc[];
+extern const char PROGMEM htmlConfigParameterSelectPart1[];
+extern const char PROGMEM htmlConfigParameterSelectPart2[];
+extern const char PROGMEM htmlConfigParameterSelectPart3[];
+extern const char PROGMEM htmlConfigParameterSelectPart4[];
+extern const char PROGMEM htmlConfigParameterSelectPart5[];
 
-extern const char PROGMEM webServerMG811FormParameterDisplayNameCalPoint0Ppm[];
-extern const char PROGMEM webServerMG811FormParameterDisplayNameCalPoint0Adc[];
-extern const char PROGMEM webServerMG811FormParameterDisplayNameCalPoint1Ppm[];
-extern const char PROGMEM webServerMG811FormParameterDisplayNameCalPoint1Adc[];
-
-extern const char PROGMEM webServerMG811FormParameterRejectCal[];
-extern const char PROGMEM webServerMG811FormParameterFilter[];
-extern const char PROGMEM webServerMG811FormParameterFilterFreq[];
-extern const char PROGMEM webServerFormParameterSensorSerialOutput[];
-
-extern const char PROGMEM webServerMG811FormParameterDisplayNameRejectCal[];
-extern const char PROGMEM webServerMG811FormParameterDisplayNameFilter[];
-extern const char PROGMEM webServerMG811FormParameterDisplayNameFilterFreq[];
-extern const char PROGMEM webServerFormParameterDisplayNameSensorSerialOutput[];
-
-extern const char PROGMEM webServerMG811FormParameterDisplayFilterOff[];
-extern const char PROGMEM webServerMG811FormParameterDisplayFilterAverage[];
-extern const char PROGMEM webServerMG811FormParameterDisplayFilterLowpass[];
+extern const char PROGMEM htmlConfigParameterSelectOptionPart1[];
+extern const char PROGMEM htmlConfigParameterSelectOptionPart2[];
+extern const char PROGMEM htmlConfigParameterSelectOptionPart2Selected[];
+extern const char PROGMEM htmlConfigParameterSelectOptionPart3[];
 
 #endif

@@ -11,23 +11,35 @@
 #include <Arduino.h>
 #include "mg811.h"
 
-#define CONFIG_TEXT_LENGTH 32 //NOT including trailing 0 character
+//if true, then passwords, auth tokens, etc. are included in the debug output
+const boolean EEPROM_DEBUG_PRINT_INSECURE = true;
 
-extern char authToken[CONFIG_TEXT_LENGTH + 1];
-extern char wifiSsid[CONFIG_TEXT_LENGTH + 1];
-extern char wifiPassword[CONFIG_TEXT_LENGTH + 1];
+#define CONFIG_TEXT_LENGTH 32 //including trailing 0 character
 
-#define MG811_CAL_POINTS 2
-#define MG811_NUMBERS_PER_CAL_POINT 2
-#define MG811_CAL_POINT_PPM 0
-#define MG811_CAL_POINT_ADC 1
+#define EEPROM_SAVED_PARAMETERS_ADDRESS 0
 
-extern unsigned int calPointsMG811 [MG811_CAL_POINTS][MG811_NUMBERS_PER_CAL_POINT];
-extern MG811Filter filterMG811;
-extern unsigned int filterMG811LowPassFrequency;
-extern byte rejectCalibrationMG811;
+struct EepromSavedParameters {
+  char authToken[CONFIG_TEXT_LENGTH] = {0};
+  char wifiSsid[CONFIG_TEXT_LENGTH] = {0};
+  char wifiPassword[CONFIG_TEXT_LENGTH] = {0};
+  unsigned int MG811CalPoint0Calibrated = 0;
+  unsigned int MG811CalPoint0Raw = 0;
+  unsigned int MG811CalPoint1Calibrated = 100;
+  unsigned int MG811CalPoint1Raw = 1024;
+  MG811Filter filterMG811 = MG811_FILTER_OFF;
+  unsigned int filterMG811LowPassFrequency = 40;
+  byte rejectCalibrationMG811 = 0;
+  byte sensorSerialOutput = 0;
+};
 
-extern byte SensorSerialOutput;
+#ifdef ESP8266
+#define EEPROM_SIZE 512
+#endif
+
+static_assert ((sizeof(EepromSavedParameters) + EEPROM_SAVED_PARAMETERS_ADDRESS) <= EEPROM_SIZE,
+               "struct EepromSavedParameters does not fit into EEPROM (check EepromSavedParameters size and address)");
+
+extern EepromSavedParameters eepromSavedParameters;
 
 void saveConfig(void);
 void loadConfig(void);

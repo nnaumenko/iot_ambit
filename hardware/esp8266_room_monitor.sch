@@ -15819,7 +15819,7 @@ Source: www.kingbright.com</description>
 <part name="GND8" library="supply1" deviceset="GND" device=""/>
 <part name="R10" library="resistor" deviceset="R-EU_" device="M0805" value="10K"/>
 <part name="+3V7" library="supply1" deviceset="+3V3" device=""/>
-<part name="JP4" library="adafruit" deviceset="PINHD-1X3" device="" value="AM2302"/>
+<part name="JP4" library="adafruit" deviceset="PINHD-1X3" device="" value="AM2301"/>
 <part name="JP5" library="adafruit" deviceset="PINHD-1X3" device="" value="DS18B20"/>
 <part name="R12" library="resistor" deviceset="R-EU_" device="M0805" value="4K7"/>
 <part name="+3V8" library="supply1" deviceset="+3V3" device=""/>

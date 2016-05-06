@@ -23,6 +23,10 @@
 #include "webconfig.h"
 #include "web_content.h"
 
+#ifndef ESP8266
+#warning "Please select a ESP8266 board in Tools/Board"
+#endif
+
 /*
  * Debug functions
  */
@@ -95,9 +99,9 @@ void updateSensorOneWire(void) {
  * DHT temperture/humidity sensor
  */
 
-#define DHTTYPE DHT11   // DHT 11
+//#define DHTTYPE DHT11   // DHT 11
 //#define DHTTYPE DHT22   // DHT 22  (AM2302)
-//#define DHTTYPE DHT21   // DHT 21 (AM2301)
+#define DHTTYPE DHT21   // DHT 21 (AM2301)
 
 DHT dht(PIN_SENSOR_DHT, DHTTYPE, 15);
 
@@ -118,20 +122,20 @@ double calDataMG811_a = -0.02;
 double calDataMG811_b = 18;
 
 void calcCalDataMG811(void) {
-  const double Y1 = log((double)calPointsMG811[0][MG811_CAL_POINT_PPM]);
-  const double Y2 = log((double)calPointsMG811[1][MG811_CAL_POINT_PPM]);
-  const double X1 = (double)calPointsMG811[0][MG811_CAL_POINT_ADC];
-  const double X2 = (double)calPointsMG811[1][MG811_CAL_POINT_ADC];
+  const double Y1 = log((double)eepromSavedParameters.MG811CalPoint0Calibrated);
+  const double Y2 = log((double)eepromSavedParameters.MG811CalPoint1Calibrated);
+  const double X1 = (double)eepromSavedParameters.MG811CalPoint0Raw;
+  const double X2 = (double)eepromSavedParameters.MG811CalPoint1Raw;
   Serial.println(F("Calculating MG811 calibration data..."));
   Serial.print(F("Reference points: "));
-  Serial.print(F("ADC="));
-  Serial.print(calPointsMG811 [0][MG811_CAL_POINT_ADC]);
-  Serial.print(F(" CO2="));
-  Serial.print(calPointsMG811 [0][MG811_CAL_POINT_PPM]);
-  Serial.print(F("ppm / ADC="));
-  Serial.print(calPointsMG811 [1][MG811_CAL_POINT_ADC]);
-  Serial.print(F(" CO2="));
-  Serial.print(calPointsMG811 [1][MG811_CAL_POINT_PPM]);
+  Serial.print(F("Raw="));
+  Serial.print(eepromSavedParameters.MG811CalPoint0Raw);
+  Serial.print(F(" Calibrated="));
+  Serial.print(eepromSavedParameters.MG811CalPoint0Calibrated);
+  Serial.print(F("ppm / Raw="));
+  Serial.print(eepromSavedParameters.MG811CalPoint1Raw);
+  Serial.print(F(" Calibrated="));
+  Serial.print(eepromSavedParameters.MG811CalPoint1Calibrated);
   Serial.println(F("ppm"));
   double tempCalDataMG811_a = (Y2 - Y1) / (X2 - X1);
   double tempCalDataMG811_b = Y1 - calDataMG811_a * X1;
@@ -150,13 +154,13 @@ void calcCalDataMG811(void) {
     calDataMG811_b = tempCalDataMG811_b;
     Serial.println(F("Calibration data accepted"));
   }
-  if (rejectCalibrationMG811) {
+  if (eepromSavedParameters.rejectCalibrationMG811) {
     Serial.println(F("Uncalibrated mode selected, no ppm value will be calculated, the output value is 1024 - ADC_value."));
   }
 }
 
 unsigned int calcConcentrationCO2 (unsigned int rawAdcValue) {
-  if (rejectCalibrationMG811) return (1024 - rawAdcValue);
+  if (eepromSavedParameters.rejectCalibrationMG811) return (1024 - rawAdcValue);
   return ((unsigned int)exp(calDataMG811_a * ((double)rawAdcValue) + calDataMG811_b));
 }
 
@@ -164,7 +168,14 @@ unsigned int movingAverage(unsigned int input) {
   const static unsigned int AVERAGE_POINTS = 64;
   static unsigned int inputValuesHistory[AVERAGE_POINTS] = {0};
   static unsigned int currentValue = 0;
-  static unsigned long totalValue = 0;
+  static unsigned long totalValue;
+  static boolean firstRun = true;
+  if (firstRun) {
+    firstRun = false;
+    totalValue = input * AVERAGE_POINTS;
+    for (int i = 0; i < AVERAGE_POINTS; i++)
+      inputValuesHistory[i] = input;
+  }
   totalValue += input;
   totalValue -= inputValuesHistory[currentValue];
   inputValuesHistory[currentValue] = input;
@@ -195,17 +206,17 @@ void updateSensorMG811(void) {
   valueMG811 = calcConcentrationCO2(raw);
   const float millisPerSecond = 1000.0;
   const float unitsPerHz = 100.0;
-  switch (filterMG811) {
+  switch (eepromSavedParameters.filterMG811) {
     case MG811_FILTER_OFF:
       break;
     case MG811_FILTER_AVERAGE:
       valueMG811 = movingAverage(valueMG811);
       break;
     case MG811_FILTER_LOWPASS:
-      valueMG811 = lowPass(valueMG811, (float)UPDATE_TIME_MG811 / millisPerSecond, (float)filterMG811LowPassFrequency / unitsPerHz);
+      valueMG811 = lowPass(valueMG811, (float)UPDATE_TIME_MG811 / millisPerSecond, (float)eepromSavedParameters.filterMG811LowPassFrequency / unitsPerHz);
       break;
     default:
-      filterMG811 = MG811_FILTER_OFF;
+      eepromSavedParameters.filterMG811 = MG811_FILTER_OFF;
       break;
   }
 }
@@ -292,7 +303,7 @@ void updateStatusVirtualPins(void) {
 }
 
 void printSensorDebugInfo(void) {
-  if (!SensorSerialOutput) return;
+  if (!eepromSavedParameters.sensorSerialOutput) return;
 
   Serial.print(F("["));
   Serial.print(millis());
@@ -306,7 +317,7 @@ void printSensorDebugInfo(void) {
   Serial.print(F(" OneWire(0) T = "));
   Serial.print(valueTemperatureOneWire);
 
-  if (!rejectCalibrationMG811)
+  if (!eepromSavedParameters.rejectCalibrationMG811)
     Serial.print(F(" MG811 ppm = "));
   else
     Serial.print(F(" MG811 value = "));
@@ -349,8 +360,6 @@ void setup() {
 
   isConfigMode = !digitalRead(PIN_SWITCH_CONFIG);
   if (isConfigMode) {
-    pinMode(PIN_SWITCH_PROG, OUTPUT);
-    digitalWrite(PIN_SWITCH_PROG, false);
     Serial.println(F("Config Mode enabled."));
     const int TEXT_SIZE = 32;
     char ssid[TEXT_SIZE + 1] = {0};
@@ -359,6 +368,7 @@ void setup() {
     char password[TEXT_SIZE + 1] = {0};
     strncpy_P(password, passwordConfigModePrefix, sizeof(password));
     strncat(password, flashId, sizeof(password) - strlen(password));
+    WiFi.mode(WIFI_AP);
     WiFi.softAP(ssid, password);
     Serial.println(F("Access point created: "));
     Serial.print(F("SSID: "));
@@ -372,7 +382,8 @@ void setup() {
   }
   else {
     Serial.println(F("Config Mode not enabled."));
-    Blynk.begin(authToken, wifiSsid, wifiPassword);
+    WiFi.mode(WIFI_STA);
+    Blynk.begin(eepromSavedParameters.authToken, eepromSavedParameters.wifiSsid, eepromSavedParameters.wifiPassword);
     Serial.println(F("Blynk init completed."));
   }
   dht.begin();
@@ -411,5 +422,6 @@ void loop() {
     webServerRun();
   }
 }
+
 
 
