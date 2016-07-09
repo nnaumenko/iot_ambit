@@ -7,6 +7,9 @@
 
 #include "web_content.h"
 
+#define FORM_URL "/"
+#define FORM_METHOD "POST"
+
 #define HTML_FORMATTING
 
 #ifdef HTML_FORMATTING
@@ -20,10 +23,6 @@
 #define CSSCOMMENT(comment) ""
 #define JSCOMMENT(comment) ""
 #endif
-
-const char PROGMEM httpStatusCode200[] = "HTTP/1.1 200 OK\r\nContent-Type: text/html\r\n\r\n";
-const char PROGMEM httpStatusCode404[] = "HTTP/1.1 404 Not Found\r\n";
-const char PROGMEM httpStatusCode405[] = "HTTP/1.1 405 Method Not Allowed\r\n";
 
 const char PROGMEM htmlConfigBodyBegin[] =
   "<!DOCTYPE html>" CRLF
@@ -97,7 +96,7 @@ const char PROGMEM htmlConfigBodyBegin[] =
   TAB "border-bottom:none;" CRLF
   TAB "background:#66FF66;" CRLF
   TAB "padding-bottom:7px;" CRLF
-  TAB "margin-top:0;" CRLF 
+  TAB "margin-top:0;" CRLF
   "}" CRLF
   ".tab-header ul.tab-list a {" CRLF
   TAB "\tbackground:#D0D0D0;"
@@ -183,7 +182,7 @@ const char PROGMEM htmlConfigBodyBegin[] =
   TAB "tabContents=getChildElementsByClassName(tabContainer, 'tab-content');" CRLF
   TAB "if(tabContents.length>0) {" CRLF
   TAB TAB "for(i=0;i<tabContents.length;i++) {" CRLF
-/*  TAB TAB TAB "//tabContents[i].className = \"tab-content\";" CRLF*/
+  /*  TAB TAB TAB "//tabContents[i].className = \"tab-content\";" CRLF*/
   TAB TAB TAB "tabContents[i].style.display=\"none\";" CRLF
   TAB TAB "}" CRLF
   CRLF
@@ -231,7 +230,7 @@ const char PROGMEM htmlConfigSectionBegin1[] =
 
 const char PROGMEM htmlConfigSectionBegin2[] =
   "</h2><br>" CRLF
-  "<form method=\"GET\" action=\"/\">" CRLF
+  "<form method=\"" FORM_METHOD "\" action=\"" FORM_URL "\">" CRLF
   ;
 
 const char PROGMEM htmlConfigSectionEnd[] =
@@ -314,3 +313,112 @@ const char PROGMEM htmlConfigParameterSelectOptionPart2Selected[] =
 
 const char PROGMEM htmlConfigParameterSelectOptionPart3[] =
   "</option>" CRLF;
+
+///////////////////////////////////////////////////////////////////////////////////////////
+// class HtmlPage
+///////////////////////////////////////////////////////////////////////////////////////////
+
+HtmlPage::HtmlPage(Print &client) {
+  this->client = &client;
+}
+
+void HtmlPage::bodyBegin(void) {
+  if (this->client == NULL) return;
+  this->client->print((__FlashStringHelper *)htmlConfigBodyBegin);
+}
+
+void HtmlPage::bodyEnd(void) {
+  if (this->client == NULL) return;
+  this->client->print((__FlashStringHelper *)htmlConfigBodyEnd);
+}
+
+void HtmlPage::sectionBegin(const __FlashStringHelper * displayName) {
+  if (this->client == NULL) return;
+  this->client->print((__FlashStringHelper *)htmlConfigSectionBegin1);
+  this->client->print(displayName);
+  this->client->print((__FlashStringHelper *)htmlConfigSectionBegin2);
+}
+
+void HtmlPage::sectionEnd(void) {
+  if (this->client == NULL) return;
+  this->client->print((__FlashStringHelper *)htmlConfigSave);
+  this->client->print((__FlashStringHelper *)htmlConfigSectionEnd);
+}
+
+void HtmlPage::subsectionBegin(const __FlashStringHelper * displayName) {
+  if (this->client == NULL) return;
+  this->client->print((__FlashStringHelper *)htmlConfigSubsectionBegin1);
+  this->client->print(displayName);
+  this->client->print((__FlashStringHelper *)htmlConfigSubsectionBegin2);
+}
+
+void HtmlPage::subsectionEnd(void) {
+  if (this->client == NULL) return;
+  this->client->print((__FlashStringHelper *)htmlConfigSubsectionEnd);
+}
+
+void HtmlPage::textParameter(const __FlashStringHelper * displayName,
+                             const __FlashStringHelper * internalName,
+                             char * value,
+                             const __FlashStringHelper * tooltipText) {
+  if (this->client == NULL) return;
+  this->client->print((__FlashStringHelper *)htmlConfigParameterTextPart1);
+  this->client->print(displayName);
+  this->client->print((__FlashStringHelper *)htmlConfigParameterTextPart2);
+  if (tooltipText != NULL) {
+    this->client->print((__FlashStringHelper *)htmlConfigTooltipBegin);
+    this->client->print(tooltipText);
+    this->client->print((__FlashStringHelper *)htmlConfigTooltipEnd);
+  }
+  this->client->print((__FlashStringHelper *)htmlConfigParameterTextPart3);
+  this->client->print(internalName);
+  this->client->print((__FlashStringHelper *)htmlConfigParameterTextPart4);
+  if (value != NULL) {
+    this->client->print(value);
+  }
+  this->client->print((__FlashStringHelper *)htmlConfigParameterTextPart5);
+}
+
+void HtmlPage::textParameter(const __FlashStringHelper * displayName,
+                             const __FlashStringHelper * internalName,
+                             long value,
+                             const __FlashStringHelper * tooltipText) {
+  const size_t maxCharsPerLongValue = 12; //max 10 digits + optional minus sign + null character
+  const int decimalRadix = 10;
+  char valueAsText[maxCharsPerLongValue] = {0};
+  char * valueAsText2 = ltoa (value, valueAsText, decimalRadix);
+  this->textParameter(displayName, internalName, valueAsText2, tooltipText);
+}
+
+void HtmlPage::selectParameterBegin(const __FlashStringHelper * displayName,
+                                    const __FlashStringHelper * internalName,
+                                    const __FlashStringHelper * tooltipText) {
+  this->client->print((__FlashStringHelper *)htmlConfigParameterSelectPart1);
+  this->client->print(displayName);
+  this->client->print((__FlashStringHelper *)htmlConfigParameterSelectPart2);
+  if (tooltipText != NULL) {
+    this->client->print((__FlashStringHelper *)htmlConfigTooltipBegin);
+    this->client->print(tooltipText);
+    this->client->print((__FlashStringHelper *)htmlConfigTooltipEnd);
+  }
+  this->client->print((__FlashStringHelper *)htmlConfigParameterSelectPart3);
+  this->client->print(internalName);
+  this->client->print((__FlashStringHelper *)htmlConfigParameterSelectPart4);
+}
+
+void HtmlPage::selectParameterEnd(void) {
+  this->client->print((__FlashStringHelper *)htmlConfigParameterSelectPart5);
+}
+
+void HtmlPage::selectParameterOption(const __FlashStringHelper * optionDisplayName, int optionValue, int actualValue) {
+  this->client->print((__FlashStringHelper *)htmlConfigParameterSelectOptionPart1);
+  this->client->print(optionValue, DEC);
+  if (optionValue == actualValue)
+    this->client->print((__FlashStringHelper *)htmlConfigParameterSelectOptionPart2Selected);
+  else
+    this->client->print((__FlashStringHelper *)htmlConfigParameterSelectOptionPart2);
+  this->client->print(optionDisplayName);
+  this->client->print((__FlashStringHelper *)htmlConfigParameterSelectOptionPart3);
+
+}
+  

@@ -1,9 +1,9 @@
 /*
- * Copyright (C) 2016 Nick Naumenko (https://github.com/nnaumenko)
- * All rights reserved
- * This software may be modified and distributed under the terms
- * of the MIT license. See the LICENSE file for details.
- */
+* Copyright (C) 2016 Nick Naumenko (https://github.com/nnaumenko)
+* All rights reserved
+* This software may be modified and distributed under the terms
+* of the MIT license. See the LICENSE file for details.
+*/
 
 #define BLYNK_PRINT Serial
 
@@ -20,16 +20,14 @@
 #include "mg811.h"
 
 #include "eeprom_config.h"
+#include "http.h"
 #include "webconfig.h"
 #include "web_content.h"
+#include "stringmap.h"
 
 #ifndef ESP8266
 #warning "Please select a ESP8266 board in Tools/Board"
 #endif
-
-/*
- * Debug functions
- */
 
 /*
  * Config mode SSID and password prefix
@@ -84,7 +82,7 @@ boolean statusOperateLED = false;
  */
 
 OneWire oneWire(PIN_SENSOR_ONEWIRE);
-DallasTemperature sensorsDS18B20(&oneWire); // Pass our oneWire reference to Dallas Temperature.
+DallasTemperature sensorsDS18B20(&oneWire);
 
 void updateSensorOneWire(void) {
   const int ONEWIRE_SENSOR_INDEX = 0;
@@ -122,20 +120,20 @@ double calDataMG811_a = -0.02;
 double calDataMG811_b = 18;
 
 void calcCalDataMG811(void) {
-  const double Y1 = log((double)eepromSavedParameters.MG811CalPoint0Calibrated);
-  const double Y2 = log((double)eepromSavedParameters.MG811CalPoint1Calibrated);
-  const double X1 = (double)eepromSavedParameters.MG811CalPoint0Raw;
-  const double X2 = (double)eepromSavedParameters.MG811CalPoint1Raw;
+  const double Y1 = log((double)eepromSavedParametersStorage.MG811CalPoint0Calibrated);
+  const double Y2 = log((double)eepromSavedParametersStorage.MG811CalPoint1Calibrated);
+  const double X1 = (double)eepromSavedParametersStorage.MG811CalPoint0Raw;
+  const double X2 = (double)eepromSavedParametersStorage.MG811CalPoint1Raw;
   Serial.println(F("Calculating MG811 calibration data..."));
   Serial.print(F("Reference points: "));
   Serial.print(F("Raw="));
-  Serial.print(eepromSavedParameters.MG811CalPoint0Raw);
+  Serial.print(eepromSavedParametersStorage.MG811CalPoint0Raw);
   Serial.print(F(" Calibrated="));
-  Serial.print(eepromSavedParameters.MG811CalPoint0Calibrated);
+  Serial.print(eepromSavedParametersStorage.MG811CalPoint0Calibrated);
   Serial.print(F("ppm / Raw="));
-  Serial.print(eepromSavedParameters.MG811CalPoint1Raw);
+  Serial.print(eepromSavedParametersStorage.MG811CalPoint1Raw);
   Serial.print(F(" Calibrated="));
-  Serial.print(eepromSavedParameters.MG811CalPoint1Calibrated);
+  Serial.print(eepromSavedParametersStorage.MG811CalPoint1Calibrated);
   Serial.println(F("ppm"));
   double tempCalDataMG811_a = (Y2 - Y1) / (X2 - X1);
   double tempCalDataMG811_b = Y1 - calDataMG811_a * X1;
@@ -154,13 +152,13 @@ void calcCalDataMG811(void) {
     calDataMG811_b = tempCalDataMG811_b;
     Serial.println(F("Calibration data accepted"));
   }
-  if (eepromSavedParameters.rejectCalibrationMG811) {
+  if (eepromSavedParametersStorage.rejectCalibrationMG811) {
     Serial.println(F("Uncalibrated mode selected, no ppm value will be calculated, the output value is 1024 - ADC_value."));
   }
 }
 
 unsigned int calcConcentrationCO2 (unsigned int rawAdcValue) {
-  if (eepromSavedParameters.rejectCalibrationMG811) return (1024 - rawAdcValue);
+  if (eepromSavedParametersStorage.rejectCalibrationMG811) return (1024 - rawAdcValue);
   return ((unsigned int)exp(calDataMG811_a * ((double)rawAdcValue) + calDataMG811_b));
 }
 
@@ -173,7 +171,7 @@ unsigned int movingAverage(unsigned int input) {
   if (firstRun) {
     firstRun = false;
     totalValue = input * AVERAGE_POINTS;
-    for (int i = 0; i < AVERAGE_POINTS; i++)
+    for (unsigned int i = 0; i < AVERAGE_POINTS; i++)
       inputValuesHistory[i] = input;
   }
   totalValue += input;
@@ -206,17 +204,17 @@ void updateSensorMG811(void) {
   valueMG811 = calcConcentrationCO2(raw);
   const float millisPerSecond = 1000.0;
   const float unitsPerHz = 100.0;
-  switch (eepromSavedParameters.filterMG811) {
+  switch (eepromSavedParametersStorage.filterMG811) {
     case MG811_FILTER_OFF:
       break;
     case MG811_FILTER_AVERAGE:
       valueMG811 = movingAverage(valueMG811);
       break;
     case MG811_FILTER_LOWPASS:
-      valueMG811 = lowPass(valueMG811, (float)UPDATE_TIME_MG811 / millisPerSecond, (float)eepromSavedParameters.filterMG811LowPassFrequency / unitsPerHz);
+      valueMG811 = lowPass(valueMG811, (float)UPDATE_TIME_MG811 / millisPerSecond, (float)eepromSavedParametersStorage.filterMG811LowPassFrequency / unitsPerHz);
       break;
     default:
-      eepromSavedParameters.filterMG811 = MG811_FILTER_OFF;
+      eepromSavedParametersStorage.filterMG811 = MG811_FILTER_OFF;
       break;
   }
 }
@@ -303,7 +301,7 @@ void updateStatusVirtualPins(void) {
 }
 
 void printSensorDebugInfo(void) {
-  if (!eepromSavedParameters.sensorSerialOutput) return;
+  if (!eepromSavedParametersStorage.sensorSerialOutput) return;
 
   Serial.print(F("["));
   Serial.print(millis());
@@ -317,7 +315,7 @@ void printSensorDebugInfo(void) {
   Serial.print(F(" OneWire(0) T = "));
   Serial.print(valueTemperatureOneWire);
 
-  if (!eepromSavedParameters.rejectCalibrationMG811)
+  if (!eepromSavedParametersStorage.rejectCalibrationMG811)
     Serial.print(F(" MG811 ppm = "));
   else
     Serial.print(F(" MG811 value = "));
@@ -338,6 +336,7 @@ boolean isConfigMode = false;
 
 void setup() {
   Serial.begin(9600);
+
   Serial.println(F("\nInit started."));
 
   pinMode(PIN_SWITCH_PROG, INPUT);
@@ -361,7 +360,7 @@ void setup() {
   isConfigMode = !digitalRead(PIN_SWITCH_CONFIG);
   if (isConfigMode) {
     Serial.println(F("Config Mode enabled."));
-    const int TEXT_SIZE = 32;
+    const size_t TEXT_SIZE = 32;
     char ssid[TEXT_SIZE + 1] = {0};
     strncpy_P(ssid, ssidConfigModePrefix, sizeof(ssid));
     strncat(ssid, chipId, sizeof(ssid) - strlen(ssid));
@@ -377,13 +376,13 @@ void setup() {
     Serial.println(password);
     Serial.print(F("IP address: "));
     Serial.println(WiFi.softAPIP());
-    webServerBegin();
+    webConfigBegin();
     Serial.println(F("Web server started."));
   }
   else {
     Serial.println(F("Config Mode not enabled."));
     WiFi.mode(WIFI_STA);
-    Blynk.begin(eepromSavedParameters.authToken, eepromSavedParameters.wifiSsid, eepromSavedParameters.wifiPassword);
+    Blynk.begin(eepromSavedParametersStorage.authToken, eepromSavedParametersStorage.wifiSsid, eepromSavedParametersStorage.wifiPassword);
     Serial.println(F("Blynk init completed."));
   }
   dht.begin();
@@ -419,7 +418,7 @@ void loop() {
     Blynk.run();
   }
   else {
-    webServerRun();
+    webConfigRun();
   }
 }
 

@@ -10,41 +10,32 @@
 
 #include <Arduino.h>
 
-extern const char PROGMEM httpStatusCode200[];
-extern const char PROGMEM httpStatusCode404[];
-extern const char PROGMEM httpStatusCode405[];
-
-extern const char PROGMEM htmlConfigBodyBegin[];
-extern const char PROGMEM htmlConfigBodyEnd[];
-
-extern const char PROGMEM htmlConfigSectionBegin1[];
-extern const char PROGMEM htmlConfigSectionBegin2[];
-extern const char PROGMEM htmlConfigSectionEnd[];
-
-extern const char PROGMEM htmlConfigSubsectionBegin1[];
-extern const char PROGMEM htmlConfigSubsectionBegin2[];
-extern const char PROGMEM htmlConfigSubsectionEnd[];
-
-extern const char PROGMEM htmlConfigSave[];
-
-extern const char PROGMEM htmlConfigTooltipBegin[];
-extern const char PROGMEM htmlConfigTooltipEnd[];
-
-extern const char PROGMEM htmlConfigParameterTextPart1[];
-extern const char PROGMEM htmlConfigParameterTextPart2[];
-extern const char PROGMEM htmlConfigParameterTextPart3[];
-extern const char PROGMEM htmlConfigParameterTextPart4[];
-extern const char PROGMEM htmlConfigParameterTextPart5[];
-
-extern const char PROGMEM htmlConfigParameterSelectPart1[];
-extern const char PROGMEM htmlConfigParameterSelectPart2[];
-extern const char PROGMEM htmlConfigParameterSelectPart3[];
-extern const char PROGMEM htmlConfigParameterSelectPart4[];
-extern const char PROGMEM htmlConfigParameterSelectPart5[];
-
-extern const char PROGMEM htmlConfigParameterSelectOptionPart1[];
-extern const char PROGMEM htmlConfigParameterSelectOptionPart2[];
-extern const char PROGMEM htmlConfigParameterSelectOptionPart2Selected[];
-extern const char PROGMEM htmlConfigParameterSelectOptionPart3[];
+class HtmlPage {
+  public:
+    HtmlPage(Print &client);
+    void bodyBegin(void);
+    void bodyEnd(void);
+    void sectionBegin(const __FlashStringHelper * displayName);
+    void sectionEnd(void);
+    void subsectionBegin(const __FlashStringHelper * displayName);
+    void subsectionEnd(void);
+    void textParameter (const __FlashStringHelper * displayName,
+                        const __FlashStringHelper * internalName,
+                        char * value = NULL,
+                        const __FlashStringHelper * tooltipText = NULL);
+    void textParameter (const __FlashStringHelper * displayName,
+                        const __FlashStringHelper * internalName,
+                        long value,
+                        const __FlashStringHelper * tooltipText = NULL);
+    void selectParameterBegin(const __FlashStringHelper * displayName,
+                              const __FlashStringHelper * internalName,
+                              const __FlashStringHelper * tooltipText = NULL);
+    void selectParameterOption(const __FlashStringHelper * optionDisplayName,
+                               int optionValue,
+                               int actualValue);
+    void selectParameterEnd (void);
+  private:
+    Print * client = NULL;
+};
 
 #endif
