@@ -5,6 +5,9 @@
  * of the MIT license. See the LICENSE file for details.
  */
 
+#include "diag.h"
+
+#include "version.h"
 #include "eeprom_config.h"
 
 #include <EEPROM.h>
@@ -22,7 +25,9 @@ const PROGMEM QuickStringMapItem stringMapEepromSavedParameterInternalNames[] {
   {(StringMapKey)EepromSavedParameter::MG811FILTER_TYPE, "adcfilter"},
   {(StringMapKey)EepromSavedParameter::MG811FILTER_LOWPASS_FREQ, "adcfiltfreq"},
   {(StringMapKey)EepromSavedParameter::MG811_REJECT_CALIBRATION, "adcrejectcal"},
-  {(StringMapKey)EepromSavedParameter::MG811_SERIAL_OUT, "miscserout"},
+  {(StringMapKey)EepromSavedParameter::MISC_SERIAL_OUT, "miscserout"},
+  {(StringMapKey)EepromSavedParameter::BLYNK_SERVER, "blynkserver"},
+  {(StringMapKey)EepromSavedParameter::BLYNK_SERVER_PORT, "blynkport"},
   {(StringMapKey)EepromSavedParameter::UNKNOWN}
 };
 
@@ -40,15 +45,22 @@ void loadFromEEPROM (int address, void * parameter, size_t length) {
   }
 }
 
+uint16 calculateCheckSum (void){
+  return(0); //TODO
+}
+
 void saveConfig(void) {
+  eepromSavedParametersStorage.versionMajor = FIRMWARE_VERSION_MAJOR;
+  eepromSavedParametersStorage.versionMinor = FIRMWARE_VERSION_MINOR;
+  eepromSavedParametersStorage.checkSum = calculateCheckSum();
   EEPROM.begin(sizeof(eepromSavedParametersStorage) + EEPROM_SAVED_PARAMETERS_ADDRESS);
   saveToEEPROM(EEPROM_SAVED_PARAMETERS_ADDRESS,
                (void *)&eepromSavedParametersStorage,
                sizeof(eepromSavedParametersStorage));
   EEPROM.end();
-  Serial.print(F("["));
-  Serial.print(millis());
-  Serial.println(F("] Config saved to EEPROM."));
+  DiagLog.print(F("["));
+  DiagLog.print(millis());
+  DiagLog.println(F("] Config saved to EEPROM."));
 }
 
 void loadConfig(void) {
@@ -57,54 +69,64 @@ void loadConfig(void) {
                  (void *)&eepromSavedParametersStorage,
                  sizeof(eepromSavedParametersStorage));
   EEPROM.end();
-  Serial.print(F("["));
-  Serial.print(millis());
-  Serial.println(F("] Config loaded from EEPROM."));
-  Serial.print(F("WIFI network: "));
-  Serial.println(eepromSavedParametersStorage.wifiSsid);
+  DiagLog.print(F("["));
+  DiagLog.print(millis());
+  DiagLog.println(F("] Config loaded from EEPROM."));
+  DiagLog.print(F("Config saved with firmware version "));
+  DiagLog.print(eepromSavedParametersStorage.versionMajor);
+  DiagLog.print(F("."));
+  DiagLog.println(eepromSavedParametersStorage.versionMinor);
+  if ((eepromSavedParametersStorage.versionMajor != FIRMWARE_VERSION_MAJOR) ||
+      (eepromSavedParametersStorage.versionMinor != FIRMWARE_VERSION_MINOR))
+    DiagLog.print(F("CONFIG SAVED WITH DIFFERENT FIRMWARE VERSION, PLEASE ACTIVATE CONFIG MODE AND REVIEW DATA"));
+  DiagLog.print(F("Checksum: 0x"));
+  DiagLog.println(eepromSavedParametersStorage.checkSum, HEX);
+  if (calculateCheckSum() != eepromSavedParametersStorage.checkSum) DiagLog.print(F("CONFIG CHECKSUM WRONG, PLEASE ACTIVATE CONFIG MODE AND REVIEW DATA"));
+  DiagLog.print(F("WIFI network: "));
+  DiagLog.println(eepromSavedParametersStorage.wifiSsid);
   if (EEPROM_DEBUG_PRINT_INSECURE) {
-    Serial.print(F("WIFI password: "));
-    Serial.println(eepromSavedParametersStorage.wifiPassword);
-    Serial.print(F("Auth token: "));
-    Serial.println(eepromSavedParametersStorage.authToken);
+    DiagLog.print(F("WIFI password: "));
+    DiagLog.println(eepromSavedParametersStorage.wifiPassword);
+    DiagLog.print(F("Auth token: "));
+    DiagLog.println(eepromSavedParametersStorage.authToken);
   }
-  Serial.print(F("MG811 cal points: "));
-  Serial.print(F("Raw="));
-  Serial.print(eepromSavedParametersStorage.MG811CalPoint0Raw);
-  Serial.print(F(" Calibrated="));
-  Serial.print(eepromSavedParametersStorage.MG811CalPoint0Calibrated);
-  Serial.print(F("ppm / Raw="));
-  Serial.print(eepromSavedParametersStorage.MG811CalPoint1Raw);
-  Serial.print(F(" Calibrated="));
-  Serial.print(eepromSavedParametersStorage.MG811CalPoint1Calibrated);
-  Serial.println(F("ppm"));
-  Serial.print(F("MG811 filter: "));
+  DiagLog.print(F("MG811 cal points: "));
+  DiagLog.print(F("Raw="));
+  DiagLog.print(eepromSavedParametersStorage.MG811CalPoint0Raw);
+  DiagLog.print(F(" Calibrated="));
+  DiagLog.print(eepromSavedParametersStorage.MG811CalPoint0Calibrated);
+  DiagLog.print(F("ppm / Raw="));
+  DiagLog.print(eepromSavedParametersStorage.MG811CalPoint1Raw);
+  DiagLog.print(F(" Calibrated="));
+  DiagLog.print(eepromSavedParametersStorage.MG811CalPoint1Calibrated);
+  DiagLog.println(F("ppm"));
+  DiagLog.print(F("MG811 filter: "));
   switch (eepromSavedParametersStorage.filterMG811) {
     case MG811_FILTER_OFF:
-      Serial.println(F("off"));
+      DiagLog.println(F("off"));
       break;
     case MG811_FILTER_AVERAGE:
-      Serial.println(F("moving average"));
+      DiagLog.println(F("moving average"));
       break;
     case MG811_FILTER_LOWPASS:
-      Serial.print(F("low-pass, limit frequency: "));
-      Serial.print(eepromSavedParametersStorage.filterMG811LowPassFrequency);
-      Serial.println(F(" x 0.01 Hz"));
+      DiagLog.print(F("low-pass, limit frequency: "));
+      DiagLog.print(eepromSavedParametersStorage.filterMG811LowPassFrequency);
+      DiagLog.println(F(" x 0.01 Hz"));
       break;
     default:
-      Serial.print(F("unknown ("));
-      Serial.print((int)eepromSavedParametersStorage.filterMG811, DEC);
-      Serial.println(F(")"));
+      DiagLog.print(F("unknown ("));
+      DiagLog.print((int)eepromSavedParametersStorage.filterMG811, DEC);
+      DiagLog.println(F(")"));
       break;
   }
-  Serial.print(F("MG811 calibration mode: "));
+  DiagLog.print(F("MG811 calibration mode: "));
   if (!eepromSavedParametersStorage.rejectCalibrationMG811)
-    Serial.println(F("use calibration data"));
+    DiagLog.println(F("use calibration data"));
   else
-    Serial.println(F("use uncalibrated value"));
-  Serial.print(F("Sensor readings' serial output: "));
+    DiagLog.println(F("use uncalibrated value"));
+  DiagLog.print(F("Sensor readings' serial output: "));
   if (!eepromSavedParametersStorage.sensorSerialOutput)
-    Serial.println(F("off"));
+    DiagLog.println(F("off"));
   else
-    Serial.println(F("on"));
+    DiagLog.println(F("on"));
 }

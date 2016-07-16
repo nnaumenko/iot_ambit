@@ -9,6 +9,8 @@
 #include <ESP8266WiFi.h>
 #endif
 
+#include "diag.h"
+
 #include "eeprom_config.h"
 
 #include "webconfig.h"
@@ -16,18 +18,6 @@
 
 const unsigned int WEB_SERVER_PORT = 80;
 WiFiServer webServer(WEB_SERVER_PORT);
-
-const char PROGMEM webServerParameterInternalNameWifiSsid[] = "wifissid";
-const char PROGMEM webServerParameterInternalNameWifiPassword[] = "wifipass";
-const char PROGMEM webServerParameterInternalNameBlynkAuth[] = "blynkauth";
-const char PROGMEM webServerParameterInternalNameAdcCalPoint0Calibrated[] = "adccal0cal";
-const char PROGMEM webServerParameterInternalNameAdcCalPoint1Calibrated[] = "adccal1cal";
-const char PROGMEM webServerParameterInternalNameAdcCalPoint0Raw[] = "adccal0raw";
-const char PROGMEM webServerParameterInternalNameAdcCalPoint1Raw[] = "adccal1raw";
-const char PROGMEM webServerParameterInternalNameAdcRejectCal[] = "adcrejectcal";
-const char PROGMEM webServerParameterInternalNameAdcFilter[] = "adcfilter";
-const char PROGMEM webServerParameterInternalNameAdcFilterFreq[] = "adcfiltfreq";
-const char PROGMEM webServerParameterInternalNameMiscSensorSerialOutput[] = "miscserout";
 
 enum class HttpRequestMethod {
   UNKNOWN = STRINGMAP_ITEM_DEFAULT,
@@ -72,12 +62,15 @@ class WebConfigReqPartHandler : public HttpReqPartHandler {
   public:
     virtual void execute(char * value, HttpRequestPart part);
     void finish(void);
+  public:
+    HttpRequestMethod getMethod(void);
+    HttpRequestPath getPath(void);
   private:
     HttpRequestMethod reqMethod = HttpRequestMethod::UNKNOWN;
     HttpRequestPath reqPath = HttpRequestPath::UNKNOWN;
-    EepromSavedParameter lastParameterName;
   private:
     void setParameter(EepromSavedParameter parameterId, char * value);
+    EepromSavedParameter lastParameterName;
     boolean configUpdated = false;
 
 };
@@ -86,9 +79,9 @@ void WebConfigReqPartHandler::execute(char * value, HttpRequestPart part) {
   if (part == HttpRequestPart::METHOD) {
     QuickStringMap methodFinder (stringMapHttpRequestMethod);
     this->reqMethod = (HttpRequestMethod)methodFinder.find(value);
-    Serial.print(F("Method: "));
-    methodFinder.print(Serial, (StringMapKey)reqMethod);
-    Serial.println();
+    DiagLog.print(F("Method: "));
+    methodFinder.print(DiagLog, (StringMapKey)reqMethod);
+    DiagLog.println();
     if (reqMethod == HttpRequestMethod::OPTIONS) return;
     if (reqMethod == HttpRequestMethod::GET) return;
     if (reqMethod == HttpRequestMethod::POST) return;
@@ -98,11 +91,12 @@ void WebConfigReqPartHandler::execute(char * value, HttpRequestPart part) {
   if (part == HttpRequestPart::PATH) {
     QuickStringMap pathFinder (stringMapHttpRequestPath);
     this->reqPath = (HttpRequestPath)pathFinder.find(value);
-    Serial.print(F("Path: "));
-    pathFinder.print(Serial, (StringMapKey)this->reqPath);
-    Serial.println();
+    DiagLog.print(F("Path: "));
+    pathFinder.print(DiagLog, (StringMapKey)this->reqPath);
+    DiagLog.println();
     if (this->reqMethod == HttpRequestMethod::OPTIONS) {
       if (this->reqPath == HttpRequestPath::ASTERISK) return;
+      if (this->reqPath == HttpRequestPath::ROOT) return;
       this->parser->setError(HttpStatusCode::NOT_FOUND);
     }
     if (this->reqMethod == HttpRequestMethod::GET) {
@@ -119,15 +113,15 @@ void WebConfigReqPartHandler::execute(char * value, HttpRequestPart part) {
       (part == HttpRequestPart::POST_QUERY_NAME)) {
     QuickStringMap parameterNameFinder (stringMapEepromSavedParameterInternalNames);
     lastParameterName = (EepromSavedParameter)parameterNameFinder.find(value);
-    Serial.print(F("Parameter: "));
-    parameterNameFinder.print(Serial, (int)lastParameterName);
-    Serial.println();
+    DiagLog.print(F("Parameter: "));
+    parameterNameFinder.print(DiagLog, (int)lastParameterName);
+    DiagLog.println();
   }
 
   if ((part == HttpRequestPart::GET_QUERY_VALUE) ||
       (part == HttpRequestPart::POST_QUERY_VALUE)) {
-    Serial.print(F("Value: "));
-    Serial.println(value);
+    DiagLog.print(F("Value: "));
+    DiagLog.println(value);
     if (lastParameterName != EepromSavedParameter::UNKNOWN)
       this->setParameter(lastParameterName, value);
   }
@@ -137,74 +131,62 @@ void WebConfigReqPartHandler::setParameter(EepromSavedParameter parameterId, cha
   float valueAsNumber = atof (value);
   switch (parameterId) {
     case EepromSavedParameter::BLYNK_AUTH_TOKEN:
-      Serial.print(F("Setting auth token to "));
-      Serial.println(value);
       strncpy(eepromSavedParametersStorage.authToken, value, sizeof(eepromSavedParametersStorage.authToken) - 1);
       eepromSavedParametersStorage.authToken[sizeof(eepromSavedParametersStorage.authToken) - 1] = 0;
       this->configUpdated = true;
       break;
     case EepromSavedParameter::WIFI_SSID:
-      Serial.print(F("Setting SSID to "));
-      Serial.println(value);
       strncpy(eepromSavedParametersStorage.wifiSsid, value, sizeof(eepromSavedParametersStorage.wifiSsid) - 1);
       eepromSavedParametersStorage.wifiSsid[sizeof(eepromSavedParametersStorage.wifiSsid) - 1] = 0;
       this->configUpdated = true;
       break;
     case EepromSavedParameter::WIFI_PASSWORD:
-      Serial.print(F("Setting password to "));
-      Serial.println(value);
       strncpy(eepromSavedParametersStorage.wifiPassword, value, sizeof(eepromSavedParametersStorage.wifiPassword) - 1);
       eepromSavedParametersStorage.wifiPassword[sizeof(eepromSavedParametersStorage.wifiPassword) - 1] = 0;
       this->configUpdated = true;
       break;
     case EepromSavedParameter::MG811_CALPOINT0_CAL:
-      Serial.print(F("Setting MG811 calibration point 0 PPM value to "));
-      Serial.println(valueAsNumber);
       eepromSavedParametersStorage.MG811CalPoint0Calibrated = (unsigned int)valueAsNumber;
       this->configUpdated = true;
       break;
     case EepromSavedParameter::MG811_CALPOINT0_RAW:
-      Serial.print(F("Setting MG811 calibration point 0 ADC value to "));
-      Serial.println(valueAsNumber);
       eepromSavedParametersStorage.MG811CalPoint0Raw = (unsigned int)valueAsNumber;
       this->configUpdated = true;
       break;
     case EepromSavedParameter::MG811_CALPOINT1_CAL:
-      Serial.print(F("Setting MG811 calibration point 1 PPM value to "));
-      Serial.println(valueAsNumber);
       eepromSavedParametersStorage.MG811CalPoint1Calibrated = (unsigned int)valueAsNumber;
       this->configUpdated = true;
       break;
     case EepromSavedParameter::MG811_CALPOINT1_RAW:
-      Serial.print(F("Setting MG811 calibration point 1 ADC value to "));
-      Serial.println(valueAsNumber);
       eepromSavedParametersStorage.MG811CalPoint1Raw = (unsigned int)valueAsNumber;
       this->configUpdated = true;
       break;
     case EepromSavedParameter::MG811FILTER_TYPE:
-      Serial.print(F("Setting MG811 filter to "));
-      Serial.println(valueAsNumber);
       eepromSavedParametersStorage.filterMG811 = (MG811Filter)valueAsNumber;
       this->configUpdated = true;
       break;
     case EepromSavedParameter::MG811FILTER_LOWPASS_FREQ:
-      Serial.print(F("Setting MG811 low-pass frequency to "));
-      Serial.println(valueAsNumber);
       eepromSavedParametersStorage.filterMG811LowPassFrequency = (unsigned int)valueAsNumber;
       this->configUpdated = true;
       break;
     case EepromSavedParameter::MG811_REJECT_CALIBRATION:
-      Serial.print(F("Setting MG811 calibration reject to "));
-      Serial.println(valueAsNumber);
       eepromSavedParametersStorage.rejectCalibrationMG811 = (byte)valueAsNumber;
       this->configUpdated = true;
       break;
-    case EepromSavedParameter::MG811_SERIAL_OUT:
-      Serial.print(F("Setting sensor readings' serial output to "));
-      Serial.println(valueAsNumber);
+    case EepromSavedParameter::MISC_SERIAL_OUT:
       eepromSavedParametersStorage.sensorSerialOutput = (byte)valueAsNumber;
       this->configUpdated = true;
       break;
+    case EepromSavedParameter::BLYNK_SERVER:
+      strncpy(eepromSavedParametersStorage.blynkServer, value, sizeof(eepromSavedParametersStorage.blynkServer) - 1);
+      eepromSavedParametersStorage.blynkServer[sizeof(eepromSavedParametersStorage.blynkServer) - 1] = 0;
+      this->configUpdated = true;
+      break;
+    case EepromSavedParameter::BLYNK_SERVER_PORT:
+      eepromSavedParametersStorage.blynkServerPort = (unsigned int)valueAsNumber;
+      this->configUpdated = true;
+      break;
+
   }
 }
 
@@ -212,10 +194,18 @@ void WebConfigReqPartHandler::finish(void) {
   if (this->configUpdated) {
     saveConfig();
     loadConfig();
-    Serial.print(F("["));
-    Serial.print(millis());
-    Serial.println(F("] Config updated in EEPROM."));
+    DiagLog.print(F("["));
+    DiagLog.print(millis());
+    DiagLog.println(F("] Config updated in EEPROM."));
   }
+}
+
+HttpRequestMethod WebConfigReqPartHandler::getMethod(void) {
+  return (this->reqMethod);
+}
+
+HttpRequestPath WebConfigReqPartHandler::getPath(void) {
+  return (this->reqPath);
 }
 
 void webConfigBegin(void) {
@@ -228,59 +218,68 @@ void webConfigSendHttpStatus(Stream &client, HttpStatusCode statusCode) {
   client.println((int)statusCode, DEC);
   statusCodeText.print(client, (int)statusCode);
 
-  Serial.print(F("HTTP status code: "));
-  Serial.print((int)statusCode, DEC);
-  Serial.print(F(" "));
-  statusCodeText.print(Serial, (int)statusCode);
-  Serial.println();
+  DiagLog.print(F("HTTP status code: "));
+  DiagLog.print((int)statusCode, DEC);
+  DiagLog.print(F(" "));
+  statusCodeText.print(DiagLog, (int)statusCode);
+  DiagLog.println();
 
 }
 
 void webConfigSendConfigPage(Stream &client) {
-  Serial.print(F("["));
-  Serial.print(millis());
-  Serial.println(F("] Sending config webpage."));
+  DiagLog.print(F("["));
+  DiagLog.print(millis());
+  DiagLog.println(F("] Sending config webpage."));
 
   client.print(F("Content-Type: text/html\r\nCache-control: no-cache\r\nConnection: close\r\n\r\n"));
 
   HtmlPage webConfigPage(client);
+  QuickStringMap parameterNameFinder (stringMapEepromSavedParameterInternalNames);//code below assumes this StringMap only handles PROGMEM strings
 
   webConfigPage.bodyBegin();
 
   webConfigPage.sectionBegin(F("Connection"));
   webConfigPage.subsectionBegin(F("WiFi"));
   webConfigPage.textParameter(F("SSID"),
-                              (__FlashStringHelper *)webServerParameterInternalNameWifiSsid,
+                              (__FlashStringHelper *)parameterNameFinder.find((StringMapKey)EepromSavedParameter::WIFI_SSID),
                               eepromSavedParametersStorage.wifiSsid);
   webConfigPage.textParameter(F("Password"),
-                              (__FlashStringHelper *)webServerParameterInternalNameWifiPassword,
+                              (__FlashStringHelper *)parameterNameFinder.find((StringMapKey)EepromSavedParameter::WIFI_PASSWORD),
                               eepromSavedParametersStorage.wifiPassword,
                               F("Leave blank if connecting to open WiFi network"));
   webConfigPage.subsectionEnd();
   webConfigPage.subsectionBegin(F("Blynk"));
   webConfigPage.textParameter(F("Auth token"),
-                              (__FlashStringHelper *)webServerParameterInternalNameBlynkAuth,
+                              (__FlashStringHelper *)parameterNameFinder.find((StringMapKey)EepromSavedParameter::BLYNK_AUTH_TOKEN),
                               eepromSavedParametersStorage.authToken,
                               F("Auth token is provided by Blynk app"));
+  webConfigPage.textParameter(F("Blynk server"),
+                              (__FlashStringHelper *)parameterNameFinder.find((StringMapKey)EepromSavedParameter::BLYNK_SERVER),
+                              eepromSavedParametersStorage.blynkServer,
+                              F("Use Blynk Cloud (blynk-cloud.com) or private server"));
+  webConfigPage.textParameter(F("Blynk port"),
+                              (__FlashStringHelper *)parameterNameFinder.find((StringMapKey)EepromSavedParameter::BLYNK_SERVER_PORT),
+                              eepromSavedParametersStorage.blynkServerPort,
+                              F("Default port is 8442"));
   webConfigPage.subsectionEnd();
   webConfigPage.sectionEnd();
 
   webConfigPage.sectionBegin(F("MG811"));
   webConfigPage.subsectionBegin(F("Calibration points"));
   webConfigPage.textParameter(F("Point 0: ppm value"),
-                              (__FlashStringHelper *)webServerParameterInternalNameAdcCalPoint0Calibrated,
+                              (__FlashStringHelper *)parameterNameFinder.find((StringMapKey)EepromSavedParameter::MG811_CALPOINT0_CAL),
                               (long)eepromSavedParametersStorage.MG811CalPoint0Calibrated);
   webConfigPage.textParameter(F("Point 0: raw value"),
-                              (__FlashStringHelper *)webServerParameterInternalNameAdcCalPoint0Raw,
+                              (__FlashStringHelper *)parameterNameFinder.find((StringMapKey)EepromSavedParameter::MG811_CALPOINT0_RAW),
                               (long)eepromSavedParametersStorage.MG811CalPoint0Raw);
   webConfigPage.textParameter(F("Point 1: ppm value"),
-                              (__FlashStringHelper *)webServerParameterInternalNameAdcCalPoint1Calibrated,
+                              (__FlashStringHelper *)parameterNameFinder.find((StringMapKey)EepromSavedParameter::MG811_CALPOINT1_CAL),
                               (long)eepromSavedParametersStorage.MG811CalPoint1Calibrated);
   webConfigPage.textParameter(F("Point 1: raw value"),
-                              (__FlashStringHelper *)webServerParameterInternalNameAdcCalPoint1Raw,
+                              (__FlashStringHelper *)parameterNameFinder.find((StringMapKey)EepromSavedParameter::MG811_CALPOINT1_RAW),
                               (long)eepromSavedParametersStorage.MG811CalPoint1Raw);
   webConfigPage.selectParameterBegin(F("Reject calibration data"),
-                                     (__FlashStringHelper *)webServerParameterInternalNameAdcRejectCal,
+                                     (__FlashStringHelper *)parameterNameFinder.find((StringMapKey)EepromSavedParameter::MG811_REJECT_CALIBRATION),
                                      F("No ppm value calculation possible. Instead of ppm value, "
                                        "inverted raw ADC value is used. Enable this option if you would like to view trend only."));
   webConfigPage.selectParameterOption(F("Enable"), 1, (int)eepromSavedParametersStorage.rejectCalibrationMG811);
@@ -289,13 +288,13 @@ void webConfigSendConfigPage(Stream &client) {
   webConfigPage.subsectionEnd();
   webConfigPage.subsectionBegin(F("Filtering"));
   webConfigPage.selectParameterBegin(F("Filter"),
-                                     (__FlashStringHelper *)webServerParameterInternalNameAdcFilter);
+                                     (__FlashStringHelper *)parameterNameFinder.find((StringMapKey)EepromSavedParameter::MG811FILTER_TYPE));
   webConfigPage.selectParameterOption(F("None"), 0, (unsigned int)eepromSavedParametersStorage.filterMG811);
   webConfigPage.selectParameterOption(F("Averaging"), 1, (unsigned int)eepromSavedParametersStorage.filterMG811);
   webConfigPage.selectParameterOption(F("Low-pass"), 2, (unsigned int)eepromSavedParametersStorage.filterMG811);
   webConfigPage.selectParameterEnd();
   webConfigPage.textParameter(F("Low-pass filter frequency"),
-                              (__FlashStringHelper *)webServerParameterInternalNameAdcFilterFreq,
+                              (__FlashStringHelper *)parameterNameFinder.find((StringMapKey)EepromSavedParameter::MG811FILTER_LOWPASS_FREQ),
                               eepromSavedParametersStorage.filterMG811LowPassFrequency,
                               F("x 0.01 Hz"));
   webConfigPage.subsectionEnd();
@@ -304,7 +303,7 @@ void webConfigSendConfigPage(Stream &client) {
   webConfigPage.sectionBegin(F("Misc"));
   webConfigPage.subsectionBegin(F("Serial port"));
   webConfigPage.selectParameterBegin(F("Data values serial output"),
-                                     (__FlashStringHelper *)webServerParameterInternalNameMiscSensorSerialOutput);
+                                     (__FlashStringHelper *)parameterNameFinder.find((StringMapKey)EepromSavedParameter::MISC_SERIAL_OUT));
   webConfigPage.selectParameterOption(F("Enable"), 1, (int)eepromSavedParametersStorage.sensorSerialOutput);
   webConfigPage.selectParameterOption(F("Disable"), 0, (int)eepromSavedParametersStorage.sensorSerialOutput);
   webConfigPage.selectParameterEnd();
@@ -313,10 +312,20 @@ void webConfigSendConfigPage(Stream &client) {
 
   webConfigPage.bodyEnd();
 
-  Serial.print(F("["));
-  Serial.print(millis());
-  Serial.println(F("] Config webpage sent to client."));
+  DiagLog.print(F("["));
+  DiagLog.print(millis());
+  DiagLog.println(F("] Config webpage sent to client."));
 }
+
+void webConfigSendOptionsPage(Print &client) {
+  DiagLog.print(F("["));
+  DiagLog.print(millis());
+  DiagLog.println(F("] Sending options page."));
+
+  client.print(F("Allow: OPTIONS, GET, POST\r\n"));
+  client.print(F("Server: ESP8266\r\n"));
+  client.print(F("Content-Type: text/html\r\n\r\n"));
+};
 
 void webConfigRun(void) {
   // Check if a client has connected
@@ -325,9 +334,9 @@ void webConfigRun(void) {
     return;
   }
   // Wait until the client sends some data
-  Serial.print(F("["));
-  Serial.print(millis());
-  Serial.println(F("] web client connected"));
+  DiagLog.print(F("["));
+  DiagLog.print(millis());
+  DiagLog.println(F("] web client connected"));
   while (!primaryClient.available()) {
     delay(1);
     yield();
@@ -335,9 +344,9 @@ void webConfigRun(void) {
   HttpStream client(primaryClient);
   HttpReqParser parser;
   WebConfigReqPartHandler handler;
-  Serial.print(F("["));
-  Serial.print(millis());
-  Serial.println(F("] begin parsing."));
+  DiagLog.print(F("["));
+  DiagLog.print(millis());
+  DiagLog.println(F("] begin parsing."));
   parser.begin(client);
   parser.setHandler(handler);
   do {
@@ -345,14 +354,16 @@ void webConfigRun(void) {
     yield();
   } while (!parser.finished());
   handler.finish();
-  Serial.print(F("["));
-  Serial.print(millis());
-  Serial.println(F("] end parsing."));
-  Serial.print(F("Result: "));
-  if (parser.isError()) Serial.println(F("error")); else Serial.println(F("OK"));
+  DiagLog.print(F("["));
+  DiagLog.print(millis());
+  DiagLog.println(F("] end parsing."));
+  DiagLog.print(F("Result: "));
+  if (parser.isError()) DiagLog.println(F("error")); else DiagLog.println(F("OK"));
   webConfigSendHttpStatus(client, parser.getStatusCode());
   if (parser.getStatusCode() == HttpStatusCode::OK) {
-    webConfigSendConfigPage(client);
+    if (handler.getMethod() == HttpRequestMethod::OPTIONS) webConfigSendOptionsPage(client);
+    else
+      webConfigSendConfigPage(client);
   }
   client.flush();
 }

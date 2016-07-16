@@ -20,6 +20,9 @@ const boolean EEPROM_DEBUG_PRINT_INSECURE = true;
 #define EEPROM_SAVED_PARAMETERS_ADDRESS 0
 
 struct EepromSavedParametersStorage {
+  byte versionMajor = 0;
+  byte versionMinor = 0;
+  uint16 checkSum = 0;
   char authToken[CONFIG_TEXT_LENGTH] = {0};
   char wifiSsid[CONFIG_TEXT_LENGTH] = {0};
   char wifiPassword[CONFIG_TEXT_LENGTH] = {0};
@@ -31,6 +34,8 @@ struct EepromSavedParametersStorage {
   unsigned int filterMG811LowPassFrequency = 40;
   byte rejectCalibrationMG811 = 0;
   byte sensorSerialOutput = 0;
+  char blynkServer[CONFIG_TEXT_LENGTH] = {0};
+  unsigned int blynkServerPort = 8442;
 };
 
 enum class EepromSavedParameter {
@@ -45,7 +50,9 @@ enum class EepromSavedParameter {
   MG811FILTER_TYPE = 8,
   MG811FILTER_LOWPASS_FREQ = 9,
   MG811_REJECT_CALIBRATION = 10,
-  MG811_SERIAL_OUT = 11,
+  MISC_SERIAL_OUT = 11,
+  BLYNK_SERVER = 12,
+  BLYNK_SERVER_PORT = 13,
 };
 
 extern const PROGMEM QuickStringMapItem stringMapEepromSavedParameterInternalNames[];

@@ -334,6 +334,7 @@ void HtmlPage::bodyEnd(void) {
 
 void HtmlPage::sectionBegin(const __FlashStringHelper * displayName) {
   if (this->client == NULL) return;
+  if (displayName == NULL) return;
   this->client->print((__FlashStringHelper *)htmlConfigSectionBegin1);
   this->client->print(displayName);
   this->client->print((__FlashStringHelper *)htmlConfigSectionBegin2);
@@ -347,6 +348,7 @@ void HtmlPage::sectionEnd(void) {
 
 void HtmlPage::subsectionBegin(const __FlashStringHelper * displayName) {
   if (this->client == NULL) return;
+  if (displayName == NULL) return;
   this->client->print((__FlashStringHelper *)htmlConfigSubsectionBegin1);
   this->client->print(displayName);
   this->client->print((__FlashStringHelper *)htmlConfigSubsectionBegin2);
@@ -362,6 +364,7 @@ void HtmlPage::textParameter(const __FlashStringHelper * displayName,
                              char * value,
                              const __FlashStringHelper * tooltipText) {
   if (this->client == NULL) return;
+  if ((displayName == NULL) || (internalName == NULL)) return;
   this->client->print((__FlashStringHelper *)htmlConfigParameterTextPart1);
   this->client->print(displayName);
   this->client->print((__FlashStringHelper *)htmlConfigParameterTextPart2);
@@ -393,6 +396,8 @@ void HtmlPage::textParameter(const __FlashStringHelper * displayName,
 void HtmlPage::selectParameterBegin(const __FlashStringHelper * displayName,
                                     const __FlashStringHelper * internalName,
                                     const __FlashStringHelper * tooltipText) {
+  if (this->client == NULL) return;
+  if ((displayName == NULL) || (internalName == NULL)) return;
   this->client->print((__FlashStringHelper *)htmlConfigParameterSelectPart1);
   this->client->print(displayName);
   this->client->print((__FlashStringHelper *)htmlConfigParameterSelectPart2);
@@ -407,10 +412,13 @@ void HtmlPage::selectParameterBegin(const __FlashStringHelper * displayName,
 }
 
 void HtmlPage::selectParameterEnd(void) {
+  if (this->client == NULL) return;
   this->client->print((__FlashStringHelper *)htmlConfigParameterSelectPart5);
 }
 
 void HtmlPage::selectParameterOption(const __FlashStringHelper * optionDisplayName, int optionValue, int actualValue) {
+  if (this->client == NULL) return;
+  if (optionDisplayName  == NULL) return;
   this->client->print((__FlashStringHelper *)htmlConfigParameterSelectOptionPart1);
   this->client->print(optionValue, DEC);
   if (optionValue == actualValue)
@@ -421,4 +429,4 @@ void HtmlPage::selectParameterOption(const __FlashStringHelper * optionDisplayNa
   this->client->print((__FlashStringHelper *)htmlConfigParameterSelectOptionPart3);
 
 }
-  
+

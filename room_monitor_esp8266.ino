@@ -5,9 +5,12 @@
 * of the MIT license. See the LICENSE file for details.
 */
 
-#define BLYNK_PRINT Serial
-
 #include <ESP8266WiFi.h>
+#include "diag.h"
+#include "version.h"
+
+#define BLYNK_PRINT DiagLog
+
 #include <BlynkSimpleEsp8266.h>
 
 #include <Math.h>
@@ -18,7 +21,6 @@
 #include <DallasTemperature.h>
 
 #include "mg811.h"
-
 #include "eeprom_config.h"
 #include "http.h"
 #include "webconfig.h"
@@ -124,36 +126,36 @@ void calcCalDataMG811(void) {
   const double Y2 = log((double)eepromSavedParametersStorage.MG811CalPoint1Calibrated);
   const double X1 = (double)eepromSavedParametersStorage.MG811CalPoint0Raw;
   const double X2 = (double)eepromSavedParametersStorage.MG811CalPoint1Raw;
-  Serial.println(F("Calculating MG811 calibration data..."));
-  Serial.print(F("Reference points: "));
-  Serial.print(F("Raw="));
-  Serial.print(eepromSavedParametersStorage.MG811CalPoint0Raw);
-  Serial.print(F(" Calibrated="));
-  Serial.print(eepromSavedParametersStorage.MG811CalPoint0Calibrated);
-  Serial.print(F("ppm / Raw="));
-  Serial.print(eepromSavedParametersStorage.MG811CalPoint1Raw);
-  Serial.print(F(" Calibrated="));
-  Serial.print(eepromSavedParametersStorage.MG811CalPoint1Calibrated);
-  Serial.println(F("ppm"));
+  DiagLog.println(F("Calculating MG811 calibration data..."));
+  DiagLog.print(F("Reference points: "));
+  DiagLog.print(F("Raw="));
+  DiagLog.print(eepromSavedParametersStorage.MG811CalPoint0Raw);
+  DiagLog.print(F(" Calibrated="));
+  DiagLog.print(eepromSavedParametersStorage.MG811CalPoint0Calibrated);
+  DiagLog.print(F("ppm / Raw="));
+  DiagLog.print(eepromSavedParametersStorage.MG811CalPoint1Raw);
+  DiagLog.print(F(" Calibrated="));
+  DiagLog.print(eepromSavedParametersStorage.MG811CalPoint1Calibrated);
+  DiagLog.println(F("ppm"));
   double tempCalDataMG811_a = (Y2 - Y1) / (X2 - X1);
   double tempCalDataMG811_b = Y1 - calDataMG811_a * X1;
-  Serial.print("Calibration data: a=");
-  Serial.print(calDataMG811_a);
-  Serial.print(" b=");
-  Serial.println(calDataMG811_b);
+  DiagLog.print("Calibration data: a=");
+  DiagLog.print(calDataMG811_a);
+  DiagLog.print(" b=");
+  DiagLog.println(calDataMG811_b);
   if (isnan(tempCalDataMG811_a) ||
       isinf(tempCalDataMG811_a) ||
       isnan(tempCalDataMG811_b) ||
       isinf(tempCalDataMG811_b)) {
-    Serial.println(F("Calibration data error: calibration data rejected"));
+    DiagLog.println(F("Calibration data error: calibration data rejected"));
   }
   else {
     calDataMG811_a = tempCalDataMG811_a;
     calDataMG811_b = tempCalDataMG811_b;
-    Serial.println(F("Calibration data accepted"));
+    DiagLog.println(F("Calibration data accepted"));
   }
   if (eepromSavedParametersStorage.rejectCalibrationMG811) {
-    Serial.println(F("Uncalibrated mode selected, no ppm value will be calculated, the output value is 1024 - ADC_value."));
+    DiagLog.println(F("Uncalibrated mode selected, no ppm value will be calculated, the output value is 1024 - ADC_value."));
   }
 }
 
@@ -303,27 +305,27 @@ void updateStatusVirtualPins(void) {
 void printSensorDebugInfo(void) {
   if (!eepromSavedParametersStorage.sensorSerialOutput) return;
 
-  Serial.print(F("["));
-  Serial.print(millis());
-  Serial.print(F("] sensor values:"));
+  DiagLog.print(F("["));
+  DiagLog.print(millis());
+  DiagLog.print(F("] sensor values:"));
 
-  Serial.print(F(" DHT T = "));
-  Serial.print(valueTemperatureDHT);
-  Serial.print(F(" RH = "));
-  Serial.print(valueHumidityDHT);
+  DiagLog.print(F(" DHT T = "));
+  DiagLog.print(valueTemperatureDHT);
+  DiagLog.print(F(" RH = "));
+  DiagLog.print(valueHumidityDHT);
 
-  Serial.print(F(" OneWire(0) T = "));
-  Serial.print(valueTemperatureOneWire);
+  DiagLog.print(F(" OneWire(0) T = "));
+  DiagLog.print(valueTemperatureOneWire);
 
   if (!eepromSavedParametersStorage.rejectCalibrationMG811)
-    Serial.print(F(" MG811 ppm = "));
+    DiagLog.print(F(" MG811 ppm = "));
   else
-    Serial.print(F(" MG811 value = "));
-  Serial.print(valueMG811);
-  Serial.print(F(" raw = "));
-  Serial.print(valueMG811uncal);
+    DiagLog.print(F(" MG811 value = "));
+  DiagLog.print(valueMG811);
+  DiagLog.print(F(" raw = "));
+  DiagLog.print(valueMG811uncal);
 
-  Serial.println();
+  DiagLog.println();
 }
 
 boolean checkTimedEvent (const unsigned long period, unsigned long * tempTimeValue) {
@@ -335,9 +337,15 @@ boolean checkTimedEvent (const unsigned long period, unsigned long * tempTimeVal
 boolean isConfigMode = false;
 
 void setup() {
-  Serial.begin(9600);
+  DiagLog.begin(9600);
 
-  Serial.println(F("\nInit started."));
+  DiagLog.println(F("\nInit started."));
+  DiagLog.print(F("Firmware version "));
+  DiagLog.print(FIRMWARE_VERSION_MAJOR);
+  DiagLog.print(F("."));
+  DiagLog.println(FIRMWARE_VERSION_MINOR);
+  
+  
 
   pinMode(PIN_SWITCH_PROG, INPUT);
   pinMode(PIN_SWITCH_CONFIG, INPUT_PULLUP);
@@ -348,10 +356,10 @@ void setup() {
   ltoa(ESP.getChipId(), chipId, RADIX_DECIMAL);
   char flashId[16];
   ltoa(ESP.getFlashChipId(), flashId, RADIX_DECIMAL);
-  Serial.print(F("Chip ID: "));
-  Serial.println(chipId);
-  Serial.print(F("Flash chip ID:"));
-  Serial.println(flashId);
+  DiagLog.print(F("Chip ID: "));
+  DiagLog.println(chipId);
+  DiagLog.print(F("Flash chip ID:"));
+  DiagLog.println(flashId);
 
   loadConfig();
 
@@ -359,7 +367,7 @@ void setup() {
 
   isConfigMode = !digitalRead(PIN_SWITCH_CONFIG);
   if (isConfigMode) {
-    Serial.println(F("Config Mode enabled."));
+    DiagLog.println(F("Config Mode enabled."));
     const size_t TEXT_SIZE = 32;
     char ssid[TEXT_SIZE + 1] = {0};
     strncpy_P(ssid, ssidConfigModePrefix, sizeof(ssid));
@@ -368,26 +376,48 @@ void setup() {
     strncpy_P(password, passwordConfigModePrefix, sizeof(password));
     strncat(password, flashId, sizeof(password) - strlen(password));
     WiFi.mode(WIFI_AP);
-    WiFi.softAP(ssid, password);
-    Serial.println(F("Access point created: "));
-    Serial.print(F("SSID: "));
-    Serial.println(ssid);
-    Serial.print(F("Password: "));
-    Serial.println(password);
-    Serial.print(F("IP address: "));
-    Serial.println(WiFi.softAPIP());
+    WiFi.softAP(ssid, password  );
+    DiagLog.println(F("Access point created: "));
+    DiagLog.print(F("SSID: "));
+    DiagLog.println(ssid);
+    DiagLog.print(F("Password: "));
+    DiagLog.println(password);
+    DiagLog.print(F("IP address: "));
+    DiagLog.println(WiFi.softAPIP());
     webConfigBegin();
-    Serial.println(F("Web server started."));
+    DiagLog.println(F("Web server started."));
   }
   else {
-    Serial.println(F("Config Mode not enabled."));
+    DiagLog.println(F("Config Mode not enabled."));
+
+    DiagLog.print(F("["));
+    DiagLog.print(millis());
+    DiagLog.print(F("] connecting to "));
+    DiagLog.print(eepromSavedParametersStorage.wifiSsid);
     WiFi.mode(WIFI_STA);
-    Blynk.begin(eepromSavedParametersStorage.authToken, eepromSavedParametersStorage.wifiSsid, eepromSavedParametersStorage.wifiPassword);
-    Serial.println(F("Blynk init completed."));
+    if (strlen(eepromSavedParametersStorage.wifiPassword))
+      WiFi.begin(eepromSavedParametersStorage.wifiSsid, eepromSavedParametersStorage.wifiPassword);
+    else
+      WiFi.begin(eepromSavedParametersStorage.wifiSsid);
+    while (WiFi.status() != WL_CONNECTED) {
+      delay(500);
+      yield();
+      DiagLog.print(F("."));
+    }
+    DiagLog.println();
+    DiagLog.print(F("["));
+    DiagLog.print(millis());
+    DiagLog.println(F("] connected."));
+    
+    Blynk.config(eepromSavedParametersStorage.authToken,
+                 eepromSavedParametersStorage.blynkServer,
+                 eepromSavedParametersStorage.blynkServerPort);
+//    Blynk.begin(eepromSavedParametersStorage.authToken,eepromSavedParametersStorage.wifiSsid,eepromSavedParametersStorage.wifiPassword);
+    DiagLog.println(F("Blynk init completed."));
   }
   dht.begin();
   sensorsDS18B20.begin();
-  Serial.println(F("Init completed."));
+  DiagLog.println(F("Init completed."));
 }
 
 void loop() {
