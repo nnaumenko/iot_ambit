@@ -28,7 +28,7 @@ const PROGMEM QuickStringMapItem stringMapEepromSavedParameterInternalNames[] {
   {(StringMapKey)EepromSavedParameter::MISC_SERIAL_OUT, "miscserout"},
   {(StringMapKey)EepromSavedParameter::BLYNK_SERVER, "blynkserver"},
   {(StringMapKey)EepromSavedParameter::BLYNK_SERVER_PORT, "blynkport"},
-  {(StringMapKey)EepromSavedParameter::UNKNOWN}
+  {(StringMapKey)EepromSavedParameter::UNKNOWN, ""}
 };
 
 void saveToEEPROM (int address, const void * parameter, size_t length) {
@@ -45,8 +45,8 @@ void loadFromEEPROM (int address, void * parameter, size_t length) {
   }
 }
 
-uint16 calculateCheckSum (void){
-  return(0); //TODO
+uint16 calculateCheckSum (void) {
+  return (0); //TODO: CRC16 checksum
 }
 
 void saveConfig(void) {
@@ -102,13 +102,13 @@ void loadConfig(void) {
   DiagLog.println(F("ppm"));
   DiagLog.print(F("MG811 filter: "));
   switch (eepromSavedParametersStorage.filterMG811) {
-    case MG811_FILTER_OFF:
+    case ADCFilter::OFF:
       DiagLog.println(F("off"));
       break;
-    case MG811_FILTER_AVERAGE:
+    case ADCFilter::AVERAGE:
       DiagLog.println(F("moving average"));
       break;
-    case MG811_FILTER_LOWPASS:
+    case ADCFilter::LOWPASS:
       DiagLog.print(F("low-pass, limit frequency: "));
       DiagLog.print(eepromSavedParametersStorage.filterMG811LowPassFrequency);
       DiagLog.println(F(" x 0.01 Hz"));

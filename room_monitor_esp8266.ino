@@ -6,6 +6,12 @@
 */
 
 #include <ESP8266WiFi.h>
+extern "C" {
+#include <user_interface.h>
+}
+
+#define CONFIG_MODE_WIFI_OPEN true //change to false to create password-protected WiFi network in config mode
+
 #include "diag.h"
 #include "version.h"
 
@@ -20,11 +26,11 @@
 #include <OneWire.h>
 #include <DallasTemperature.h>
 
-#include "mg811.h"
+#include "adc.h"
 #include "eeprom_config.h"
 #include "http.h"
-#include "webconfig.h"
-#include "web_content.h"
+#include "webcc.h"
+#include "webcc_html.h"
 #include "stringmap.h"
 
 #ifndef ESP8266
@@ -207,16 +213,16 @@ void updateSensorMG811(void) {
   const float millisPerSecond = 1000.0;
   const float unitsPerHz = 100.0;
   switch (eepromSavedParametersStorage.filterMG811) {
-    case MG811_FILTER_OFF:
+    case ADCFilter::OFF:
       break;
-    case MG811_FILTER_AVERAGE:
+    case ADCFilter::AVERAGE:
       valueMG811 = movingAverage(valueMG811);
       break;
-    case MG811_FILTER_LOWPASS:
+    case ADCFilter::LOWPASS:
       valueMG811 = lowPass(valueMG811, (float)UPDATE_TIME_MG811 / millisPerSecond, (float)eepromSavedParametersStorage.filterMG811LowPassFrequency / unitsPerHz);
       break;
     default:
-      eepromSavedParametersStorage.filterMG811 = MG811_FILTER_OFF;
+      eepromSavedParametersStorage.filterMG811 = ADCFilter::OFF;
       break;
   }
 }
@@ -334,6 +340,24 @@ boolean checkTimedEvent (const unsigned long period, unsigned long * tempTimeVal
   return (true);
 }
 
+boolean setMaxWIFIConnections(size_t maxConnections) {
+  //Since softAp max connectons are hardcoded, need this function to be able to change when
+  //https://github.com/esp8266/Arduino/blob/master/libraries/ESP8266WiFi/src/ESP8266WiFiAP.cpp, line 111:
+  //conf.max_connection = 4;
+  const size_t maxSupportedConnections = 4; //According to Espressif docs
+  if (maxConnections > maxSupportedConnections) return (false);
+  softap_config conf;
+  wifi_softap_get_config(&conf);
+  conf.max_connection = 1;
+  ETS_UART_INTR_DISABLE();
+  boolean ret = wifi_softap_set_config(&conf);
+  ETS_UART_INTR_ENABLE();
+  if (!ret) return (false);
+  DiagLog.print(F("Max AP connections set to "));
+  DiagLog.println(maxConnections);
+  return (true);
+}
+
 boolean isConfigMode = false;
 
 void setup() {
@@ -344,8 +368,8 @@ void setup() {
   DiagLog.print(FIRMWARE_VERSION_MAJOR);
   DiagLog.print(F("."));
   DiagLog.println(FIRMWARE_VERSION_MINOR);
-  
-  
+
+
 
   pinMode(PIN_SWITCH_PROG, INPUT);
   pinMode(PIN_SWITCH_CONFIG, INPUT_PULLUP);
@@ -376,12 +400,20 @@ void setup() {
     strncpy_P(password, passwordConfigModePrefix, sizeof(password));
     strncat(password, flashId, sizeof(password) - strlen(password));
     WiFi.mode(WIFI_AP);
-    WiFi.softAP(ssid, password  );
+    if (CONFIG_MODE_WIFI_OPEN)
+      WiFi.softAP(ssid);
+    else
+      WiFi.softAP(ssid, password);
+    setMaxWIFIConnections(1);
     DiagLog.println(F("Access point created: "));
     DiagLog.print(F("SSID: "));
     DiagLog.println(ssid);
-    DiagLog.print(F("Password: "));
-    DiagLog.println(password);
+    if (CONFIG_MODE_WIFI_OPEN)
+      DiagLog.print(F("Open WiFi network"));
+    else {
+      DiagLog.print(F("Password: "));
+      DiagLog.println(password);
+    }
     DiagLog.print(F("IP address: "));
     DiagLog.println(WiFi.softAPIP());
     webConfigBegin();
@@ -408,11 +440,10 @@ void setup() {
     DiagLog.print(F("["));
     DiagLog.print(millis());
     DiagLog.println(F("] connected."));
-    
+
     Blynk.config(eepromSavedParametersStorage.authToken,
                  eepromSavedParametersStorage.blynkServer,
                  eepromSavedParametersStorage.blynkServerPort);
-//    Blynk.begin(eepromSavedParametersStorage.authToken,eepromSavedParametersStorage.wifiSsid,eepromSavedParametersStorage.wifiPassword);
     DiagLog.println(F("Blynk init completed."));
   }
   dht.begin();
@@ -451,6 +482,3 @@ void loop() {
     webConfigRun();
   }
 }
-
-
-

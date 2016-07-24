@@ -5,7 +5,12 @@
  * of the MIT license. See the LICENSE file for details.
  */
 
-#include "web_content.h"
+#include "webcc_html.h"
+#include "eeprom_config.h"
+
+///////////////////////////////////////////////////////////////////////////////////////////
+// webcc page HTML/JS code
+///////////////////////////////////////////////////////////////////////////////////////////
 
 #define FORM_URL "/"
 #define FORM_METHOD "POST"
@@ -315,66 +320,83 @@ const char PROGMEM htmlConfigParameterSelectOptionPart3[] =
   "</option>" CRLF;
 
 ///////////////////////////////////////////////////////////////////////////////////////////
-// class HtmlPage
+// WebccHTML
 ///////////////////////////////////////////////////////////////////////////////////////////
 
-HtmlPage::HtmlPage(Print &client) {
+WebccHTML::WebccHTML(Print &client) {
   this->client = &client;
 }
 
-void HtmlPage::bodyBegin(void) {
+WebccHTML::~WebccHTML() {
+  if (isWithinSubsection) subsectionEnd();
+  if (isWithinSection) sectionEnd();
+  if (isWithinBody) bodyEnd();
+}
+
+void WebccHTML::bodyBegin(void) {
   if (this->client == NULL) return;
+  isWithinBody = true;
   this->client->print((__FlashStringHelper *)htmlConfigBodyBegin);
 }
 
-void HtmlPage::bodyEnd(void) {
+void WebccHTML::bodyEnd(void) {
   if (this->client == NULL) return;
+  if (isWithinSubsection) subsectionEnd();
+  if (isWithinSection) sectionEnd();
+  isWithinBody = false;
   this->client->print((__FlashStringHelper *)htmlConfigBodyEnd);
 }
 
-void HtmlPage::sectionBegin(const __FlashStringHelper * displayName) {
+void WebccHTML::sectionBegin(const char * displayName) {
   if (this->client == NULL) return;
   if (displayName == NULL) return;
+  if (isWithinSubsection) subsectionEnd();
+  if (isWithinSection) sectionEnd();
+  isWithinSection = true;
   this->client->print((__FlashStringHelper *)htmlConfigSectionBegin1);
-  this->client->print(displayName);
+  this->client->print((__FlashStringHelper *)displayName);
   this->client->print((__FlashStringHelper *)htmlConfigSectionBegin2);
 }
 
-void HtmlPage::sectionEnd(void) {
+void WebccHTML::sectionEnd(void) {
   if (this->client == NULL) return;
+  isWithinSection = false;
   this->client->print((__FlashStringHelper *)htmlConfigSave);
   this->client->print((__FlashStringHelper *)htmlConfigSectionEnd);
 }
 
-void HtmlPage::subsectionBegin(const __FlashStringHelper * displayName) {
+void WebccHTML::subsectionBegin(const char * displayName) {
   if (this->client == NULL) return;
   if (displayName == NULL) return;
+  if (isWithinSubsection) subsectionEnd();
+  isWithinSubsection = true;
   this->client->print((__FlashStringHelper *)htmlConfigSubsectionBegin1);
-  this->client->print(displayName);
+  this->client->print((__FlashStringHelper *)displayName);
   this->client->print((__FlashStringHelper *)htmlConfigSubsectionBegin2);
 }
 
-void HtmlPage::subsectionEnd(void) {
+void WebccHTML::subsectionEnd(void) {
   if (this->client == NULL) return;
+  isWithinSubsection = false;
   this->client->print((__FlashStringHelper *)htmlConfigSubsectionEnd);
 }
 
-void HtmlPage::textParameter(const __FlashStringHelper * displayName,
-                             const __FlashStringHelper * internalName,
-                             char * value,
-                             const __FlashStringHelper * tooltipText) {
+void WebccHTML::textParameter(const char * displayName,
+                              const char * internalName,
+                              const char * value,
+                              const char * tooltipText) {
   if (this->client == NULL) return;
   if ((displayName == NULL) || (internalName == NULL)) return;
   this->client->print((__FlashStringHelper *)htmlConfigParameterTextPart1);
-  this->client->print(displayName);
+  this->client->print((__FlashStringHelper *)displayName);
   this->client->print((__FlashStringHelper *)htmlConfigParameterTextPart2);
   if (tooltipText != NULL) {
     this->client->print((__FlashStringHelper *)htmlConfigTooltipBegin);
-    this->client->print(tooltipText);
+    this->client->print((__FlashStringHelper *)tooltipText);
     this->client->print((__FlashStringHelper *)htmlConfigTooltipEnd);
   }
   this->client->print((__FlashStringHelper *)htmlConfigParameterTextPart3);
-  this->client->print(internalName);
+  this->client->print((__FlashStringHelper *)internalName);
   this->client->print((__FlashStringHelper *)htmlConfigParameterTextPart4);
   if (value != NULL) {
     this->client->print(value);
@@ -382,10 +404,10 @@ void HtmlPage::textParameter(const __FlashStringHelper * displayName,
   this->client->print((__FlashStringHelper *)htmlConfigParameterTextPart5);
 }
 
-void HtmlPage::textParameter(const __FlashStringHelper * displayName,
-                             const __FlashStringHelper * internalName,
-                             long value,
-                             const __FlashStringHelper * tooltipText) {
+void WebccHTML::textParameter(const char * displayName,
+                              const char * internalName,
+                              long value,
+                              const char * tooltipText) {
   const size_t maxCharsPerLongValue = 12; //max 10 digits + optional minus sign + null character
   const int decimalRadix = 10;
   char valueAsText[maxCharsPerLongValue] = {0};
@@ -393,30 +415,52 @@ void HtmlPage::textParameter(const __FlashStringHelper * displayName,
   this->textParameter(displayName, internalName, valueAsText2, tooltipText);
 }
 
-void HtmlPage::selectParameterBegin(const __FlashStringHelper * displayName,
-                                    const __FlashStringHelper * internalName,
-                                    const __FlashStringHelper * tooltipText) {
+void WebccHTML::selectParameter(const char * displayName,
+                                const char * internalName,
+                                const StringMap &options,
+                                int value,
+                                const char * tooltipText) {
+  StringMapIterator optionsListIterator (options);
+  this->selectParameterBegin(displayName, internalName, tooltipText);
+  optionsListIterator.first();
+  while (!optionsListIterator.isDone()) {
+    StringMapKey currentKey = optionsListIterator.currentKey();
+    if (optionsListIterator.isCurrentStringProgmem()) { //assuming here that all StringMap strings are located in PROGMEM
+      this->selectParameterOption(optionsListIterator.currentString(), (int)currentKey, value);
+    }
+    else {
+      //TODO: process non-progmem string
+    }
+    optionsListIterator.next();
+  }
+  this->selectParameterEnd();
+}
+
+
+void WebccHTML::selectParameterBegin(const char * displayName,
+                                     const char * internalName,
+                                     const char * tooltipText) {
   if (this->client == NULL) return;
   if ((displayName == NULL) || (internalName == NULL)) return;
   this->client->print((__FlashStringHelper *)htmlConfigParameterSelectPart1);
-  this->client->print(displayName);
+  this->client->print((__FlashStringHelper *)displayName);
   this->client->print((__FlashStringHelper *)htmlConfigParameterSelectPart2);
   if (tooltipText != NULL) {
     this->client->print((__FlashStringHelper *)htmlConfigTooltipBegin);
-    this->client->print(tooltipText);
+    this->client->print((__FlashStringHelper *)tooltipText);
     this->client->print((__FlashStringHelper *)htmlConfigTooltipEnd);
   }
   this->client->print((__FlashStringHelper *)htmlConfigParameterSelectPart3);
-  this->client->print(internalName);
+  this->client->print((__FlashStringHelper *)internalName);
   this->client->print((__FlashStringHelper *)htmlConfigParameterSelectPart4);
 }
 
-void HtmlPage::selectParameterEnd(void) {
+void WebccHTML::selectParameterEnd(void) {
   if (this->client == NULL) return;
   this->client->print((__FlashStringHelper *)htmlConfigParameterSelectPart5);
 }
 
-void HtmlPage::selectParameterOption(const __FlashStringHelper * optionDisplayName, int optionValue, int actualValue) {
+void WebccHTML::selectParameterOption(const char * optionDisplayName, int optionValue, int actualValue) {
   if (this->client == NULL) return;
   if (optionDisplayName  == NULL) return;
   this->client->print((__FlashStringHelper *)htmlConfigParameterSelectOptionPart1);
@@ -425,8 +469,6 @@ void HtmlPage::selectParameterOption(const __FlashStringHelper * optionDisplayNa
     this->client->print((__FlashStringHelper *)htmlConfigParameterSelectOptionPart2Selected);
   else
     this->client->print((__FlashStringHelper *)htmlConfigParameterSelectOptionPart2);
-  this->client->print(optionDisplayName);
+  this->client->print((__FlashStringHelper *)optionDisplayName);
   this->client->print((__FlashStringHelper *)htmlConfigParameterSelectOptionPart3);
-
 }
-

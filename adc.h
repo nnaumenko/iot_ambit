@@ -5,15 +5,15 @@
  * of the MIT license. See the LICENSE file for details.
  */
 
-#ifndef WEBCONFIG_H
-#define WEBCONFIG_H
+#ifndef ADC_H
+#define ADC_H
 
 #include <Arduino.h>
-#include "http.h"
-#include "stringmap.h"
-#include "web_content.h"
 
-void webConfigBegin(void);
-void webConfigRun(void);
+enum class ADCFilter {
+  OFF = 0,
+  AVERAGE,
+  LOWPASS,
+};
 
 #endif

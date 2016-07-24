@@ -10,24 +10,41 @@
 
 #include <Arduino.h>
 
-typedef int StringMapKey;
-
-#define STRINGMAP_ITEM_DEFAULT 0
+typedef long StringMapKey;
 
 class StringMap {
+    friend class StringMapIterator;
   protected:
     StringMap() {}
   public:
-    StringMapKey find(const char * toFind);
-    char * find(StringMapKey toFind);
-    boolean isProgmem (StringMapKey toFind);
-    int compare (size_t index, const char * string);
-    void print(Print &client, StringMapKey key);
+    StringMapKey find(const char * toFind) const;
+    char * find(StringMapKey toFind) const;
+    boolean contains(StringMapKey toFind) const;
+    boolean contains(const char * toFind) const;
+    boolean isProgmem(StringMapKey toFind) const;
+    void print(Print &client, StringMapKey key) const;
+  public:
+    StringMapKey getDefaultKey(void) const;
   protected:
-    virtual size_t count(void) = 0;
-    virtual char * getString(size_t index) = 0;
-    virtual boolean isStringProgmem(size_t index) = 0;
-    virtual StringMapKey getKey(size_t index) = 0;
+    void setDefaultKey(StringMapKey defaultKey);
+  private:
+    StringMapKey defaultKey = 0; //returned when key or string is not found in the StringMap
+  protected:
+    int compare (size_t index, const char * string) const;
+    virtual size_t count(void) const = 0;
+    virtual char * getString(size_t index) const = 0;
+    virtual boolean isStringProgmem(size_t index) const = 0;
+    virtual StringMapKey getKey(size_t index) const = 0;
+};
+
+class ConstStringMap : public StringMap {
+  public:
+    virtual size_t count(void) const;
+    virtual boolean isStringProgmem(size_t index) const;
+  private:
+    size_t itemsCount = 0;
+  protected:
+    void initItems(void);
 };
 
 #define QUICK_STRINGMAP_STRING_SIZE 30
@@ -37,17 +54,45 @@ struct QuickStringMapItem {
   char string[QUICK_STRINGMAP_STRING_SIZE];
 };
 
-class QuickStringMap : public StringMap {
+class QuickStringMap : public ConstStringMap {
   public:
     QuickStringMap(const QuickStringMapItem source[]);
   protected:
-    virtual size_t count(void);
-    virtual char * getString(size_t index);
-    virtual boolean isStringProgmem(size_t index);
-    virtual StringMapKey getKey(size_t index);
+    virtual char * getString(size_t index) const;
+    virtual StringMapKey getKey(size_t index) const;
   private:
     const QuickStringMapItem * source = NULL;
-    size_t itemsCount = 0;
+};
+
+struct ProgmemStringMapItem {
+  StringMapKey key;
+  const char *string;
+};
+
+class ProgmemStringMap : public ConstStringMap {
+  public:
+    ProgmemStringMap(const ProgmemStringMapItem source[]);
+  protected:
+    virtual char * getString(size_t index) const;
+    virtual StringMapKey getKey(size_t index) const;
+  private:
+    const ProgmemStringMapItem * source = NULL;
+};
+
+class StringMapIterator {
+  public:
+    StringMapIterator (const StringMap &source);
+  private:
+    const StringMap * source;
+  public:
+    void first(void);
+    void next(void);
+    boolean isDone(void);
+    StringMapKey currentKey(void);
+    boolean isCurrentStringProgmem(void);
+    char * currentString(void);
+  private:
+    size_t iteratorIndex = 0;
 };
 
 #endif

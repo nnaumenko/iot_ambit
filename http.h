@@ -9,7 +9,6 @@
 #define HTTP_H
 
 #include <Arduino.h>
-#include "stringmap.h"
 
 const size_t HTTP_REQUEST_PART_MAX_SIZE = 32;
 
@@ -20,9 +19,9 @@ const size_t HTTP_REQUEST_PART_MAX_SIZE = 32;
 //smaller value might be required when porting to Arduino due to memory constraints
 #endif
 
-enum class HttpStatusCode {
-  UNKNOWN = STRINGMAP_ITEM_DEFAULT,
-  NO_CHANGE = STRINGMAP_ITEM_DEFAULT,
+enum class HTTPStatusCode {
+  UNKNOWN = 0,
+  NO_CHANGE = 0,
   CONTINUE = 100,
   OK = 200,
   SEE_OTHER = 303,
@@ -34,7 +33,7 @@ enum class HttpStatusCode {
   NOT_IMPLEMENTED = 501,
 };
 
-class HttpPercentCode {
+class HTTPPercentCode {
   public:
     static int decode(char buffer[]);
     static int decodeDigit(char hexDigit);
@@ -42,15 +41,15 @@ class HttpPercentCode {
     static const size_t size = 3; //each percent code contains exacty 3 characters
 };
 
-class HttpURL {
+class URL {
   public:
     static void decode(char buffer[], size_t bufferSize);
 };
 
-class HttpStream : public Stream {
+class HTTPStream : public Stream {
   public:
-    HttpStream (Stream & client);
-    ~HttpStream();
+    HTTPStream (Stream & client);
+    ~HTTPStream();
   public:
     virtual int available();
     virtual int read();
@@ -72,7 +71,7 @@ class HttpStream : public Stream {
   public:
 };
 
-enum class HttpRequestPart {
+enum class HTTPRequestPart {
   NONE,
   METHOD,
   PATH,
@@ -85,25 +84,25 @@ enum class HttpRequestPart {
   POST_QUERY_VALUE,
 };
 
-class HttpReqParser;
+class HTTPReqParser;
 
-class HttpReqPartHandler {
+class HTTPReqPartHandler {
   public:
-    void begin (HttpReqParser &parser) {
+    void begin (HTTPReqParser &parser) {
       this->parser = &parser;
     }
-    virtual void execute(char * value, HttpRequestPart part) = 0;
+    virtual void execute(char * value, HTTPRequestPart part) = 0;
   protected:
-    HttpReqParser * parser = NULL;
+    HTTPReqParser * parser = NULL;
 };
 
-class HttpReqParser {
+class HTTPReqParser {
   public:
-    boolean begin (HttpStream &client);
-    void setHandler (HttpReqPartHandler &handler);
+    boolean begin (HTTPStream &client);
+    void setHandler (HTTPReqPartHandler &handler);
   private:
-    HttpStream * client = NULL;
-    HttpReqPartHandler * reqPartHandler = NULL;
+    HTTPStream * client = NULL;
+    HTTPReqPartHandler * reqPartHandler = NULL;
   public:
     enum class ParserState {
       UNKNOWN,
@@ -132,22 +131,22 @@ class HttpReqParser {
     };
   public:
     static const char CHAR_OTHER = '\0';
-    static const char CHAR_UNAVAIL = (char)HttpStream::NOT_AVAILABLE;
+    static const char CHAR_UNAVAIL = (char)HTTPStream::NOT_AVAILABLE;
   private:
     struct {
-      HttpStatusCode statusCode;
-      HttpRequestPart requestPart;
+      HTTPStatusCode statusCode;
+      HTTPRequestPart requestPart;
       char nextCharacter;
       ParserState currentState;
     } parserStatus;
   public:
     void parse(void);
     boolean finished(void);
-    void setError(HttpStatusCode errorStatusCode);
+    void setError(HTTPStatusCode errorStatusCode);
     boolean isError(void);
-    HttpStatusCode getStatusCode(void);
+    HTTPStatusCode getStatusCode(void);
   private:
-    void transition(ParserState newState, HttpStatusCode newStatusCode);
+    void transition(ParserState newState, HTTPStatusCode newStatusCode);
   private:
     class ParserTableBase {
       public:
@@ -165,7 +164,7 @@ class HttpReqParser {
     struct ProcessingTableEntry {
       ParserState state;
       StreamOperation operation;
-      HttpRequestPart part;
+      HTTPRequestPart part;
     };
   private:
     class ProcessingTable : ParserTableBase {
@@ -175,7 +174,7 @@ class HttpReqParser {
         boolean begin (void);
         boolean find (ParserState state);
         StreamOperation getStreamOperation(void);
-        HttpRequestPart getRequestPart(void);
+        HTTPRequestPart getRequestPart(void);
       private:
         ParserState getState(void);
     } processingTable;
@@ -184,7 +183,7 @@ class HttpReqParser {
       ParserState state;
       char nextChar;
       ParserState newState;
-      HttpStatusCode newStatusCode;
+      HTTPStatusCode newStatusCode;
     };
   private:
     class TransitionTable : ParserTableBase {
@@ -196,7 +195,7 @@ class HttpReqParser {
         void find (ParserState state, char nextChar);
         boolean enumerateNextChars(ParserState state, char * buffer, size_t bufferSize);
         ParserState getNewState();
-        HttpStatusCode getNewStatusCode();
+        HTTPStatusCode getNewStatusCode();
       private:
         ParserState getState();
         char getNextChar();

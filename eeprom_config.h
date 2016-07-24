@@ -10,7 +10,7 @@
 
 #include <Arduino.h>
 #include "stringmap.h"
-#include "mg811.h"
+#include "adc.h"
 
 //if true, then passwords, auth tokens, etc. are included in the debug output
 const boolean EEPROM_DEBUG_PRINT_INSECURE = true;
@@ -30,7 +30,7 @@ struct EepromSavedParametersStorage {
   unsigned int MG811CalPoint0Raw = 0;
   unsigned int MG811CalPoint1Calibrated = 100;
   unsigned int MG811CalPoint1Raw = 1024;
-  MG811Filter filterMG811 = MG811_FILTER_OFF;
+  ADCFilter filterMG811 = ADCFilter::OFF;
   unsigned int filterMG811LowPassFrequency = 40;
   byte rejectCalibrationMG811 = 0;
   byte sensorSerialOutput = 0;
@@ -39,7 +39,7 @@ struct EepromSavedParametersStorage {
 };
 
 enum class EepromSavedParameter {
-  UNKNOWN = STRINGMAP_ITEM_DEFAULT,
+  UNKNOWN = 0,
   BLYNK_AUTH_TOKEN = 1,
   WIFI_SSID = 2,
   WIFI_PASSWORD = 3,
@@ -53,6 +53,11 @@ enum class EepromSavedParameter {
   MISC_SERIAL_OUT = 11,
   BLYNK_SERVER = 12,
   BLYNK_SERVER_PORT = 13,
+};
+
+enum class ParameterValueOnOff {
+  OFF = 0,
+  ON = 1
 };
 
 extern const PROGMEM QuickStringMapItem stringMapEepromSavedParameterInternalNames[];

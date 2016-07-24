@@ -5,15 +5,14 @@
  * of the MIT license. See the LICENSE file for details.
  */
 
-#ifndef MG811_H
-#define MG811_H
+#ifndef WEBCC_H
+#define WEBCC_H
 
 #include <Arduino.h>
+#include "http.h"
+#include "stringmap.h"
 
-enum MG811Filter {
-  MG811_FILTER_OFF = 0,
-  MG811_FILTER_AVERAGE = 1,
-  MG811_FILTER_LOWPASS = 2,
-};
+void webConfigBegin(void);
+void webConfigRun(void);
 
 #endif
