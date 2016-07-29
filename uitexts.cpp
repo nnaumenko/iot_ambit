@@ -14,18 +14,9 @@
 // This section contains all user interface texts which can be seen in browser
 //////////////////////////////////////////////////////////////////////
 
-//Ui texts for parameter with options Enable and Disable
-
-const char PROGMEM webccUIText_SelectOption_Disable[]   = "Disable";
-const char PROGMEM webccUIText_SelectOption_Enable[]    = "Enable";
-
-//UI texts for ADC Filter parameter with options Off / Averaging / Low-pass
-
-const char PROGMEM webccUIText_SelectOption_ADCFilterOff[]      = "Off";
-const char PROGMEM webccUIText_SelectOption_ADCFilterAverage[]  = "Averaging";
-const char PROGMEM webccUIText_SelectOption_ADCFilterLowPass[]  = "Low-pass";
-
 //Section & subsection display names, parameter display names and parameter tooltips
+
+const char PROGMEM webccUIText_Caption[] = "Module Configuration";
 
 const char PROGMEM webccUIText_SectionDisplayName_Connection[] = "Connection";
 
@@ -58,6 +49,10 @@ const char PROGMEM webccUIText_ParameterDisplayName_ADCFilterType[]         = "F
 const char PROGMEM webccUIText_ParameterTooltip_ADCFilterType[]               = "Off = no filtering<br>"
     "Averaging = rolling average over fixed amount of points<br>"
     "Low-pass = low-pass filter with user-defined threshould frequency";
+const char PROGMEM webccUIText_SelectOption_ADCFilterOff[]                      = "Off";
+const char PROGMEM webccUIText_SelectOption_ADCFilterAverage[]                  = "Averaging";
+const char PROGMEM webccUIText_SelectOption_ADCFilterLowPass[]                  = "Low-pass";
+
 const char PROGMEM webccUIText_ParameterDisplayName_ADCFilterLowpassFreq[]  = "Low-pass filter frequency";
 const char PROGMEM webccUIText_ParameterTooltip_ADCFilterLowpassFreq[]        = "x 0.01 Hz";
 
@@ -66,30 +61,34 @@ const char PROGMEM webccUIText_SectionDisplayName_Misc[] = "Misc";
 const char PROGMEM webccUIText_SubsectionDisplayName_SerialPort[]       = "Serial port";
 const char PROGMEM webccUIText_ParameterDisplayName_SerialDataOut[]       = "Send sensor data to serial port";
 
+const char PROGMEM webccUIText_SubsectionDisplayName_Startup[]          = "Startup";
+const char PROGMEM webccUIText_ParameterDisplayName_StartupDelay[]        = "StartupDelay";
+const char PROGMEM webccUIText_ParameterTooltip_StartupDelay[]              = "x 100 milliseconds";
+
 //////////////////////////////////////////////////////////////////////
-// Select Parameters StringMaps
+// Sections StringMap
 //////////////////////////////////////////////////////////////////////
 
-const ProgmemStringMapItem PROGMEM webccUI_SelectOptions_EnableDisable[] = {
-  {(StringMapKey)ParameterValueOnOff::OFF,  webccUIText_SelectOption_Disable},
-  {(StringMapKey)ParameterValueOnOff::ON,   webccUIText_SelectOption_Enable},
-  {(StringMapKey)ParameterValueOnOff::OFF,  NULL}
+const PROGMEM ProgmemStringMapItem webccUI_parameterSections[] = {
+  {(StringMapKey)webccUISections::CAPTION,          webccUIText_Caption},
+  {(StringMapKey)webccUISections::CONNECTION,       webccUIText_SectionDisplayName_Connection},
+  {(StringMapKey)webccUISections::WIFI,             webccUIText_SubsectionDisplayName_WiFi},
+  {(StringMapKey)webccUISections::BLYNK,            webccUIText_SubsectionDisplayName_Blynk},
+  {(StringMapKey)webccUISections::ADC,              webccUIText_SectionDisplayName_ADC},
+  {(StringMapKey)webccUISections::ADC_CALIBRATION,  webccUIText_SubsectionDisplayName_ADCCalibration},
+  {(StringMapKey)webccUISections::ADC_FILTER,       webccUIText_SubsectionDisplayName_Filter},
+  {(StringMapKey)webccUISections::MISC,             webccUIText_SectionDisplayName_Misc},
+  {(StringMapKey)webccUISections::SERIAL_PORT,      webccUIText_SubsectionDisplayName_SerialPort},
+  {(StringMapKey)webccUISections::STARTUP,          webccUIText_SubsectionDisplayName_Startup},
+  {(StringMapKey)webccUISections::UNKNOWN,          NULL},
 };
-ProgmemStringMap webccUISelectEnableDisable(webccUI_SelectOptions_EnableDisable);
-
-const ProgmemStringMapItem PROGMEM webccUI_SelectOptions_ADCFilter[] = {
-  {(StringMapKey)ADCFilter::OFF,      webccUIText_SelectOption_ADCFilterOff},
-  {(StringMapKey)ADCFilter::AVERAGE,  webccUIText_SelectOption_ADCFilterAverage},
-  {(StringMapKey)ADCFilter::LOWPASS,  webccUIText_SelectOption_ADCFilterLowPass},
-  {(StringMapKey)ADCFilter::OFF,      NULL}
-};
-ProgmemStringMap webccUISelectADCFilter (webccUI_SelectOptions_ADCFilter);
+ProgmemStringMap webccUIParameterSections (webccUI_parameterSections);
 
 //////////////////////////////////////////////////////////////////////
 // Parameter Display Names StringMap
 //////////////////////////////////////////////////////////////////////
 
-const PROGMEM ProgmemStringMapItem webccUI_parameterDisplayNames[] {
+const PROGMEM ProgmemStringMapItem webccUI_parameterDisplayNames[] = {
   {(StringMapKey)EepromSavedParameter::BLYNK_AUTH_TOKEN,          webccUIText_ParameterDisplayName_BlynkAuth},
   {(StringMapKey)EepromSavedParameter::WIFI_SSID,                 webccUIText_ParameterDisplayName_WiFiSSID},
   {(StringMapKey)EepromSavedParameter::WIFI_PASSWORD,             webccUIText_ParameterDisplayName_WiFiPassword},
@@ -103,6 +102,7 @@ const PROGMEM ProgmemStringMapItem webccUI_parameterDisplayNames[] {
   {(StringMapKey)EepromSavedParameter::MISC_SERIAL_OUT,           webccUIText_ParameterDisplayName_SerialDataOut},
   {(StringMapKey)EepromSavedParameter::BLYNK_SERVER,              webccUIText_ParameterDisplayName_BlynkServer},
   {(StringMapKey)EepromSavedParameter::BLYNK_SERVER_PORT,         webccUIText_ParameterDisplayName_BlynkPort},
+  {(StringMapKey)EepromSavedParameter::STARTUP_DELAY,             webccUIText_ParameterDisplayName_StartupDelay},
   {(StringMapKey)EepromSavedParameter::UNKNOWN, NULL}
 };
 ProgmemStringMap webccUIParameterDisplayNames (webccUI_parameterDisplayNames);
@@ -111,7 +111,7 @@ ProgmemStringMap webccUIParameterDisplayNames (webccUI_parameterDisplayNames);
 // Tooltips StringMap
 //////////////////////////////////////////////////////////////////////
 
-const PROGMEM ProgmemStringMapItem webccUI_parameterTooltips[] {
+const PROGMEM ProgmemStringMapItem webccUI_parameterTooltips[] = {
   {(StringMapKey)EepromSavedParameter::BLYNK_AUTH_TOKEN,          webccUIText_ParameterTooltip_BlynkAuth},
   {(StringMapKey)EepromSavedParameter::WIFI_PASSWORD,             webccUIText_ParameterTooltip_WiFiPassword},
   {(StringMapKey)EepromSavedParameter::MG811FILTER_TYPE,          webccUIText_ParameterTooltip_ADCFilterType},
@@ -119,6 +119,19 @@ const PROGMEM ProgmemStringMapItem webccUI_parameterTooltips[] {
   {(StringMapKey)EepromSavedParameter::MG811_REJECT_CALIBRATION,  webccUIText_ParameterTooltip_ADCCalReject},
   {(StringMapKey)EepromSavedParameter::BLYNK_SERVER,              webccUIText_ParameterTooltip_BlynkServer},
   {(StringMapKey)EepromSavedParameter::BLYNK_SERVER_PORT,         webccUIText_ParameterTooltip_BlynkPort},
+  {(StringMapKey)EepromSavedParameter::STARTUP_DELAY,             webccUIText_ParameterTooltip_StartupDelay},
   {(StringMapKey)EepromSavedParameter::UNKNOWN, NULL}
 };
 ProgmemStringMap webccUIParameterTooltips (webccUI_parameterTooltips);
+
+//////////////////////////////////////////////////////////////////////
+// Select Parameters StringMaps
+//////////////////////////////////////////////////////////////////////
+
+const ProgmemStringMapItem PROGMEM webccUI_SelectOptions_ADCFilter[] = {
+  {(StringMapKey)ADCFilter::OFF,      webccUIText_SelectOption_ADCFilterOff},
+  {(StringMapKey)ADCFilter::AVERAGE,  webccUIText_SelectOption_ADCFilterAverage},
+  {(StringMapKey)ADCFilter::LOWPASS,  webccUIText_SelectOption_ADCFilterLowPass},
+  {(StringMapKey)ADCFilter::OFF,      NULL}
+};
+ProgmemStringMap webccUISelectADCFilter (webccUI_SelectOptions_ADCFilter);

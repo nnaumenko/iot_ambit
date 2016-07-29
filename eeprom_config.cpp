@@ -28,6 +28,7 @@ const PROGMEM QuickStringMapItem stringMapEepromSavedParameterInternalNames[] {
   {(StringMapKey)EepromSavedParameter::MISC_SERIAL_OUT, "miscserout"},
   {(StringMapKey)EepromSavedParameter::BLYNK_SERVER, "blynkserver"},
   {(StringMapKey)EepromSavedParameter::BLYNK_SERVER_PORT, "blynkport"},
+  {(StringMapKey)EepromSavedParameter::STARTUP_DELAY, "stdel"},
   {(StringMapKey)EepromSavedParameter::UNKNOWN, ""}
 };
 

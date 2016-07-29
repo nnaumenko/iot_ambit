@@ -6,24 +6,29 @@ The only controls are Config Button and Fault LED. The configuration is performe
 
 After setup is complete, the device is powered off-then-on with Config Button released. Device connect to configured wireless network and operates routinely without supervision. The measurements are viewed via Blynk application. If the connection to Blynk server cannot be established or any sensor fails, Fauld LED is lit.
 
-ADC input of ESP8266 is used to collect the data from MG811 CO2 sensor. Since MG811 requires analog input impedance of 100..1000 gigaohm, it can not be connected directly to ADC input of ESP-12 module. Moreover, the ESP-12 analog input operates in range 0,2 .. 1,2 V, and voltage above 1,8 V will damage it. Thus, an operational amplifier with 10^13 ohm input impedance is used to amplify sensor’s signal (gain = 5). Since opamp is powered by 3,3 V the maximum voltage it can provide is about 3V. Then the voltage divider is used to convert the amplified signal into range 0..1,2 V.
-
 ## Highlights
 
-* Simple prototype project implementing user-friendly configuration via web interface.
+* Simple IoT device implementing user-friendly configuration via web interface.
 * Monitor room air temperature, humidity and CO2 concentration
 * Uses [Blynk]( http://www.blynk.cc/) for data viewing & archiving
 * Hardware platform is based on standalone ESP8266 (ESP-12 module); no Arduino required
 * Project uses Arduino IDE for ESP8266 programming, can be adapted for Arduino & WiFi or Ethernet Shields with minimum effort
-* A cheap DHT11 temperature/humidity sensor (e.g. for room temperature)
+* AM2302 temperature/humidity sensor (e.g. for room temperature)
 * Optional DS18B20 temperature sensor (e.g. for outside temperature)
-* MG811 CO2 concentration sensor for the room CO2 concentration
+* MG811 CO2 concentration sensor for the room CO2 concentration with calibration capability
 * MG811 signal can be filtered using rolling average or low-pass filter
 
 ## Quick links
 
 [Download ESP8266 binary file](https://github.com/nnaumenko/room_monitor_esp8266/raw/master/binary/room_monitor_esp8266.bin).
+
 [Installing and configuring](https://github.com/nnaumenko/room_monitor_esp8266/wiki/Installing-and-configuring)
+
+## Hardware
+
+Please refer [attached schematic](https://github.com/nnaumenko/room_monitor_esp8266/blob/master/hardware/esp8266_room_monitor.pdf) for recommended hardware setup.
+
+ADC input of ESP8266 is used to collect the data from MG811 CO2 sensor. Since MG811 requires analog input impedance of 100..1000 gigaohm, it can not be connected directly to ADC input of ESP-12 module. Moreover, the ESP-12 analog input operates in range 0,2 .. 1,2 V, and voltage above 1,8 V will damage it. Thus, an operational amplifier with 10^13 ohm input impedance is used to amplify sensor’s signal (gain = 5). Since opamp is powered by 3,3 V the maximum voltage it can provide is about 3V. Then the voltage divider is used to convert the amplified signal into range 0..1,2 V.
 
 ## References
 

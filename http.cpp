@@ -140,69 +140,83 @@ void URL::decode(char buffer[], size_t bufferSize) {
 }
 
 //////////////////////////////////////////////////////////////////////
-// HTTPReqParser::ParserTableBase
+// HTTPReqParser
 //////////////////////////////////////////////////////////////////////
 
-HTTPReqParser::ParserTableBase::ParserTableBase() {
+boolean HTTPReqParser::begin(HTTPStream & client) {
+  this->client = &client;
+  return (this->prepareToParse());
+}
+
+void HTTPReqParser::setHandler (HTTPReqPartHandler &handler) {
+  this->reqPartHandler = &handler;
+  if (this->reqPartHandler != NULL) this->reqPartHandler->begin(*this, *this->client);
+}
+
+//////////////////////////////////////////////////////////////////////
+// HTTPReqParserStateMachine::ParserTableBase
+//////////////////////////////////////////////////////////////////////
+
+HTTPReqParserStateMachine::ParserTableBase::ParserTableBase() {
   firstEntry();
 }
 
-size_t HTTPReqParser::ParserTableBase::getTableIndex(void) {
+size_t HTTPReqParserStateMachine::ParserTableBase::getTableIndex(void) {
   return (tableIndex);
 }
 
 
-boolean HTTPReqParser::ParserTableBase::setTableIndex(size_t newIndex) {
+boolean HTTPReqParserStateMachine::ParserTableBase::setTableIndex(size_t newIndex) {
   if (tableIndex >= (tableSize - 1)) return (false);
 }
 
-void HTTPReqParser::ParserTableBase::firstEntry(void) {
+void HTTPReqParserStateMachine::ParserTableBase::firstEntry(void) {
   tableIndex = 0;
 }
 
-boolean HTTPReqParser::ParserTableBase::nextEntry(void) {
+boolean HTTPReqParserStateMachine::ParserTableBase::nextEntry(void) {
   if (tableIndex >= (tableSize - 1)) return (false);
   tableIndex++;
   return (true);
 }
 
 //////////////////////////////////////////////////////////////////////
-// HTTPReqParser::ProcessingTable
+// HTTPReqParserStateMachine::ProcessingTable
 //////////////////////////////////////////////////////////////////////
 
 //Processing table defines operations performed by state machine at the particular state as follows
 //Based on Current State, a Stream Operation is performed on the HTTP client stream
 //Current State defines, which HTTP Request Part (e.g. method, path, version, fields, etc...) it corresponds to
-PROGMEM HTTPReqParser::ProcessingTableEntry HTTPReqParserProcessingTableInit[] = {
-  //Current State                                     Stream Operation                             Request Part
-  { HTTPReqParser::ParserState::UNKNOWN,              HTTPReqParser::StreamOperation::FLUSH,       HTTPRequestPart::NONE},
-  { HTTPReqParser::ParserState::ERROR,                HTTPReqParser::StreamOperation::FLUSH,       HTTPRequestPart::NONE},
-  { HTTPReqParser::ParserState::BEGIN,                HTTPReqParser::StreamOperation::DO_NOTHING,  HTTPRequestPart::NONE},
-  { HTTPReqParser::ParserState::METHOD,               HTTPReqParser::StreamOperation::READ,        HTTPRequestPart::METHOD},
-  { HTTPReqParser::ParserState::PATH,                 HTTPReqParser::StreamOperation::READ,        HTTPRequestPart::PATH},
-  { HTTPReqParser::ParserState::URL_QUERY_NAME,       HTTPReqParser::StreamOperation::READ,        HTTPRequestPart::GET_QUERY_NAME},
-  { HTTPReqParser::ParserState::URL_QUERY_VALUE,      HTTPReqParser::StreamOperation::READ,        HTTPRequestPart::GET_QUERY_VALUE},
-  { HTTPReqParser::ParserState::HTTP_VERSION,         HTTPReqParser::StreamOperation::READ,        HTTPRequestPart::VERSION},
-  { HTTPReqParser::ParserState::FIELD_OR_HEADER_END,  HTTPReqParser::StreamOperation::PEEK,        HTTPRequestPart::NONE},
-  { HTTPReqParser::ParserState::FIELD_NAME,           HTTPReqParser::StreamOperation::SKIP,        HTTPRequestPart::FIELD_NAME},
-  { HTTPReqParser::ParserState::FIELD_VALUE,          HTTPReqParser::StreamOperation::SKIP,        HTTPRequestPart::FIELD_VALUE},
-  { HTTPReqParser::ParserState::HEADER_END,           HTTPReqParser::StreamOperation::READ,        HTTPRequestPart::NONE},
-  { HTTPReqParser::ParserState::POST_QUERY_OR_END,    HTTPReqParser::StreamOperation::PEEK,        HTTPRequestPart::NONE},
-  { HTTPReqParser::ParserState::POST_QUERY_NAME,      HTTPReqParser::StreamOperation::READ,        HTTPRequestPart::POST_QUERY_NAME},
-  { HTTPReqParser::ParserState::POST_QUERY_VALUE,     HTTPReqParser::StreamOperation::READ,        HTTPRequestPart::POST_QUERY_VALUE},
-  { HTTPReqParser::ParserState::FINISHED,             HTTPReqParser::StreamOperation::FLUSH,       HTTPRequestPart::NONE},
+PROGMEM HTTPReqParserStateMachine::ProcessingTableEntry HTTPReqParserStateMachineProcessingTableInit[] = {
+  //Current State                                                 Stream Operation                                         Request Part
+  { HTTPReqParserStateMachine::ParserState::UNKNOWN,              HTTPReqParserStateMachine::StreamOperation::FLUSH,       HTTPRequestPart::NONE},
+  { HTTPReqParserStateMachine::ParserState::ERROR,                HTTPReqParserStateMachine::StreamOperation::FLUSH,       HTTPRequestPart::FINISH},
+  { HTTPReqParserStateMachine::ParserState::BEGIN,                HTTPReqParserStateMachine::StreamOperation::DO_NOTHING,  HTTPRequestPart::BEGIN},
+  { HTTPReqParserStateMachine::ParserState::METHOD,               HTTPReqParserStateMachine::StreamOperation::READ,        HTTPRequestPart::METHOD},
+  { HTTPReqParserStateMachine::ParserState::PATH,                 HTTPReqParserStateMachine::StreamOperation::READ,        HTTPRequestPart::PATH},
+  { HTTPReqParserStateMachine::ParserState::URL_QUERY_NAME,       HTTPReqParserStateMachine::StreamOperation::READ,        HTTPRequestPart::GET_QUERY_NAME},
+  { HTTPReqParserStateMachine::ParserState::URL_QUERY_VALUE,      HTTPReqParserStateMachine::StreamOperation::READ,        HTTPRequestPart::GET_QUERY_VALUE},
+  { HTTPReqParserStateMachine::ParserState::HTTP_VERSION,         HTTPReqParserStateMachine::StreamOperation::READ,        HTTPRequestPart::VERSION},
+  { HTTPReqParserStateMachine::ParserState::FIELD_OR_HEADER_END,  HTTPReqParserStateMachine::StreamOperation::PEEK,        HTTPRequestPart::NONE},
+  { HTTPReqParserStateMachine::ParserState::FIELD_NAME,           HTTPReqParserStateMachine::StreamOperation::SKIP,        HTTPRequestPart::FIELD_NAME},
+  { HTTPReqParserStateMachine::ParserState::FIELD_VALUE,          HTTPReqParserStateMachine::StreamOperation::SKIP,        HTTPRequestPart::FIELD_VALUE},
+  { HTTPReqParserStateMachine::ParserState::HEADER_END,           HTTPReqParserStateMachine::StreamOperation::READ,        HTTPRequestPart::NONE},
+  { HTTPReqParserStateMachine::ParserState::POST_QUERY_OR_END,    HTTPReqParserStateMachine::StreamOperation::PEEK,        HTTPRequestPart::NONE},
+  { HTTPReqParserStateMachine::ParserState::POST_QUERY_NAME,      HTTPReqParserStateMachine::StreamOperation::READ,        HTTPRequestPart::POST_QUERY_NAME},
+  { HTTPReqParserStateMachine::ParserState::POST_QUERY_VALUE,     HTTPReqParserStateMachine::StreamOperation::READ,        HTTPRequestPart::POST_QUERY_VALUE},
+  { HTTPReqParserStateMachine::ParserState::FINISHED,             HTTPReqParserStateMachine::StreamOperation::FLUSH,       HTTPRequestPart::FINISH},
 };
 
-boolean HTTPReqParser::ProcessingTable::begin (void) {
-  table = HTTPReqParserProcessingTableInit;
-  tableSize = sizeof (HTTPReqParserProcessingTableInit) / tableEntrySize;
+boolean HTTPReqParserStateMachine::ProcessingTable::begin (void) {
+  table = HTTPReqParserStateMachineProcessingTableInit;
+  tableSize = sizeof (HTTPReqParserStateMachineProcessingTableInit) / tableEntrySize;
   firstEntry();
   //TODO: validate table
   //check that all states are unique
   return (true);
 }
 
-boolean HTTPReqParser::ProcessingTable::find (ParserState state) {
+boolean HTTPReqParserStateMachine::ProcessingTable::find (ParserState state) {
   firstEntry();
   do {
     if (getState() == state) return (true);
@@ -210,72 +224,73 @@ boolean HTTPReqParser::ProcessingTable::find (ParserState state) {
   return (false);
 }
 
-HTTPReqParser::StreamOperation HTTPReqParser::ProcessingTable::getStreamOperation(void) {
+HTTPReqParserStateMachine::StreamOperation HTTPReqParserStateMachine::ProcessingTable::getStreamOperation(void) {
   return ((StreamOperation)pgm_read_word(&table[tableIndex].operation));
 }
 
-HTTPRequestPart HTTPReqParser::ProcessingTable::getRequestPart(void) {
+HTTPRequestPart HTTPReqParserStateMachine::ProcessingTable::getRequestPart(void) {
   return ((HTTPRequestPart)pgm_read_word(&table[tableIndex].part));
 }
 
-HTTPReqParser::ParserState HTTPReqParser::ProcessingTable::getState(void) {
+HTTPReqParserStateMachine::ParserState HTTPReqParserStateMachine::ProcessingTable::getState(void) {
   return ((ParserState)pgm_read_word(&table[tableIndex].state));
 }
 
 
 //////////////////////////////////////////////////////////////////////
-// HTTPReqParser::TransitionTable
+// HTTPReqParserStateMachine::TransitionTable
 //////////////////////////////////////////////////////////////////////
 
 //Transition table defines state machine transitions as follows:
 //Based on Current State and Next Character (the character where parser stopped reading from stream), a new state and a new HTTP status code are acquired
-PROGMEM HTTPReqParser::TransitionTableEntry HTTPReqParserTransitionTableInit[] = {
-  //  Current state                                   Next char                     New state                   New status code
-  { HTTPReqParser::ParserState::UNKNOWN,              HTTPReqParser::CHAR_OTHER,    HTTPReqParser::ParserState::ERROR,                HTTPStatusCode::INTERNAL_SERVER_ERROR},
-  { HTTPReqParser::ParserState::ERROR,                HTTPReqParser::CHAR_OTHER,    HTTPReqParser::ParserState::ERROR,                HTTPStatusCode::NO_CHANGE},
-  { HTTPReqParser::ParserState::BEGIN,                HTTPReqParser::CHAR_OTHER,    HTTPReqParser::ParserState::METHOD,               HTTPStatusCode::CONTINUE},
-  { HTTPReqParser::ParserState::METHOD,               ' ',                          HTTPReqParser::ParserState::PATH,                 HTTPStatusCode::CONTINUE},
-  { HTTPReqParser::ParserState::METHOD,               HTTPReqParser::CHAR_OTHER,    HTTPReqParser::ParserState::ERROR,                HTTPStatusCode::BAD_REQUEST},
-  { HTTPReqParser::ParserState::PATH,                 ' ',                          HTTPReqParser::ParserState::HTTP_VERSION,         HTTPStatusCode::CONTINUE},
-  { HTTPReqParser::ParserState::PATH,                 '?',                          HTTPReqParser::ParserState::URL_QUERY_NAME,       HTTPStatusCode::CONTINUE},
-  { HTTPReqParser::ParserState::PATH,                 HTTPReqParser::CHAR_OTHER,    HTTPReqParser::ParserState::ERROR,                HTTPStatusCode::BAD_REQUEST},
-  { HTTPReqParser::ParserState::URL_QUERY_NAME,       '=',                          HTTPReqParser::ParserState::URL_QUERY_VALUE,      HTTPStatusCode::CONTINUE},
-  { HTTPReqParser::ParserState::URL_QUERY_NAME,       HTTPReqParser::CHAR_OTHER,    HTTPReqParser::ParserState::ERROR,                HTTPStatusCode::BAD_REQUEST},
-  { HTTPReqParser::ParserState::URL_QUERY_VALUE,      '&',                          HTTPReqParser::ParserState::URL_QUERY_NAME,       HTTPStatusCode::CONTINUE},
-  { HTTPReqParser::ParserState::URL_QUERY_VALUE,      ' ',                          HTTPReqParser::ParserState::HTTP_VERSION,         HTTPStatusCode::CONTINUE},
-  { HTTPReqParser::ParserState::URL_QUERY_VALUE,      HTTPReqParser::CHAR_OTHER,    HTTPReqParser::ParserState::ERROR,                HTTPStatusCode::BAD_REQUEST},
-  { HTTPReqParser::ParserState::HTTP_VERSION,         '\n',                         HTTPReqParser::ParserState::FIELD_OR_HEADER_END,  HTTPStatusCode::CONTINUE},
-  { HTTPReqParser::ParserState::HTTP_VERSION,         HTTPReqParser::CHAR_OTHER,    HTTPReqParser::ParserState::ERROR,                HTTPStatusCode::BAD_REQUEST},
-  { HTTPReqParser::ParserState::FIELD_OR_HEADER_END,  '\n',                         HTTPReqParser::ParserState::HEADER_END,           HTTPStatusCode::CONTINUE},
-  { HTTPReqParser::ParserState::FIELD_OR_HEADER_END,  HTTPReqParser::CHAR_OTHER,    HTTPReqParser::ParserState::FIELD_NAME,           HTTPStatusCode::CONTINUE},
-  { HTTPReqParser::ParserState::FIELD_NAME,           ':',                          HTTPReqParser::ParserState::FIELD_VALUE,          HTTPStatusCode::CONTINUE},
-  { HTTPReqParser::ParserState::FIELD_NAME,           HTTPReqParser::CHAR_OTHER,    HTTPReqParser::ParserState::ERROR,                HTTPStatusCode::BAD_REQUEST},
-  { HTTPReqParser::ParserState::FIELD_VALUE,          '\n',                         HTTPReqParser::ParserState::FIELD_OR_HEADER_END,  HTTPStatusCode::CONTINUE},
-  { HTTPReqParser::ParserState::FIELD_VALUE,          HTTPReqParser::CHAR_UNAVAIL,  HTTPReqParser::ParserState::FINISHED,             HTTPStatusCode::OK},
-  { HTTPReqParser::ParserState::FIELD_VALUE,          HTTPReqParser::CHAR_OTHER,    HTTPReqParser::ParserState::ERROR,                HTTPStatusCode::BAD_REQUEST},
-  { HTTPReqParser::ParserState::HEADER_END,           '\n',                         HTTPReqParser::ParserState::POST_QUERY_OR_END,    HTTPStatusCode::CONTINUE},
-  { HTTPReqParser::ParserState::HEADER_END,           HTTPReqParser::CHAR_OTHER,    HTTPReqParser::ParserState::ERROR,                HTTPStatusCode::BAD_REQUEST},
-  { HTTPReqParser::ParserState::POST_QUERY_OR_END,    HTTPReqParser::CHAR_UNAVAIL,  HTTPReqParser::ParserState::FINISHED,             HTTPStatusCode::OK},
-  { HTTPReqParser::ParserState::POST_QUERY_OR_END,    HTTPReqParser::CHAR_OTHER,    HTTPReqParser::ParserState::POST_QUERY_NAME,      HTTPStatusCode::CONTINUE},
-  { HTTPReqParser::ParserState::POST_QUERY_NAME,      '=',                          HTTPReqParser::ParserState::POST_QUERY_VALUE,     HTTPStatusCode::CONTINUE},
-  { HTTPReqParser::ParserState::POST_QUERY_NAME,      HTTPReqParser::CHAR_OTHER,    HTTPReqParser::ParserState::ERROR,                HTTPStatusCode::BAD_REQUEST},
-  { HTTPReqParser::ParserState::POST_QUERY_VALUE,     '&',                          HTTPReqParser::ParserState::POST_QUERY_NAME,      HTTPStatusCode::CONTINUE},
-  { HTTPReqParser::ParserState::POST_QUERY_VALUE,     '\n',                         HTTPReqParser::ParserState::FINISHED,             HTTPStatusCode::OK},
-  { HTTPReqParser::ParserState::POST_QUERY_VALUE,     HTTPReqParser::CHAR_UNAVAIL,  HTTPReqParser::ParserState::FINISHED,             HTTPStatusCode::OK},
-  { HTTPReqParser::ParserState::URL_QUERY_VALUE,      HTTPReqParser::CHAR_OTHER,    HTTPReqParser::ParserState::ERROR,                HTTPStatusCode::BAD_REQUEST}
+PROGMEM HTTPReqParserStateMachine::TransitionTableEntry HTTPReqParserStateMachineTransitionTableInit[] = {
+  //  Current state                                               Next char                                 New state                                                     New status code
+  { HTTPReqParserStateMachine::ParserState::UNKNOWN,              HTTPReqParserStateMachine::CHAR_OTHER,    HTTPReqParserStateMachine::ParserState::ERROR,                HTTPStatusCode::INTERNAL_SERVER_ERROR},
+  { HTTPReqParserStateMachine::ParserState::ERROR,                HTTPReqParserStateMachine::CHAR_OTHER,    HTTPReqParserStateMachine::ParserState::ERROR,                HTTPStatusCode::NO_CHANGE},
+  { HTTPReqParserStateMachine::ParserState::BEGIN,                HTTPReqParserStateMachine::CHAR_OTHER,    HTTPReqParserStateMachine::ParserState::METHOD,               HTTPStatusCode::CONTINUE},
+  { HTTPReqParserStateMachine::ParserState::METHOD,               ' ',                                      HTTPReqParserStateMachine::ParserState::PATH,                 HTTPStatusCode::CONTINUE},
+  { HTTPReqParserStateMachine::ParserState::METHOD,               HTTPReqParserStateMachine::CHAR_OTHER,    HTTPReqParserStateMachine::ParserState::ERROR,                HTTPStatusCode::BAD_REQUEST},
+  { HTTPReqParserStateMachine::ParserState::PATH,                 ' ',                                      HTTPReqParserStateMachine::ParserState::HTTP_VERSION,         HTTPStatusCode::CONTINUE},
+  { HTTPReqParserStateMachine::ParserState::PATH,                 '?',                                      HTTPReqParserStateMachine::ParserState::URL_QUERY_NAME,       HTTPStatusCode::CONTINUE},
+  { HTTPReqParserStateMachine::ParserState::PATH,                 HTTPReqParserStateMachine::CHAR_OTHER,    HTTPReqParserStateMachine::ParserState::ERROR,                HTTPStatusCode::BAD_REQUEST},
+  { HTTPReqParserStateMachine::ParserState::URL_QUERY_NAME,       '=',                                      HTTPReqParserStateMachine::ParserState::URL_QUERY_VALUE,      HTTPStatusCode::CONTINUE},
+  { HTTPReqParserStateMachine::ParserState::URL_QUERY_NAME,       HTTPReqParserStateMachine::CHAR_OTHER,    HTTPReqParserStateMachine::ParserState::ERROR,                HTTPStatusCode::BAD_REQUEST},
+  { HTTPReqParserStateMachine::ParserState::URL_QUERY_VALUE,      '&',                                      HTTPReqParserStateMachine::ParserState::URL_QUERY_NAME,       HTTPStatusCode::CONTINUE},
+  { HTTPReqParserStateMachine::ParserState::URL_QUERY_VALUE,      ' ',                                      HTTPReqParserStateMachine::ParserState::HTTP_VERSION,         HTTPStatusCode::CONTINUE},
+  { HTTPReqParserStateMachine::ParserState::URL_QUERY_VALUE,      HTTPReqParserStateMachine::CHAR_OTHER,    HTTPReqParserStateMachine::ParserState::ERROR,                HTTPStatusCode::BAD_REQUEST},
+  { HTTPReqParserStateMachine::ParserState::HTTP_VERSION,         '\n',                                     HTTPReqParserStateMachine::ParserState::FIELD_OR_HEADER_END,  HTTPStatusCode::CONTINUE},
+  { HTTPReqParserStateMachine::ParserState::HTTP_VERSION,         HTTPReqParserStateMachine::CHAR_OTHER,    HTTPReqParserStateMachine::ParserState::ERROR,                HTTPStatusCode::BAD_REQUEST},
+  { HTTPReqParserStateMachine::ParserState::FIELD_OR_HEADER_END,  '\n',                                     HTTPReqParserStateMachine::ParserState::HEADER_END,           HTTPStatusCode::CONTINUE},
+  { HTTPReqParserStateMachine::ParserState::FIELD_OR_HEADER_END,  HTTPReqParserStateMachine::CHAR_OTHER,    HTTPReqParserStateMachine::ParserState::FIELD_NAME,           HTTPStatusCode::CONTINUE},
+  { HTTPReqParserStateMachine::ParserState::FIELD_NAME,           ':',                                      HTTPReqParserStateMachine::ParserState::FIELD_VALUE,          HTTPStatusCode::CONTINUE},
+  { HTTPReqParserStateMachine::ParserState::FIELD_NAME,           HTTPReqParserStateMachine::CHAR_OTHER,    HTTPReqParserStateMachine::ParserState::ERROR,                HTTPStatusCode::BAD_REQUEST},
+  { HTTPReqParserStateMachine::ParserState::FIELD_VALUE,          '\n',                                     HTTPReqParserStateMachine::ParserState::FIELD_OR_HEADER_END,  HTTPStatusCode::CONTINUE},
+  { HTTPReqParserStateMachine::ParserState::FIELD_VALUE,          HTTPReqParserStateMachine::CHAR_UNAVAIL,  HTTPReqParserStateMachine::ParserState::FINISHED,             HTTPStatusCode::OK},
+  { HTTPReqParserStateMachine::ParserState::FIELD_VALUE,          HTTPReqParserStateMachine::CHAR_OTHER,    HTTPReqParserStateMachine::ParserState::ERROR,                HTTPStatusCode::BAD_REQUEST},
+  { HTTPReqParserStateMachine::ParserState::HEADER_END,           '\n',                                     HTTPReqParserStateMachine::ParserState::POST_QUERY_OR_END,    HTTPStatusCode::CONTINUE},
+  { HTTPReqParserStateMachine::ParserState::HEADER_END,           HTTPReqParserStateMachine::CHAR_OTHER,    HTTPReqParserStateMachine::ParserState::ERROR,                HTTPStatusCode::BAD_REQUEST},
+  { HTTPReqParserStateMachine::ParserState::POST_QUERY_OR_END,    HTTPReqParserStateMachine::CHAR_UNAVAIL,  HTTPReqParserStateMachine::ParserState::FINISHED,             HTTPStatusCode::OK},
+  { HTTPReqParserStateMachine::ParserState::POST_QUERY_OR_END,    HTTPReqParserStateMachine::CHAR_OTHER,    HTTPReqParserStateMachine::ParserState::POST_QUERY_NAME,      HTTPStatusCode::CONTINUE},
+  { HTTPReqParserStateMachine::ParserState::POST_QUERY_NAME,      '=',                                      HTTPReqParserStateMachine::ParserState::POST_QUERY_VALUE,     HTTPStatusCode::CONTINUE},
+  { HTTPReqParserStateMachine::ParserState::POST_QUERY_NAME,      HTTPReqParserStateMachine::CHAR_OTHER,    HTTPReqParserStateMachine::ParserState::ERROR,                HTTPStatusCode::BAD_REQUEST},
+  { HTTPReqParserStateMachine::ParserState::POST_QUERY_VALUE,     '&',                                      HTTPReqParserStateMachine::ParserState::POST_QUERY_NAME,      HTTPStatusCode::CONTINUE},
+  { HTTPReqParserStateMachine::ParserState::POST_QUERY_VALUE,     '\n',                                     HTTPReqParserStateMachine::ParserState::FINISHED,             HTTPStatusCode::OK},
+  { HTTPReqParserStateMachine::ParserState::POST_QUERY_VALUE,     HTTPReqParserStateMachine::CHAR_UNAVAIL,  HTTPReqParserStateMachine::ParserState::FINISHED,             HTTPStatusCode::OK},
+  { HTTPReqParserStateMachine::ParserState::URL_QUERY_VALUE,      HTTPReqParserStateMachine::CHAR_OTHER,    HTTPReqParserStateMachine::ParserState::ERROR,                HTTPStatusCode::BAD_REQUEST},
+  { HTTPReqParserStateMachine::ParserState::FINISHED,             HTTPReqParserStateMachine::CHAR_OTHER,    HTTPReqParserStateMachine::ParserState::FINISHED,             HTTPStatusCode::NO_CHANGE},
 };
 
-boolean HTTPReqParser::TransitionTable::begin (void) {
-  table = HTTPReqParserTransitionTableInit;
-  tableSize = sizeof (HTTPReqParserTransitionTableInit) / tableEntrySize;
-  firstEntry();
+boolean HTTPReqParserStateMachine::TransitionTable::begin (void) {
+  table = HTTPReqParserStateMachineTransitionTableInit;
+  tableSize = sizeof (HTTPReqParserStateMachineTransitionTableInit) / tableEntrySize;
   //TODO: validate table
   //Check that all state/char combinations are unique
   //Check that all states have OTHER_CHAR
+  firstEntry();
   return (true);
 }
 
-void HTTPReqParser::TransitionTable::find (ParserState state, char nextChar) {
+void HTTPReqParserStateMachine::TransitionTable::find (ParserState state, char nextChar) {
   firstEntry();
   do {
     if ((getState() == state) && ((getNextChar() == nextChar) || (getNextChar() == CHAR_OTHER))) return;
@@ -283,7 +298,7 @@ void HTTPReqParser::TransitionTable::find (ParserState state, char nextChar) {
   //Assuming here that every state has OTHER_CHAR entry
 }
 
-boolean HTTPReqParser::TransitionTable::enumerateNextChars(ParserState state, char * buffer, size_t bufferSize) {
+boolean HTTPReqParserStateMachine::TransitionTable::enumerateNextChars(ParserState state, char * buffer, size_t bufferSize) {
   size_t currentIndex = getTableIndex();
   size_t bufferPos = 0;
   firstEntry();
@@ -300,27 +315,26 @@ boolean HTTPReqParser::TransitionTable::enumerateNextChars(ParserState state, ch
   return (true);
 }
 
-HTTPReqParser::ParserState HTTPReqParser::TransitionTable::getNewState(void) {
-  return ((HTTPReqParser::ParserState)pgm_read_word(&table[tableIndex].newState));
+HTTPReqParserStateMachine::ParserState HTTPReqParserStateMachine::TransitionTable::getNewState(void) {
+  return ((HTTPReqParserStateMachine::ParserState)pgm_read_word(&table[tableIndex].newState));
 }
 
-HTTPStatusCode HTTPReqParser::TransitionTable::getNewStatusCode(void) {
+HTTPStatusCode HTTPReqParserStateMachine::TransitionTable::getNewStatusCode(void) {
   return ((HTTPStatusCode)pgm_read_word(&table[tableIndex].newStatusCode));
 }
 
-HTTPReqParser::ParserState HTTPReqParser::TransitionTable::getState(void) {
-  return ((HTTPReqParser::ParserState)pgm_read_word(&table[tableIndex].state));
+HTTPReqParserStateMachine::ParserState HTTPReqParserStateMachine::TransitionTable::getState(void) {
+  return ((HTTPReqParserStateMachine::ParserState)pgm_read_word(&table[tableIndex].state));
 }
-char HTTPReqParser::TransitionTable::getNextChar(void) {
+char HTTPReqParserStateMachine::TransitionTable::getNextChar(void) {
   return ((char)pgm_read_byte(&table[tableIndex].nextChar));
 }
 
 //////////////////////////////////////////////////////////////////////
-// HTTPReqParser
+// HTTPReqParserStateMachine
 //////////////////////////////////////////////////////////////////////
 
-boolean HTTPReqParser::begin(HTTPStream & client) {
-  this->client = &client;
+boolean HTTPReqParserStateMachine::prepareToParse(void) {
   this->parserStatus.statusCode = HTTPStatusCode::CONTINUE;
   this->parserStatus.requestPart = HTTPRequestPart::NONE;
   this->parserStatus.currentState = ParserState::BEGIN;
@@ -330,12 +344,7 @@ boolean HTTPReqParser::begin(HTTPStream & client) {
   return (true);
 }
 
-void HTTPReqParser::setHandler (HTTPReqPartHandler &handler) {
-  this->reqPartHandler = &handler;
-  this->reqPartHandler->begin(*this);
-}
-
-void HTTPReqParser::parse(void) {
+void HTTPReqParserStateMachine::parse(void) {
   if (this->client == NULL) {
     this->setError(HTTPStatusCode::INTERNAL_SERVER_ERROR);
     return;
@@ -382,32 +391,30 @@ void HTTPReqParser::parse(void) {
   this->parserStatus.nextCharacter = (char)nextCharAsInt;
   this->parserStatus.requestPart = this->processingTable.getRequestPart();
   if (this->reqPartHandler != NULL) {
-    if (strlen(readBuffer) > 0) reqPartHandler->execute(readBuffer, this->parserStatus.requestPart);
+    if (this->parserStatus.requestPart != HTTPRequestPart::NONE) reqPartHandler->handleReqPart(readBuffer, this->parserStatus.requestPart);
   }
   this->transitionTable.find(this->parserStatus.currentState, this->parserStatus.nextCharacter);
   this->transition(this->transitionTable.getNewState(), this->transitionTable.getNewStatusCode());
 }
 
-void HTTPReqParser::transition(HTTPReqParser::ParserState newState, HTTPStatusCode newStatusCode) {
+void HTTPReqParserStateMachine::transition(HTTPReqParserStateMachine::ParserState newState, HTTPStatusCode newStatusCode) {
   this->parserStatus.currentState = newState;
   //TODO:add check if the state exists in the processing and transition table
   if (newStatusCode != HTTPStatusCode::NO_CHANGE) this->parserStatus.statusCode = newStatusCode;
 }
 
-boolean HTTPReqParser::finished(void) {
-  if (this->parserStatus.currentState == ParserState::FINISHED) return (true);
-  if (this->parserStatus.currentState == ParserState::ERROR) return (true);
-  return (false);
+boolean HTTPReqParserStateMachine::isFinished(void) {
+  return (this->parserStatus.requestPart == HTTPRequestPart::FINISH);
 }
 
-void HTTPReqParser::setError(HTTPStatusCode errorStatusCode) {
+void HTTPReqParserStateMachine::setError(HTTPStatusCode errorStatusCode) {
   this->transition(ParserState::ERROR, errorStatusCode);
 }
 
-boolean HTTPReqParser::isError(void) {
+boolean HTTPReqParserStateMachine::isError(void) {
   return (this->parserStatus.currentState == ParserState::ERROR);
 }
 
-HTTPStatusCode HTTPReqParser::getStatusCode(void) {
+HTTPStatusCode HTTPReqParserStateMachine::getStatusCode(void) {
   return (this->parserStatus.statusCode);
 }

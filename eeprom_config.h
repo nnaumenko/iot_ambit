@@ -12,8 +12,7 @@
 #include "stringmap.h"
 #include "adc.h"
 
-//if true, then passwords, auth tokens, etc. are included in the debug output
-const boolean EEPROM_DEBUG_PRINT_INSECURE = true;
+const boolean EEPROM_DEBUG_PRINT_INSECURE = false; //if true, then passwords, auth tokens, etc. are included in the debug output
 
 #define CONFIG_TEXT_LENGTH 33 //including trailing 0 character
 
@@ -36,6 +35,7 @@ struct EepromSavedParametersStorage {
   byte sensorSerialOutput = 0;
   char blynkServer[CONFIG_TEXT_LENGTH] = {0};
   unsigned int blynkServerPort = 8442;
+  unsigned int startupDelay = 0;
 };
 
 enum class EepromSavedParameter {
@@ -53,6 +53,7 @@ enum class EepromSavedParameter {
   MISC_SERIAL_OUT = 11,
   BLYNK_SERVER = 12,
   BLYNK_SERVER_PORT = 13,
+  STARTUP_DELAY = 14,
 };
 
 enum class ParameterValueOnOff {

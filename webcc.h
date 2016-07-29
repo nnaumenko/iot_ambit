@@ -9,10 +9,19 @@
 #define WEBCC_H
 
 #include <Arduino.h>
+#include <ESP8266WiFi.h>
 #include "http.h"
-#include "stringmap.h"
 
-void webConfigBegin(void);
-void webConfigRun(void);
+class WebConfigControl {
+  public:
+    WebConfigControl(WiFiServer &server, HTTPReqParser &parser, HTTPReqPartHandler &handler);
+  private:
+    WiFiServer * server = NULL;
+    HTTPReqParser * parser = NULL;
+    HTTPReqPartHandler * reqPartHandler = NULL;
+  public:
+    boolean begin(void);
+    void execute(void);
+};
 
 #endif

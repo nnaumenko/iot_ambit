@@ -5,12 +5,12 @@
  * of the MIT license. See the LICENSE file for details.
  */
 
-#ifndef VERSION_H
-#define VERSION_H
+#ifndef WEBCONFIG_H
+#define WEBCONFIG_H
 
 #include <Arduino.h>
 
-#define FIRMWARE_VERSION_MAJOR     0
-#define FIRMWARE_VERSION_MINOR     6
+void webConfigBegin(void);
+void webConfigRun(void);
 
 #endif

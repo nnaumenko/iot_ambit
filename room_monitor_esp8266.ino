@@ -10,7 +10,7 @@ extern "C" {
 #include <user_interface.h>
 }
 
-#define CONFIG_MODE_WIFI_OPEN true //change to false to create password-protected WiFi network in config mode
+const boolean CONFIG_MODE_WIFI_OPEN = true; //change to false to create password-protected WiFi network in config mode
 
 #include "diag.h"
 #include "version.h"
@@ -29,9 +29,11 @@ extern "C" {
 #include "adc.h"
 #include "eeprom_config.h"
 #include "http.h"
+#include "stringmap.h"
+#include "uiTexts.h"
 #include "webcc.h"
 #include "webcc_html.h"
-#include "stringmap.h"
+#include "webconfig.h"
 
 #ifndef ESP8266
 #warning "Please select a ESP8266 board in Tools/Board"
@@ -340,24 +342,6 @@ boolean checkTimedEvent (const unsigned long period, unsigned long * tempTimeVal
   return (true);
 }
 
-boolean setMaxWIFIConnections(size_t maxConnections) {
-  //Since softAp max connectons are hardcoded, need this function to be able to change when
-  //https://github.com/esp8266/Arduino/blob/master/libraries/ESP8266WiFi/src/ESP8266WiFiAP.cpp, line 111:
-  //conf.max_connection = 4;
-  const size_t maxSupportedConnections = 4; //According to Espressif docs
-  if (maxConnections > maxSupportedConnections) return (false);
-  softap_config conf;
-  wifi_softap_get_config(&conf);
-  conf.max_connection = 1;
-  ETS_UART_INTR_DISABLE();
-  boolean ret = wifi_softap_set_config(&conf);
-  ETS_UART_INTR_ENABLE();
-  if (!ret) return (false);
-  DiagLog.print(F("Max AP connections set to "));
-  DiagLog.println(maxConnections);
-  return (true);
-}
-
 boolean isConfigMode = false;
 
 void setup() {
@@ -404,12 +388,11 @@ void setup() {
       WiFi.softAP(ssid);
     else
       WiFi.softAP(ssid, password);
-    setMaxWIFIConnections(1);
     DiagLog.println(F("Access point created: "));
     DiagLog.print(F("SSID: "));
     DiagLog.println(ssid);
     if (CONFIG_MODE_WIFI_OPEN)
-      DiagLog.print(F("Open WiFi network"));
+      DiagLog.println(F("Open WiFi network"));
     else {
       DiagLog.print(F("Password: "));
       DiagLog.println(password);
@@ -421,7 +404,26 @@ void setup() {
   }
   else {
     DiagLog.println(F("Config Mode not enabled."));
-
+    if (eepromSavedParametersStorage.startupDelay) {
+      DiagLog.print(F("["));
+      DiagLog.print(millis());
+      DiagLog.print(F("] startup delay: "));
+      float delaySeconds = eepromSavedParametersStorage.startupDelay / 10.0;
+      DiagLog.println(delaySeconds);
+      DiagLog.print(F(" seconds"));
+      DiagLog.print(F("["));
+      DiagLog.print(millis());
+      DiagLog.print(F("] Waiting"));
+      for (int i = 0; i < eepromSavedParametersStorage.startupDelay; i++) {
+        delay(100);
+        if (!(i % 10)) DiagLog.print(F("."));
+        yield();
+      }
+      DiagLog.println();
+      DiagLog.print(F("["));
+      DiagLog.print(millis());
+      DiagLog.print(F("] Startup delay finished\n"));
+    };
     DiagLog.print(F("["));
     DiagLog.print(millis());
     DiagLog.print(F("] connecting to "));
@@ -431,10 +433,21 @@ void setup() {
       WiFi.begin(eepromSavedParametersStorage.wifiSsid, eepromSavedParametersStorage.wifiPassword);
     else
       WiFi.begin(eepromSavedParametersStorage.wifiSsid);
+    const int connectWiFiDelay = 500;
+    const long connectWiFiTimeout = 50000;
+    int connectWiFiCount = 0;
     while (WiFi.status() != WL_CONNECTED) {
-      delay(500);
+      delay(connectWiFiDelay);
+      connectWiFiCount++;
       yield();
       DiagLog.print(F("."));
+      if (((long)connectWiFiCount * (long)connectWiFiDelay) > connectWiFiTimeout) {
+        DiagLog.println();
+        DiagLog.print(F("["));
+        DiagLog.print(millis());
+        DiagLog.println(F("] Unable to connect, resetting..."));
+        system_restart();
+      }
     }
     DiagLog.println();
     DiagLog.print(F("["));
