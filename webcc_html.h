@@ -65,23 +65,19 @@ class WebccHTML {
     void checkBoxParameter(const char * displayName, boolean isDisplayNameProgmem,
                            const char * internalName, boolean isInternalNameProgmem,
                            boolean value,
-                           const char * tooltipText = NULL, boolean isTooltipTextProgmem = true,
-                           long internalValue = 1L);
+                           const char * tooltipText = NULL, boolean isTooltipTextProgmem = true);
     void checkBoxParameter(const char * displayName, boolean isDisplayNameProgmem,
                            const char * internalName, boolean isInternalNameProgmem,
                            long value,
-                           const char * tooltipText = NULL, boolean isTooltipTextProgmem = true,
-                           long internalValue = 1L);
+                           const char * tooltipText = NULL, boolean isTooltipTextProgmem = true);
     void checkBoxParameter(const char * displayName,
                            const char * internalName,
                            boolean value,
-                           const char * tooltipText = NULL,
-                           long internalValue = 1L);
+                           const char * tooltipText = NULL);
     void checkBoxParameter(const char * displayName,
                            const char * internalName,
                            long value,
-                           const char * tooltipText = NULL,
-                           long internalValue = 1L);
+                           const char * tooltipText = NULL);
 };
 
 class WebccHTMLStringMaps : protected WebccHTML {
@@ -105,8 +101,8 @@ class WebccHTMLStringMaps : protected WebccHTML {
     void textParameter (StringMapKey parameter, long value);
     void textParameter (StringMapKey parameter, const char * value = NULL);
     void selectParameter(StringMapKey parameter, long value, const StringMap & options);
-    void checkBoxParameter(StringMapKey parameter, boolean value, long internalValue = 1L);
-    void checkBoxParameter(StringMapKey parameter, long value, long internalValue = 1L);
+    void checkBoxParameter(StringMapKey parameter, boolean value);
+    void checkBoxParameter(StringMapKey parameter, long value);
 };
 
 #endif

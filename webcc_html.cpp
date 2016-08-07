@@ -339,8 +339,8 @@ const char PROGMEM htmlConfigParameterSelectOptionPart3[] =
   "</option>" CRLF;
 
 //Checkbox parameter parts are composed as follows:
-//Part1 DisplayName Part2 [TooltipBegin TooltipText TooltipEnd] Part3 InternalName Part4 InternalValue Part5
-//For checked checkbox substisute Part5 with Part5Checked
+//Part1 DisplayName Part2 [TooltipBegin TooltipText TooltipEnd] Part3 InternalName Part4
+//For checked checkbox substisute Part4 with Part4Checked
 
 const char PROGMEM htmlConfigParameterCheckboxPart1[] =
   "<div class=\"cfg_param\"><label>";
@@ -352,12 +352,9 @@ const char PROGMEM htmlConfigParameterCheckboxPart3[] =
   "<input type=\"checkbox\" name=\"";
 
 const char PROGMEM htmlConfigParameterCheckboxPart4[] =
-  "\" value=\"";
-
-const char PROGMEM htmlConfigParameterCheckboxPart5[] =
   "\"></div>";
 
-const char PROGMEM htmlConfigParameterCheckboxPart5Checked[] =
+const char PROGMEM htmlConfigParameterCheckboxPart4Checked[] =
   "\" checked></div>";
 
 
@@ -376,17 +373,17 @@ WebccHTML::~WebccHTML() {
 }
 
 void WebccHTML::bodyBegin(char * caption, boolean isCaptionProgmem) {
-  if (this->client == NULL) return;
+  if (!this->client) return;
   isWithinBody = true;
   this->client->print((__FlashStringHelper *)htmlConfigBodyBegin1);
-  if (caption != NULL) {
+  if (caption) {
     if (isCaptionProgmem)
       this->client->print((__FlashStringHelper *)caption);
     else
       this->client->print(caption);
   }
   this->client->print((__FlashStringHelper *)htmlConfigBodyBegin2);
-  if (caption != NULL) {
+  if (caption) {
     if (isCaptionProgmem)
       this->client->print((__FlashStringHelper *)caption);
     else
@@ -396,7 +393,7 @@ void WebccHTML::bodyBegin(char * caption, boolean isCaptionProgmem) {
 }
 
 void WebccHTML::bodyEnd(void) {
-  if (this->client == NULL) return;
+  if (!this->client) return;
   if (isWithinSubsection) subsectionEnd();
   if (isWithinSection) sectionEnd();
   isWithinBody = false;
@@ -404,8 +401,8 @@ void WebccHTML::bodyEnd(void) {
 }
 
 void WebccHTML::sectionBegin(const char * displayName, boolean isDisplayNameProgmem) {
-  if (this->client == NULL) return;
-  if (displayName == NULL) return;
+  if (!this->client) return;
+  if (!displayName) return;
   if (isWithinSubsection) subsectionEnd();
   if (isWithinSection) sectionEnd();
   isWithinSection = true;
@@ -418,15 +415,15 @@ void WebccHTML::sectionBegin(const char * displayName, boolean isDisplayNameProg
 }
 
 void WebccHTML::sectionEnd(void) {
-  if (this->client == NULL) return;
+  if (!this->client) return;
   isWithinSection = false;
   this->client->print((__FlashStringHelper *)htmlConfigSave);
   this->client->print((__FlashStringHelper *)htmlConfigSectionEnd);
 }
 
 void WebccHTML::subsectionBegin(const char * displayName, boolean isDisplayNameProgmem) {
-  if (this->client == NULL) return;
-  if (displayName == NULL) return;
+  if (!this->client) return;
+  if (!displayName) return;
   if (isWithinSubsection) subsectionEnd();
   isWithinSubsection = true;
   this->client->print((__FlashStringHelper *)htmlConfigSubsectionBegin1);
@@ -438,7 +435,7 @@ void WebccHTML::subsectionBegin(const char * displayName, boolean isDisplayNameP
 }
 
 void WebccHTML::subsectionEnd(void) {
-  if (this->client == NULL) return;
+  if (!this->client) return;
   isWithinSubsection = false;
   this->client->print((__FlashStringHelper *)htmlConfigSubsectionEnd);
 }
@@ -447,15 +444,15 @@ void WebccHTML::textParameter(const char * displayName, boolean isDisplayNamePro
                               const char * internalName, boolean isInternalNameProgmem,
                               const char * value,
                               const char * tooltipText, boolean isTooltipTextProgmem) {
-  if (this->client == NULL) return;
-  if ((displayName == NULL) || (internalName == NULL)) return;
+  if (!this->client) return;
+  if (!displayName || !internalName) return;
   this->client->print((__FlashStringHelper *)htmlConfigParameterTextPart1);
   if (isDisplayNameProgmem)
     this->client->print((__FlashStringHelper *)displayName);
   else
     this->client->print(displayName);
   this->client->print((__FlashStringHelper *)htmlConfigParameterTextPart2);
-  if (tooltipText != NULL) {
+  if (tooltipText) {
     this->client->print((__FlashStringHelper *)htmlConfigTooltipBegin);
     if (isTooltipTextProgmem)
       this->client->print((__FlashStringHelper *)tooltipText);
@@ -469,7 +466,7 @@ void WebccHTML::textParameter(const char * displayName, boolean isDisplayNamePro
   else
     this->client->print(internalName);
   this->client->print((__FlashStringHelper *)htmlConfigParameterTextPart4);
-  if (value != NULL) {
+  if (value) {
     this->client->print(value);
   }
   this->client->print((__FlashStringHelper *)htmlConfigParameterTextPart5);
@@ -479,7 +476,7 @@ void WebccHTML::textParameter(const char * displayName, boolean isDisplayNamePro
                               const char * internalName, boolean isInternalNameProgmem,
                               long value,
                               const char * tooltipText, boolean isTooltipTextProgmem) {
-  const size_t maxCharsPerLongValue = 12; //max 10 digits + optional minus sign + null character
+  const size_t maxCharsPerLongValue = 12; //max 10 digits per long + optional minus sign + null character
   const int decimalRadix = 10;
   char valueAsText[maxCharsPerLongValue] = {0};
   char * valueAsText2 = ltoa (value, valueAsText, decimalRadix);
@@ -503,15 +500,15 @@ void WebccHTML::textParameter (const char * displayName, const char * internalNa
 void WebccHTML::selectParameterBegin(const char * displayName, boolean isDisplayNameProgmem,
                                      const char * internalName, boolean isInternalNameProgmem,
                                      const char * tooltipText, boolean isTooltipTextProgmem) {
-  if (this->client == NULL) return;
-  if ((displayName == NULL) || (internalName == NULL)) return;
+  if (!this->client) return;
+  if (!displayName || !internalName) return;
   this->client->print((__FlashStringHelper *)htmlConfigParameterSelectPart1);
   if (isDisplayNameProgmem)
     this->client->print((__FlashStringHelper *)displayName);
   else
     this->client->print(displayName);
   this->client->print((__FlashStringHelper *)htmlConfigParameterSelectPart2);
-  if (tooltipText != NULL) {
+  if (tooltipText) {
     this->client->print((__FlashStringHelper *)htmlConfigTooltipBegin);
     if (isTooltipTextProgmem)
       this->client->print((__FlashStringHelper *)tooltipText);
@@ -537,8 +534,8 @@ void WebccHTML::selectParameterBegin(const char * displayName,
 
 
 void WebccHTML::selectParameterOption(const char * displayName, boolean isDisplayNameProgmem, long optionValue, long actualValue) {
-  if (this->client == NULL) return;
-  if (displayName == NULL) return;
+  if (!this->client) return;
+  if (!displayName) return;
   this->client->print((__FlashStringHelper *)htmlConfigParameterSelectOptionPart1);
   this->client->print(optionValue, DEC);
   if (optionValue == actualValue)
@@ -559,24 +556,23 @@ void WebccHTML::selectParameterOption(const char * displayName,
 }
 
 void WebccHTML::selectParameterEnd(void) {
-  if (this->client == NULL) return;
+  if (!this->client) return;
   this->client->print((__FlashStringHelper *)htmlConfigParameterSelectPart5);
 }
 
 void WebccHTML::checkBoxParameter(const char * displayName, boolean isDisplayNameProgmem,
                                   const char * internalName, boolean isInternalNameProgmem,
                                   boolean value,
-                                  const char * tooltipText, boolean isTooltipTextProgmem,
-                                  long internalValue) {
-  if (this->client == NULL) return;
-  if ((displayName == NULL) || (internalName == NULL)) return;
+                                  const char * tooltipText, boolean isTooltipTextProgmem) {
+  if (!this->client) return;
+  if (!displayName || !internalName) return;
   this->client->print((__FlashStringHelper *)htmlConfigParameterCheckboxPart1);
   if (isDisplayNameProgmem)
     this->client->print((__FlashStringHelper *)displayName);
   else
     this->client->print(displayName);
   this->client->print((__FlashStringHelper *)htmlConfigParameterCheckboxPart2);
-  if (tooltipText != NULL) {
+  if (tooltipText) {
     this->client->print((__FlashStringHelper *)htmlConfigTooltipBegin);
     if (isTooltipTextProgmem)
       this->client->print((__FlashStringHelper *)tooltipText);
@@ -589,49 +585,42 @@ void WebccHTML::checkBoxParameter(const char * displayName, boolean isDisplayNam
     this->client->print((__FlashStringHelper *)internalName);
   else
     this->client->print(internalName);
-  this->client->print((__FlashStringHelper *)htmlConfigParameterCheckboxPart4);
   if (value) {
-    this->client->print((__FlashStringHelper *)htmlConfigParameterCheckboxPart5Checked);
+    this->client->print((__FlashStringHelper *)htmlConfigParameterCheckboxPart4Checked);
   }
   else {
-    this->client->print((__FlashStringHelper *)htmlConfigParameterCheckboxPart5);
+    this->client->print((__FlashStringHelper *)htmlConfigParameterCheckboxPart4);
   }
 }
 
 void WebccHTML::checkBoxParameter(const char * displayName,
                                   const char * internalName,
                                   boolean value,
-                                  const char * tooltipText,
-                                  long internalValue) {
+                                  const char * tooltipText) {
   this->checkBoxParameter(displayName, true,
                           internalName, true,
                           value,
-                          tooltipText, true,
-                          internalValue);
+                          tooltipText, true);
 }
 
 void WebccHTML::checkBoxParameter(const char * displayName, boolean isDisplayNameProgmem,
                                   const char * internalName, boolean isInternalNameProgmem,
                                   long value,
-                                  const char * tooltipText, boolean isTooltipTextProgmem,
-                                  long internalValue) {
+                                  const char * tooltipText, boolean isTooltipTextProgmem) {
   this->checkBoxParameter(displayName, isDisplayNameProgmem,
                           internalName, isInternalNameProgmem,
                           (boolean)(value == 0L),
-                          tooltipText, isTooltipTextProgmem,
-                          internalValue);
+                          tooltipText, isTooltipTextProgmem);
 }
 
 void WebccHTML::checkBoxParameter(const char * displayName,
                                   const char * internalName,
                                   long value,
-                                  const char * tooltipText,
-                                  long internalValue) {
+                                  const char * tooltipText) {
   this->checkBoxParameter(displayName, true,
                           internalName, true,
                           value,
-                          tooltipText, true,
-                          internalValue);
+                          tooltipText, true);
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -685,18 +674,16 @@ void WebccHTMLStringMaps::selectParameter(StringMapKey parameter, long value, co
   this->selectParameterEnd();
 }
 
-void WebccHTMLStringMaps::checkBoxParameter(StringMapKey parameter, boolean value, long internalValue) {
+void WebccHTMLStringMaps::checkBoxParameter(StringMapKey parameter, boolean value) {
   WebccHTML::checkBoxParameter(this->displayNames->find(parameter), this->displayNames->isProgmem(parameter),
                                this->internalNames->find(parameter), this->internalNames->isProgmem(parameter),
                                value,
-                               this->tooltips->find(parameter), this->tooltips->isProgmem(parameter),
-                               internalValue);
+                               this->tooltips->find(parameter), this->tooltips->isProgmem(parameter));
 }
 
-void WebccHTMLStringMaps::checkBoxParameter(StringMapKey parameter, long value, long internalValue) {
+void WebccHTMLStringMaps::checkBoxParameter(StringMapKey parameter, long value) {
   WebccHTML::checkBoxParameter(this->displayNames->find(parameter), this->displayNames->isProgmem(parameter),
                                this->internalNames->find(parameter), this->internalNames->isProgmem(parameter),
                                value,
-                               this->tooltips->find(parameter), this->tooltips->isProgmem(parameter),
-                               internalValue);
+                               this->tooltips->find(parameter), this->tooltips->isProgmem(parameter));
 }

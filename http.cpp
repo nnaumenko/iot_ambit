@@ -6,6 +6,7 @@
  */
 
 #include "http.h"
+#include "diag.h"
 
 //////////////////////////////////////////////////////////////////////
 // HTTPStream
@@ -77,27 +78,27 @@ void HTTPStream::sendOutputBuffer(void) {
 }
 
 void HTTPStream::readUntil(const char * charsToFind, char * buffer, size_t bufferSize) {
-  if (buffer != NULL) buffer[0] = 0;
-  if ((buffer != NULL) && (!bufferSize)) return;
-  if (charsToFind == NULL) return;
+  if (buffer) buffer[0] = 0;
+  if (buffer && !bufferSize) return;
+  if (!charsToFind) return;
   for (size_t bufferPos = 0; bufferPos < (bufferSize - 1); bufferPos++) {
-    if (buffer != NULL) buffer[bufferPos] = 0;
+    if (buffer) buffer[bufferPos] = 0;
     int i = this->peek();
     if (i == NOT_AVAILABLE) return;
     char c = (char) i;
     if (strchr(charsToFind, c)) return;
-    if (buffer != NULL) buffer[bufferPos] = c;
+    if (buffer) buffer[bufferPos] = c;
     this->read();
   }
-
-  if (buffer != NULL) buffer[bufferSize - 1] = 0;
+  if (buffer) buffer[bufferSize - 1] = 0;
 }
 
 //////////////////////////////////////////////////////////////////////
 // HTTPPercentCode
 //////////////////////////////////////////////////////////////////////
 
-int HTTPPercentCode::decode(char buffer[]) {
+int HTTPPercentCode::decodeHex(const char buffer[]) {
+  if (!buffer) return (decodeError);
   const int RADIX_HEXADECIMAL = 16;
   int mostSignificant = decodeDigit(buffer[0]);
   if (mostSignificant == decodeError) return (decodeError);
@@ -118,24 +119,28 @@ int HTTPPercentCode::decodeDigit(char hexDigit) {
 //////////////////////////////////////////////////////////////////////
 
 void URL::decode(char buffer[], size_t bufferSize) {
-  if (!buffer[0]) return;
-  size_t  readPosition = 0;
-  size_t  writePosition = 0;
-  do {
+  if (!buffer || !bufferSize) return;
+  size_t readPosition = 0;
+  size_t writePosition = 0;
+  while (buffer[readPosition] && (readPosition < (bufferSize - 1))) {
     char c = buffer[readPosition];
     if (c == '%') { //following 2 characters are percent hex code
-      int hexValueDecoded = HTTPPercentCode::decode(&buffer[readPosition + 1]);
+      int hexValueDecoded = HTTPPercentCode::decodeHex(&buffer[readPosition + 1]);
       if (hexValueDecoded != HTTPPercentCode::decodeError) {
         buffer[writePosition++] = (char)hexValueDecoded;
+        readPosition += HTTPPercentCode::size;
       }
-      readPosition += HTTPPercentCode::size;
+      else {
+        writePosition++;
+        readPosition++;
+      }
     }
     else {
       if (c == '+') c = ' ';
       buffer[writePosition++] = c;
       readPosition ++;
     }
-  } while ((buffer[readPosition]) && (readPosition < (bufferSize - 1))); //assuming that writePosition <= readPosition
+  }
   buffer[writePosition] = 0;
 }
 
@@ -150,7 +155,7 @@ boolean HTTPReqParser::begin(HTTPStream & client) {
 
 void HTTPReqParser::setHandler (HTTPReqPartHandler &handler) {
   this->reqPartHandler = &handler;
-  if (this->reqPartHandler != NULL) this->reqPartHandler->begin(*this, *this->client);
+  if (this->reqPartHandler) this->reqPartHandler->begin(*this, *this->client);
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -168,6 +173,8 @@ size_t HTTPReqParserStateMachine::ParserTableBase::getTableIndex(void) {
 
 boolean HTTPReqParserStateMachine::ParserTableBase::setTableIndex(size_t newIndex) {
   if (tableIndex >= (tableSize - 1)) return (false);
+  tableIndex = newIndex;
+  return (true);
 }
 
 void HTTPReqParserStateMachine::ParserTableBase::firstEntry(void) {
@@ -187,7 +194,7 @@ boolean HTTPReqParserStateMachine::ParserTableBase::nextEntry(void) {
 //Processing table defines operations performed by state machine at the particular state as follows
 //Based on Current State, a Stream Operation is performed on the HTTP client stream
 //Current State defines, which HTTP Request Part (e.g. method, path, version, fields, etc...) it corresponds to
-PROGMEM HTTPReqParserStateMachine::ProcessingTableEntry HTTPReqParserStateMachineProcessingTableInit[] = {
+const PROGMEM HTTPReqParserStateMachine::ProcessingTableEntry HTTPReqParserStateMachineProcessingTableInit[] = {
   //Current State                                                 Stream Operation                                         Request Part
   { HTTPReqParserStateMachine::ParserState::UNKNOWN,              HTTPReqParserStateMachine::StreamOperation::FLUSH,       HTTPRequestPart::NONE},
   { HTTPReqParserStateMachine::ParserState::ERROR,                HTTPReqParserStateMachine::StreamOperation::FLUSH,       HTTPRequestPart::FINISH},
@@ -207,13 +214,28 @@ PROGMEM HTTPReqParserStateMachine::ProcessingTableEntry HTTPReqParserStateMachin
   { HTTPReqParserStateMachine::ParserState::FINISHED,             HTTPReqParserStateMachine::StreamOperation::FLUSH,       HTTPRequestPart::FINISH},
 };
 
-boolean HTTPReqParserStateMachine::ProcessingTable::begin (void) {
+HTTPReqParserStateMachine::ProcessingTable::ProcessingTable() {
   table = HTTPReqParserStateMachineProcessingTableInit;
   tableSize = sizeof (HTTPReqParserStateMachineProcessingTableInit) / tableEntrySize;
+  this->isValidated = this->validate();
+}
+
+boolean HTTPReqParserStateMachine::ProcessingTable::begin (void) {
   firstEntry();
-  //TODO: validate table
-  //check that all states are unique
+  return (this->isValidated);
+}
+
+boolean HTTPReqParserStateMachine::ProcessingTable::validate (void) {
+  for (size_t i = 0; i < tableSize; i++) {
+    uint32_t * statePointerI = (uint32_t *) &table[i].state;
+    for (size_t j = i + 1; j < tableSize; j++) {
+      //check that all states are unique
+      uint32_t * statePointerJ = (uint32_t *) &table[j].state;
+      if (pgm_read_dword(statePointerI) == pgm_read_dword(statePointerJ)) return (false);
+    }
+  }
   return (true);
+  static_assert(sizeof(table[0].state) == 4, "table[].state is expected to be dword");
 }
 
 boolean HTTPReqParserStateMachine::ProcessingTable::find (ParserState state) {
@@ -225,15 +247,23 @@ boolean HTTPReqParserStateMachine::ProcessingTable::find (ParserState state) {
 }
 
 HTTPReqParserStateMachine::StreamOperation HTTPReqParserStateMachine::ProcessingTable::getStreamOperation(void) {
-  return ((StreamOperation)pgm_read_word(&table[tableIndex].operation));
+  uint32_t * streamOperationPointer = (uint32_t *)&table[tableIndex].operation;
+  return ((StreamOperation)pgm_read_dword(streamOperationPointer));
+  static_assert (sizeof(table[0].operation) == 4, "table[].operation is expected to be dword");
 }
+
 
 HTTPRequestPart HTTPReqParserStateMachine::ProcessingTable::getRequestPart(void) {
-  return ((HTTPRequestPart)pgm_read_word(&table[tableIndex].part));
+  uint32_t * requestPartPointer = (uint32_t *)&table[tableIndex].part;
+  return ((HTTPRequestPart)pgm_read_dword(requestPartPointer));
+  static_assert (sizeof(table[0].part) == 4, "table[].part is expected to be dword");
 }
 
+
 HTTPReqParserStateMachine::ParserState HTTPReqParserStateMachine::ProcessingTable::getState(void) {
-  return ((ParserState)pgm_read_word(&table[tableIndex].state));
+  uint32_t * statePointer = (uint32_t *)&table[tableIndex].state;
+  return ((ParserState)pgm_read_dword(statePointer));
+  static_assert (sizeof(table[0].state) == 4, "table[].state is expected to be dword");
 }
 
 
@@ -243,7 +273,7 @@ HTTPReqParserStateMachine::ParserState HTTPReqParserStateMachine::ProcessingTabl
 
 //Transition table defines state machine transitions as follows:
 //Based on Current State and Next Character (the character where parser stopped reading from stream), a new state and a new HTTP status code are acquired
-PROGMEM HTTPReqParserStateMachine::TransitionTableEntry HTTPReqParserStateMachineTransitionTableInit[] = {
+const PROGMEM HTTPReqParserStateMachine::TransitionTableEntry HTTPReqParserStateMachineTransitionTableInit[] = {
   //  Current state                                               Next char                                 New state                                                     New status code
   { HTTPReqParserStateMachine::ParserState::UNKNOWN,              HTTPReqParserStateMachine::CHAR_OTHER,    HTTPReqParserStateMachine::ParserState::ERROR,                HTTPStatusCode::INTERNAL_SERVER_ERROR},
   { HTTPReqParserStateMachine::ParserState::ERROR,                HTTPReqParserStateMachine::CHAR_OTHER,    HTTPReqParserStateMachine::ParserState::ERROR,                HTTPStatusCode::NO_CHANGE},
@@ -276,26 +306,56 @@ PROGMEM HTTPReqParserStateMachine::TransitionTableEntry HTTPReqParserStateMachin
   { HTTPReqParserStateMachine::ParserState::POST_QUERY_VALUE,     '&',                                      HTTPReqParserStateMachine::ParserState::POST_QUERY_NAME,      HTTPStatusCode::CONTINUE},
   { HTTPReqParserStateMachine::ParserState::POST_QUERY_VALUE,     '\n',                                     HTTPReqParserStateMachine::ParserState::FINISHED,             HTTPStatusCode::OK},
   { HTTPReqParserStateMachine::ParserState::POST_QUERY_VALUE,     HTTPReqParserStateMachine::CHAR_UNAVAIL,  HTTPReqParserStateMachine::ParserState::FINISHED,             HTTPStatusCode::OK},
-  { HTTPReqParserStateMachine::ParserState::URL_QUERY_VALUE,      HTTPReqParserStateMachine::CHAR_OTHER,    HTTPReqParserStateMachine::ParserState::ERROR,                HTTPStatusCode::BAD_REQUEST},
+  { HTTPReqParserStateMachine::ParserState::POST_QUERY_VALUE,     HTTPReqParserStateMachine::CHAR_OTHER,    HTTPReqParserStateMachine::ParserState::FINISHED,             HTTPStatusCode::OK},
   { HTTPReqParserStateMachine::ParserState::FINISHED,             HTTPReqParserStateMachine::CHAR_OTHER,    HTTPReqParserStateMachine::ParserState::FINISHED,             HTTPStatusCode::NO_CHANGE},
 };
 
-boolean HTTPReqParserStateMachine::TransitionTable::begin (void) {
+HTTPReqParserStateMachine::TransitionTable::TransitionTable() {
   table = HTTPReqParserStateMachineTransitionTableInit;
   tableSize = sizeof (HTTPReqParserStateMachineTransitionTableInit) / tableEntrySize;
-  //TODO: validate table
-  //Check that all state/char combinations are unique
-  //Check that all states have OTHER_CHAR
-  firstEntry();
-  return (true);
+  this->isValidated = this->validate();
 }
 
-void HTTPReqParserStateMachine::TransitionTable::find (ParserState state, char nextChar) {
+boolean HTTPReqParserStateMachine::TransitionTable::begin (void) {
+  firstEntry();
+  return (this->isValidated);
+}
+
+boolean HTTPReqParserStateMachine::TransitionTable::validate(void) {
+  for (size_t i = 0; i < tableSize; i++) {
+    //check that all state/char combinations are unique
+    uint32_t * statePointerI = (uint32_t *) &table[i].state;
+    char * nextCharPointerI = (char *) &table[i].nextChar;
+    for (size_t j = i + 1; j < tableSize; j++) {
+      uint32_t * statePointerJ = (uint32_t *) &table[j].state;
+      char * nextCharPointerJ = (char *) &table[j].nextChar;
+      if ((pgm_read_dword(statePointerI) == pgm_read_dword(statePointerJ))
+          && (pgm_read_byte(nextCharPointerI) == pgm_read_byte(nextCharPointerJ))) return (false);
+    }
+    //check that all states have OTHER_CHAR
+    boolean otherCharFound = false;
+    for (size_t j = 0; j < tableSize; j++) {
+      uint32_t * statePointerJ = (uint32_t *) &table[j].state;
+      char * nextCharPointerJ = (char *) &table[j].nextChar;
+      if ((pgm_read_dword(statePointerI) == pgm_read_dword(statePointerJ)) &&
+          (pgm_read_byte(nextCharPointerJ) == HTTPReqParserStateMachine::CHAR_OTHER)) {
+        otherCharFound = true;
+        break;
+      }
+    }
+    if (!otherCharFound) return (false);
+  }
+  return (true);
+  static_assert(sizeof(table[0].state) == 4, "table[].state is expected to be dword");
+  static_assert(sizeof(table[0].nextChar) == 1, "table[].newChar is expected to be byte");
+}
+
+boolean HTTPReqParserStateMachine::TransitionTable::find (ParserState state, char nextChar) {
   firstEntry();
   do {
-    if ((getState() == state) && ((getNextChar() == nextChar) || (getNextChar() == CHAR_OTHER))) return;
+    if ((getState() == state) && ((getNextChar() == nextChar) || (getNextChar() == CHAR_OTHER))) return (true);
   } while (nextEntry());
-  //Assuming here that every state has OTHER_CHAR entry
+  return (false);
 }
 
 boolean HTTPReqParserStateMachine::TransitionTable::enumerateNextChars(ParserState state, char * buffer, size_t bufferSize) {
@@ -316,18 +376,26 @@ boolean HTTPReqParserStateMachine::TransitionTable::enumerateNextChars(ParserSta
 }
 
 HTTPReqParserStateMachine::ParserState HTTPReqParserStateMachine::TransitionTable::getNewState(void) {
-  return ((HTTPReqParserStateMachine::ParserState)pgm_read_word(&table[tableIndex].newState));
+  uint32_t * newStatePointer = (uint32_t *)&table[tableIndex].newState;
+  return ((HTTPReqParserStateMachine::ParserState)pgm_read_word(newStatePointer));
+  static_assert (sizeof(table[0].newState) == 4, "table[].newState is expected to be dword");
 }
 
 HTTPStatusCode HTTPReqParserStateMachine::TransitionTable::getNewStatusCode(void) {
-  return ((HTTPStatusCode)pgm_read_word(&table[tableIndex].newStatusCode));
+  uint32_t * newStatusCodePointer = (uint32_t *)&table[tableIndex].newStatusCode;
+  return ((HTTPStatusCode)pgm_read_word(newStatusCodePointer));
+  static_assert (sizeof(table[0].newStatusCode) == 4, "table[].newStatusCode is expected to be dword");
 }
 
 HTTPReqParserStateMachine::ParserState HTTPReqParserStateMachine::TransitionTable::getState(void) {
-  return ((HTTPReqParserStateMachine::ParserState)pgm_read_word(&table[tableIndex].state));
+  uint32_t * statePointer = (uint32_t *)&table[tableIndex].state;
+  return ((HTTPReqParserStateMachine::ParserState)pgm_read_word(statePointer));
+  static_assert (sizeof(table[0].state) == 4, "table[].operation is expected to be dword");
 }
 char HTTPReqParserStateMachine::TransitionTable::getNextChar(void) {
-  return ((char)pgm_read_byte(&table[tableIndex].nextChar));
+  char * nextCharPointer = (char *) &table[tableIndex].nextChar;
+  return ((char)pgm_read_byte(nextCharPointer));
+  static_assert (sizeof(table[0].nextChar) == 1, "table[].nextChar is expected to be byte");
 }
 
 //////////////////////////////////////////////////////////////////////
@@ -335,17 +403,27 @@ char HTTPReqParserStateMachine::TransitionTable::getNextChar(void) {
 //////////////////////////////////////////////////////////////////////
 
 boolean HTTPReqParserStateMachine::prepareToParse(void) {
+  boolean returnValue = true;
   this->parserStatus.statusCode = HTTPStatusCode::CONTINUE;
   this->parserStatus.requestPart = HTTPRequestPart::NONE;
   this->parserStatus.currentState = ParserState::BEGIN;
   this->parserStatus.nextCharacter = '\0';
-  this->processingTable.begin();
-  this->transitionTable.begin();
-  return (true);
+  if (!this->processingTable.begin()) {
+    DiagLog.println(F("HTTP Parser Processing Table failed validation."));
+    this->setError(HTTPStatusCode::INTERNAL_SERVER_ERROR);
+    returnValue = false;
+  }
+  if (!this->transitionTable.begin()) {
+    DiagLog.println(F("HTTP Parser Transition Table failed validation."));
+    this->setError(HTTPStatusCode::INTERNAL_SERVER_ERROR);
+    returnValue = false;
+  }
+  return (returnValue);
 }
 
 void HTTPReqParserStateMachine::parse(void) {
-  if (this->client == NULL) {
+  if (!this->client) {
+    DiagLog.println(F("HTTP parser's client not initialised."));
     this->setError(HTTPStatusCode::INTERNAL_SERVER_ERROR);
     return;
   }
@@ -355,16 +433,18 @@ void HTTPReqParserStateMachine::parse(void) {
   char readBuffer[READ_BUFFER_SIZE];
   readBuffer[0] = '\0';
 
-  if (!this->processingTable.find(this->parserStatus.currentState)) setError(HTTPStatusCode::INTERNAL_SERVER_ERROR);
+  if (!this->processingTable.find(this->parserStatus.currentState)) {
+    DiagLog.print(F("Could not find HTTP parser state in Processing Table: "));
+    DiagLog.println((long)this->parserStatus.currentState);
+    setError(HTTPStatusCode::INTERNAL_SERVER_ERROR);
+  }
 
-  int nextCharAsInt;
+  int nextCharAsInt = HTTPStream::NOT_AVAILABLE;
   switch (this->processingTable.getStreamOperation()) {
     case StreamOperation::FLUSH:
       this->client->flush();
-      nextCharAsInt = HTTPStream::NOT_AVAILABLE;
       break;
     case StreamOperation::DO_NOTHING:
-      nextCharAsInt = HTTPStream::NOT_AVAILABLE;
       break;
     case StreamOperation::READ:
       this->transitionTable.enumerateNextChars(this->parserStatus.currentState, nextChars, NEXT_CHARS_SIZE);
@@ -385,21 +465,29 @@ void HTTPReqParserStateMachine::parse(void) {
       break;
     default:
       this->setError(HTTPStatusCode::INTERNAL_SERVER_ERROR);
+      DiagLog.print(F("Unknown HTTP Stream Operation: "));
+      DiagLog.println((long)this->processingTable.getStreamOperation());
       break;
   }
   URL::decode(readBuffer, READ_BUFFER_SIZE);
   this->parserStatus.nextCharacter = (char)nextCharAsInt;
   this->parserStatus.requestPart = this->processingTable.getRequestPart();
-  if (this->reqPartHandler != NULL) {
+  if (this->reqPartHandler) {
     if (this->parserStatus.requestPart != HTTPRequestPart::NONE) reqPartHandler->handleReqPart(readBuffer, this->parserStatus.requestPart);
   }
-  this->transitionTable.find(this->parserStatus.currentState, this->parserStatus.nextCharacter);
+  if (!this->transitionTable.find(this->parserStatus.currentState, this->parserStatus.nextCharacter)) {
+    this->setError(HTTPStatusCode::INTERNAL_SERVER_ERROR);
+    DiagLog.print(F("Lookup in HTTP parser's transition table failed: state "));
+    DiagLog.print((long)this->parserStatus.currentState);
+    DiagLog.print(F(" nextChar 0x"));
+    DiagLog.println((int)this->parserStatus.nextCharacter, HEX);
+  }
   this->transition(this->transitionTable.getNewState(), this->transitionTable.getNewStatusCode());
 }
 
 void HTTPReqParserStateMachine::transition(HTTPReqParserStateMachine::ParserState newState, HTTPStatusCode newStatusCode) {
   this->parserStatus.currentState = newState;
-  //TODO:add check if the state exists in the processing and transition table
+  //TODO:add check if the state exists in the processing and transition tables
   if (newStatusCode != HTTPStatusCode::NO_CHANGE) this->parserStatus.statusCode = newStatusCode;
 }
 

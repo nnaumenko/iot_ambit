@@ -40,9 +40,10 @@ class StringMap {
 class ConstStringMap : public StringMap {
   public:
     virtual size_t count(void) const;
-    virtual boolean isStringProgmem(size_t index) const;
   private:
     size_t itemsCount = 0;
+  protected:
+    virtual boolean isStringProgmem(size_t index) const;
   protected:
     void initItems(void);
 };

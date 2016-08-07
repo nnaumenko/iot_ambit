@@ -200,6 +200,8 @@ void WebConfigReqPartHandler::setParameter(EepromSavedParameter parameterId, cha
       eepromSavedParametersStorage.startupDelay = (unsigned int)valueAsNumber;
       this->configUpdated = true;
       break;
+    default:
+      break;
   }
 }
 

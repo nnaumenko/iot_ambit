@@ -374,6 +374,7 @@ void setup() {
   calcCalDataMG811();
 
   isConfigMode = !digitalRead(PIN_SWITCH_CONFIG);
+  isConfigMode = true;
   if (isConfigMode) {
     DiagLog.println(F("Config Mode enabled."));
     const size_t TEXT_SIZE = 32;

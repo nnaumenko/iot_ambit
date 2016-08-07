@@ -78,7 +78,7 @@ enum class HTTPStatusCode {
 
 class HTTPPercentCode {
   public:
-    static int decode(char buffer[]);
+    static int decodeHex(const char buffer[]);
     static int decodeDigit(char hexDigit);
     static const int decodeError = -1;
     static const size_t size = 3; //each percent code contains exacty 3 characters
@@ -94,10 +94,10 @@ class HTTPStream : public Stream {
     HTTPStream (Stream & client);
     ~HTTPStream();
   public:
-    virtual int available();
-    virtual int read();
-    virtual int peek();
-    virtual void flush();
+    virtual int available(void);
+    virtual int read(void);
+    virtual int peek(void);
+    virtual void flush(void);
     virtual size_t write(uint8_t character);
   public:
     void readUntil(const char * charsToFind, char * buffer, size_t bufferSize);
@@ -111,9 +111,8 @@ class HTTPStream : public Stream {
     void sendOutputBuffer(void);
     int outputBufferPosition = 0;
     char outputBuffer[HTTPSTREAM_OUT_BUFFER_SIZE];
-  public:
 };
-
+  
 enum class HTTPRequestPart {
   NONE,
   BEGIN,
@@ -232,15 +231,19 @@ class HTTPReqParserStateMachine : public HTTPReqParser {
     };
   private:
     class ProcessingTable : ParserTableBase {
-        ProcessingTableEntry * table;
+        const ProcessingTableEntry * table;
         static const size_t tableEntrySize = (sizeof(table[0]));
       public:
+        ProcessingTable();
         boolean begin (void);
         boolean find (ParserState state);
         StreamOperation getStreamOperation(void);
         HTTPRequestPart getRequestPart(void);
       private:
         ParserState getState(void);
+      private:
+        boolean validate(void);
+        boolean isValidated = false;
     } processingTable;
   public:
     struct TransitionTableEntry {
@@ -252,17 +255,20 @@ class HTTPReqParserStateMachine : public HTTPReqParser {
   private:
     class TransitionTable : ParserTableBase {
       private:
-        TransitionTableEntry * table;
+        const TransitionTableEntry * table;
         static const size_t tableEntrySize = (sizeof(table[0]));
       public:
+        TransitionTable();
         boolean begin (void);
-        void find (ParserState state, char nextChar);
+        boolean find (ParserState state, char nextChar);
         boolean enumerateNextChars(ParserState state, char * buffer, size_t bufferSize);
         ParserState getNewState();
         HTTPStatusCode getNewStatusCode();
       private:
         ParserState getState();
         char getNextChar();
+        boolean validate(void);
+        boolean isValidated = false;
     } transitionTable;
 };
 
