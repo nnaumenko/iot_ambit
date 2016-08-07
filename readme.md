@@ -20,13 +20,13 @@ After setup is complete, the device is powered off-then-on with Config Button re
 
 ## Quick links
 
-[Download ESP8266 binary file](https://github.com/nnaumenko/room_monitor_esp8266/raw/master/binary/room_monitor_esp8266.bin).
+[Download ESP8266 binary file](https://github.com/nnaumenko/iot_ambit/raw/master/binary/iot_ambit.bin).
 
-[Installing and configuring](https://github.com/nnaumenko/room_monitor_esp8266/wiki/Installing-and-configuring)
+[Installing and configuring](https://github.com/nnaumenko/iot_ambit/wiki/Installing-and-configuring)
 
 ## Hardware
 
-Please refer [attached schematic](https://github.com/nnaumenko/room_monitor_esp8266/blob/master/hardware/esp8266_room_monitor.pdf) for recommended hardware setup.
+Please refer [attached schematic](https://github.com/nnaumenko/iot_ambit/blob/master/hardware/esp8266_room_monitor.pdf) for recommended hardware setup.
 
 ADC input of ESP8266 is used to collect the data from MG811 CO2 sensor. Since MG811 requires analog input impedance of 100..1000 gigaohm, it can not be connected directly to ADC input of ESP-12 module. Moreover, the ESP-12 analog input operates in range 0,2 .. 1,2 V, and voltage above 1,8 V will damage it. Thus, an operational amplifier with 10^13 ohm input impedance is used to amplify sensor’s signal (gain = 5). Since opamp is powered by 3,3 V the maximum voltage it can provide is about 3V. Then the voltage divider is used to convert the amplified signal into range 0..1,2 V.
 
