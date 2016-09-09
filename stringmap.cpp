@@ -8,6 +8,48 @@
 #include "stringmap.h"
 
 //////////////////////////////////////////////////////////////////////
+// StringMapLite
+//////////////////////////////////////////////////////////////////////
+
+int StringMapLite::find (const char * strings, const char * toFind) {
+  if (!strings || !toFind) return (NOT_FOUND);
+  if (!strlen_P(strings) || !strlen(toFind)) return (NOT_FOUND);
+  const char * currentString = strings;
+  int index = 0;
+  while (strlen_P(currentString)) {
+    if (!strcmp_P(toFind, currentString)) return (index);
+    currentString += (strlen_P(currentString) + 1);
+    index++;
+  }
+  return (NOT_FOUND);
+}
+
+const char * PROGMEM StringMapLite::find (const char * strings, int index) {
+  if (!strings) return (NULL);
+  if (!strlen_P(strings)) return (NULL);
+  const char * currentString = strings;
+  int currentIndex = 0;
+  while (strlen_P(currentString)) {
+    if (currentIndex == index) return (currentString);
+    currentString += (strlen_P(currentString) + 1);
+    currentIndex++;
+  }
+  return (NULL);
+}
+
+size_t StringMapLite::count(const char * strings) {
+  if (!strings) return (0);
+  if (!strlen_P(strings)) return (0);
+  const char * currentString = strings;
+  int index = 0;
+  while (strlen_P(currentString)) {
+    currentString += (strlen_P(currentString) + 1);
+    index++;
+  }
+  return (index);
+}
+
+//////////////////////////////////////////////////////////////////////
 // StringMap
 //////////////////////////////////////////////////////////////////////
 

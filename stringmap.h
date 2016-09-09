@@ -10,6 +10,18 @@
 
 #include <Arduino.h>
 
+//the example of the strings parameter is as follows:
+//const char PROGMEM exampleStrings[] = "someString\0" "someOtherString\0"
+
+class StringMapLite {
+  public:
+    static int find (const char * strings, const char * toFind);
+    static const char * find (const char * strings, int index);
+    static size_t count(const char * strings);
+  public:
+    static const int NOT_FOUND = -1;
+};
+
 typedef long StringMapKey;
 
 class StringMap {

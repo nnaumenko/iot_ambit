@@ -9,7 +9,6 @@
 #define UITEXTS_H
 
 #include <Arduino.h>
-#include "stringmap.h"
 
 enum class webccUISections {
   UNKNOWN = 0,
@@ -24,6 +23,8 @@ enum class webccUISections {
   SERIAL_PORT,
   STARTUP
 };
+
+class ProgmemStringMap;
 
 extern ProgmemStringMap webccUIParameterSections;
 extern ProgmemStringMap webccUIParameterDisplayNames;

@@ -12,7 +12,7 @@
 // webcc page HTML/JS code
 ///////////////////////////////////////////////////////////////////////////////////////////
 
-#define FORM_URL "/setconfig"
+#define FORM_URL "/webconfig_set"
 #define FORM_METHOD "POST"
 
 #define HTML_FORMATTING
@@ -687,3 +687,82 @@ void WebccHTMLStringMaps::checkBoxParameter(StringMapKey parameter, long value) 
                                value,
                                this->tooltips->find(parameter), this->tooltips->isProgmem(parameter));
 }
+
+//////////////////////////////////////////////////////////////////////
+// WebccHTMLIndex
+//////////////////////////////////////////////////////////////////////
+
+const char PROGMEM htmlIndexBodyBegin[] =
+  "<!DOCTYPE html>" CRLF
+  "<html>" CRLF
+  "<meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\">" CRLF
+  "<head>" CRLF
+  "<title>Module Index</title>" CRLF
+  "</head>" CRLF
+  "<body>" CRLF
+  "<h1>Module Index</h1>" CRLF
+  "<table border=0>" CRLF
+  ;
+
+const char PROGMEM htmlIndexBodyEnd[] =
+  "</table>" CRLF
+  "</body>" CRLF
+  "</html>" CRLF
+  ;
+
+const char PROGMEM htmlIndexEntryBegin[] =
+  "<tr><td>"
+  ;
+
+const char PROGMEM htmlIndexEntrySeparator[] =
+  "</td><td>"
+  ;
+
+const char PROGMEM htmlIndexEntryEnd[] =
+  "</td></tr>" CRLF
+  ;
+
+const char PROGMEM htmlIndexLink1[] =
+  "<a href=\""
+  ;
+
+const char PROGMEM htmlIndexLink2[] =
+  "\">"
+  ;
+
+const char PROGMEM htmlIndexLink3[] =
+  "</a>"
+  ;
+
+WebccHTMLIndex::WebccHTMLIndex(Print &client) {
+  this->client = &client;
+}
+
+void WebccHTMLIndex::begin(void) {
+  if (!client) return;
+  client->println((__FlashStringHelper *)htmlIndexBodyBegin);
+}
+
+void WebccHTMLIndex::index(const __FlashStringHelper * name, const __FlashStringHelper * path) {
+  if (!client) return;
+  client->println((__FlashStringHelper *)htmlIndexEntryBegin);
+  if (name)
+    client->println(name);
+  else
+    client->println(F("unknown module"));
+  client->println((__FlashStringHelper *)htmlIndexEntrySeparator);
+  if (path) {
+    client->println((__FlashStringHelper *)htmlIndexLink1);
+    client->println(path);
+    client->println((__FlashStringHelper *)htmlIndexLink2);
+    client->println(path);
+    client->println((__FlashStringHelper *)htmlIndexLink3);
+  }
+  client->println((__FlashStringHelper *)htmlIndexEntryEnd);
+}
+
+void WebccHTMLIndex::finish(void) {
+  if (!client) return;
+  client->println((__FlashStringHelper *)htmlIndexBodyEnd);
+}
+

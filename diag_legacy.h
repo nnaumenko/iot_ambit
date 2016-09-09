@@ -5,4 +5,13 @@
  * of the MIT license. See the LICENSE file for details.
  */
 
-#include "adc.h"
+#ifndef DIAG_LEGACY_H
+#define DIAG_LEGACY_H
+
+#include <Arduino.h>
+
+//TODO:remove after migrating to new architecture
+//TODO:remove
+#define DiagLog Serial
+
+#endif

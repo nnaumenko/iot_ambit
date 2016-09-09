@@ -8,16 +8,7 @@
 #ifndef HTTP_H
 #define HTTP_H
 
-#include <Arduino.h>
-
-const size_t HTTP_REQUEST_PART_MAX_SIZE = 32;
-
-#ifdef ESP8266
-#include <ESP8266WiFi.h>
-#define HTTPSTREAM_OUT_BUFFER_SIZE WIFICLIENT_MAX_PACKET_SIZE
-//WIFICLIENT_MAX_PACKET_SIZE is 1460, see libraries/ESP8266WiFi/src/WiFiClient.h
-//smaller value might be required when porting to Arduino due to memory constraints
-#endif
+#include <arduino.h>
 
 enum class HTTPStatusCode {
   UNKNOWN = 0,
@@ -76,6 +67,37 @@ enum class HTTPStatusCode {
   NETWORK_AUTHENTICATION_REQUIRED = 511,
 };
 
+enum class HTTPRequestMethod {
+  UNKNOWN = -1,
+  OPTIONS = 0,
+  GET = 1,
+  HEAD = 2,
+  POST = 3,
+  PUT = 4,
+  DELETE = 5,
+  TRACE = 6,
+  CONNECT = 7
+};
+
+enum class HTTPContentType {
+  UNKNOWN = -1,
+  HTML = 0,
+  PLAINTEXT = 1,
+  CSV = 2,
+  JSON = 3,
+  XML = 4
+};
+
+enum class HTTPContentCharset {
+  UNKNOWN = -1,
+  UTF8 = 0,
+};
+
+class HTTPRequestHelper {
+  public:
+    static HTTPRequestMethod getMethod(const char * method);
+};
+
 class HTTPPercentCode {
   public:
     static int decodeHex(const char buffer[]);
@@ -89,187 +111,17 @@ class URL {
     static void decode(char buffer[], size_t bufferSize);
 };
 
-class HTTPStream : public Stream {
+class HTTPResponseHeader {
   public:
-    HTTPStream (Stream & client);
-    ~HTTPStream();
+    static void contentHeader(Print &client, HTTPContentType type, HTTPContentCharset charset = HTTPContentCharset::UTF8);
+    static void redirect(Print &client, __FlashStringHelper * path);
+    static void statusLine(Print &client, HTTPStatusCode statusCode);
   public:
-    virtual int available(void);
-    virtual int read(void);
-    virtual int peek(void);
-    virtual void flush(void);
-    virtual size_t write(uint8_t character);
-  public:
-    void readUntil(const char * charsToFind, char * buffer, size_t bufferSize);
+    static const __FlashStringHelper * statusCodeText(HTTPStatusCode statusCode);
+    static const __FlashStringHelper * contentTypeText(HTTPContentType contentType);
+    static const __FlashStringHelper * contentCharsetText(HTTPContentCharset contentCharset);
   private:
-    Stream * client = NULL;
-  public:
-    static const int NOT_AVAILABLE = -1;
-  private:
-    char previousChar = '\0';
-  private:
-    void sendOutputBuffer(void);
-    int outputBufferPosition = 0;
-    char outputBuffer[HTTPSTREAM_OUT_BUFFER_SIZE];
-};
-  
-enum class HTTPRequestPart {
-  NONE,
-  BEGIN,
-  FINISH,
-  METHOD,
-  PATH,
-  GET_QUERY_NAME,
-  GET_QUERY_VALUE,
-  VERSION,
-  FIELD_NAME,
-  FIELD_VALUE,
-  POST_QUERY_NAME,
-  POST_QUERY_VALUE,
-};
-
-class HTTPReqParserBase;
-
-class HTTPReqPartHandler {
-  public:
-    void begin (HTTPReqParserBase &parser, Print &client) {
-      this->parser = &parser;
-      this->client = &client;
-    }
-    virtual void handleReqPart(char * value, HTTPRequestPart part) = 0;
-  protected:
-    HTTPReqParserBase * parser = NULL;
     Print * client = NULL;
-};
-
-class HTTPReqParserBase {
-  public:
-    virtual boolean isFinished(void) = 0;
-    virtual void setError(HTTPStatusCode errorStatusCode) = 0;
-    virtual boolean isError(void) = 0;
-    virtual HTTPStatusCode getStatusCode(void) = 0;
-};
-
-class HTTPReqParser : public HTTPReqParserBase {
-  public:
-    boolean begin (HTTPStream &client);
-    void setHandler (HTTPReqPartHandler &handler);
-  protected:
-    HTTPStream * client = NULL;
-    HTTPReqPartHandler * reqPartHandler = NULL;
-  private:
-    virtual boolean prepareToParse(void) = 0;
-  public:
-    virtual void parse(void) = 0;
-};
-
-class HTTPReqParserStateMachine : public HTTPReqParser {
-  public:
-    enum class ParserState {
-      UNKNOWN,
-      ERROR,
-      BEGIN,
-      METHOD,
-      PATH,
-      URL_QUERY_NAME,
-      URL_QUERY_VALUE,
-      HTTP_VERSION,
-      FIELD_OR_HEADER_END,
-      FIELD_NAME,
-      FIELD_VALUE,
-      HEADER_END,
-      POST_QUERY_OR_END,
-      POST_QUERY_NAME,
-      POST_QUERY_VALUE,
-      FINISHED,
-    };
-    enum class StreamOperation {
-      FLUSH,       //Flush client stream and do not read
-      DO_NOTHING,  //Do not read anything from stream
-      READ,        //Read from stream to buffer until expected characters (see transition table) are found
-      SKIP,        //Read from stream but do not put characters to buffer until expected characters are found
-      PEEK,        //Do not read anything from stream and peek (rather than read) next character
-    };
-  public:
-    static const char CHAR_OTHER = '\0';
-    static const char CHAR_UNAVAIL = (char)HTTPStream::NOT_AVAILABLE;
-  private:
-    struct {
-      HTTPStatusCode statusCode;
-      HTTPRequestPart requestPart;
-      char nextCharacter;
-      ParserState currentState;
-    } parserStatus;
-  private:
-    virtual boolean prepareToParse (void);
-  public:
-    virtual void parse(void);
-    virtual boolean isFinished(void);
-    virtual void setError(HTTPStatusCode errorStatusCode);
-    virtual boolean isError(void);
-    virtual HTTPStatusCode getStatusCode(void);
-  private:
-    void transition(ParserState newState, HTTPStatusCode newStatusCode);
-  private:
-    class ParserTableBase {
-      public:
-        ParserTableBase ();
-      protected:
-        size_t tableSize;
-      protected:
-        size_t tableIndex;
-        size_t getTableIndex(void);
-        boolean setTableIndex(size_t newIndex);
-        void firstEntry(void);
-        boolean nextEntry(void);
-    };
-  public:
-    struct ProcessingTableEntry {
-      ParserState state;
-      StreamOperation operation;
-      HTTPRequestPart part;
-    };
-  private:
-    class ProcessingTable : ParserTableBase {
-        const ProcessingTableEntry * table;
-        static const size_t tableEntrySize = (sizeof(table[0]));
-      public:
-        ProcessingTable();
-        boolean begin (void);
-        boolean find (ParserState state);
-        StreamOperation getStreamOperation(void);
-        HTTPRequestPart getRequestPart(void);
-      private:
-        ParserState getState(void);
-      private:
-        boolean validate(void);
-        boolean isValidated = false;
-    } processingTable;
-  public:
-    struct TransitionTableEntry {
-      ParserState state;
-      char nextChar;
-      ParserState newState;
-      HTTPStatusCode newStatusCode;
-    };
-  private:
-    class TransitionTable : ParserTableBase {
-      private:
-        const TransitionTableEntry * table;
-        static const size_t tableEntrySize = (sizeof(table[0]));
-      public:
-        TransitionTable();
-        boolean begin (void);
-        boolean find (ParserState state, char nextChar);
-        boolean enumerateNextChars(ParserState state, char * buffer, size_t bufferSize);
-        ParserState getNewState();
-        HTTPStatusCode getNewStatusCode();
-      private:
-        ParserState getState();
-        char getNextChar();
-        boolean validate(void);
-        boolean isValidated = false;
-    } transitionTable;
 };
 
 #endif

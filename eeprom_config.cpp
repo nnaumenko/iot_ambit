@@ -5,8 +5,7 @@
  * of the MIT license. See the LICENSE file for details.
  */
 
-#include "diag.h"
-
+#include "diag_legacy.h"
 #include "version.h"
 #include "eeprom_config.h"
 
@@ -79,7 +78,7 @@ void loadConfig(void) {
   DiagLog.println(eepromSavedParametersStorage.versionMinor);
   if ((eepromSavedParametersStorage.versionMajor != FIRMWARE_VERSION_MAJOR) ||
       (eepromSavedParametersStorage.versionMinor != FIRMWARE_VERSION_MINOR))
-    DiagLog.print(F("CONFIG SAVED WITH DIFFERENT FIRMWARE VERSION, PLEASE ACTIVATE CONFIG MODE AND REVIEW DATA"));
+    DiagLog.println(F("CONFIG SAVED WITH DIFFERENT FIRMWARE VERSION, PLEASE ACTIVATE CONFIG MODE AND REVIEW DATA"));
   DiagLog.print(F("Checksum: 0x"));
   DiagLog.println(eepromSavedParametersStorage.checkSum, HEX);
   if (calculateCheckSum() != eepromSavedParametersStorage.checkSum) DiagLog.print(F("CONFIG CHECKSUM WRONG, PLEASE ACTIVATE CONFIG MODE AND REVIEW DATA"));

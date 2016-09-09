@@ -15,105 +15,124 @@ The following is expected in serial monitor window:
 
     ---------------- TESTING STARTED ----------------
     
-    Test function started: static void testQuickStringMap::getDefaultKey_ExpectCorrectDefaultKey(), file test_stringmap.ino
+    Test function started: static void TestQuickStringMap::getDefaultKey_ExpectCorrectDefaultKey(), file test_stringmap.ino
     PASSED
-    Test function started: static void testQuickStringMap::findChar_Found_ExpectValidKey(), file test_stringmap.ino
+    Test function started: static void TestQuickStringMap::findChar_Found_ExpectValidKey(), file test_stringmap.ino
     PASSED
-    Test function started: static void testQuickStringMap::findChar_NotFound_ExpectDefaultKey(), file test_stringmap.ino
+    Test function started: static void TestQuickStringMap::findChar_NotFound_ExpectDefaultKey(), file test_stringmap.ino
     PASSED
-    Test function started: static void testQuickStringMap::testQuickStringMap_FindChar_NegativeKey_ExpectCorrectNegativeKey(), file test_stringmap.ino
+    Test function started: static void TestQuickStringMap::testQuickStringMap_FindChar_NegativeKey_ExpectCorrectNegativeKey(), file test_stringmap.ino
     PASSED
-    Test function started: static void testQuickStringMap::findChar_CaseSensitive_ExpectDefaultKey(), file test_stringmap.ino
+    Test function started: static void TestQuickStringMap::findChar_CaseSensitive_ExpectDefaultKey(), file test_stringmap.ino
     PASSED
-    Test function started: static void testQuickStringMap::findChar_EmptyString_ExpectDefaultKey(), file test_stringmap.ino
+    Test function started: static void TestQuickStringMap::findChar_EmptyString_ExpectDefaultKey(), file test_stringmap.ino
     PASSED
-    Test function started: static void testQuickStringMap::findChar_NULLString_ExpectDefaultKey(), file test_stringmap.ino
+    Test function started: static void TestQuickStringMap::findChar_NULLString_ExpectDefaultKey(), file test_stringmap.ino
     PASSED
-    Test function started: static void testQuickStringMap::isProgmem_Found_ExpectTrue(), file test_stringmap.ino
+    Test function started: static void TestQuickStringMap::isProgmem_Found_ExpectTrue(), file test_stringmap.ino
     PASSED
-    Test function started: static void testQuickStringMap::isProgmem_NotFound_ExpectFalse(), file test_stringmap.ino
+    Test function started: static void TestQuickStringMap::isProgmem_NotFound_ExpectFalse(), file test_stringmap.ino
     PASSED
-    Test function started: static void testQuickStringMap::isProgmem_DefaultKey_ExpectFalse(), file test_stringmap.ino
+    Test function started: static void TestQuickStringMap::isProgmem_DefaultKey_ExpectFalse(), file test_stringmap.ino
     PASSED
-    Test function started: static void testQuickStringMap::findStringMapKey_Found_ExpectValidString(), file test_stringmap.ino
+    Test function started: static void TestQuickStringMap::findStringMapKey_Found_ExpectValidString(), file test_stringmap.ino
     PASSED
-    Test function started: static void testQuickStringMap::findStringMapKey_NotFound_ExpectNULL(), file test_stringmap.ino
+    Test function started: static void TestQuickStringMap::findStringMapKey_NotFound_ExpectNULL(), file test_stringmap.ino
     PASSED
-    Test function started: static void testQuickStringMap::findStringMapKey_FindDefault_ExpectNULL(), file test_stringmap.ino
+    Test function started: static void TestQuickStringMap::findStringMapKey_FindDefault_ExpectNULL(), file test_stringmap.ino
     PASSED
-    Test function started: static void testQuickStringMap::constainsChar_Found_ExpectTrue(), file test_stringmap.ino
+    Test function started: static void TestQuickStringMap::constainsChar_Found_ExpectTrue(), file test_stringmap.ino
     PASSED
-    Test function started: static void testQuickStringMap::constainsChar_NotFound_ExpectFalse(), file test_stringmap.ino
+    Test function started: static void TestQuickStringMap::constainsChar_NotFound_ExpectFalse(), file test_stringmap.ino
     PASSED
-    Test function started: static void testQuickStringMap::constainsChar_CaseSensitive_ExpectFalse(), file test_stringmap.ino
+    Test function started: static void TestQuickStringMap::constainsChar_CaseSensitive_ExpectFalse(), file test_stringmap.ino
     PASSED
-    Test function started: static void testQuickStringMap::constainsChar_EmptyString_ExpectFalse(), file test_stringmap.ino
+    Test function started: static void TestQuickStringMap::constainsChar_EmptyString_ExpectFalse(), file test_stringmap.ino
     PASSED
-    Test function started: static void testQuickStringMap::constainsChar_NULLString_ExpectFalse(), file test_stringmap.ino
+    Test function started: static void TestQuickStringMap::constainsChar_NULLString_ExpectFalse(), file test_stringmap.ino
     PASSED
-    Test function started: static void testQuickStringMap::constainsStringMapKey_Found_ExpectTrue(), file test_stringmap.ino
+    Test function started: static void TestQuickStringMap::constainsStringMapKey_Found_ExpectTrue(), file test_stringmap.ino
     PASSED
-    Test function started: static void testQuickStringMap::constainsStringMapKey_NotFound_ExpectFalse(), file test_stringmap.ino
+    Test function started: static void TestQuickStringMap::constainsStringMapKey_NotFound_ExpectFalse(), file test_stringmap.ino
     PASSED
-    Test function started: static void testQuickStringMap::constainsStringMapKey_DefaultKey_ExpectFalse(), file test_stringmap.ino
+    Test function started: static void TestQuickStringMap::constainsStringMapKey_DefaultKey_ExpectFalse(), file test_stringmap.ino
     PASSED
-    Test function started: static void testStringMapIteratorWithQuickStringMap::first_expectFirstItem(), file test_stringmap.ino
+    Test function started: static void TestStringMapIteratorWithQuickStringMap::first_expectFirstItem(), file test_stringmap.ino
     PASSED
-    Test function started: static void testStringMapIteratorWithQuickStringMap::next_expectSecondItem(), file test_stringmap.ino
+    Test function started: static void TestStringMapIteratorWithQuickStringMap::next_expectSecondItem(), file test_stringmap.ino
     PASSED
-    Test function started: static void testStringMapIteratorWithQuickStringMap::isDone_expectCorrectNumberOfIterations(), file test_stringmap.ino
+    Test function started: static void TestStringMapIteratorWithQuickStringMap::isDone_expectCorrectNumberOfIterations(), file test_stringmap.ino
     PASSED
-    Test function started: static void testProgmemStringMap::getDefaultKey_ExpectCorrectDefaultKey(), file test_stringmap.ino
+    Test function started: static void TestProgmemStringMap::getDefaultKey_ExpectCorrectDefaultKey(), file test_stringmap.ino
     PASSED
-    Test function started: static void testProgmemStringMap::findChar_Found_ExpectValidKey(), file test_stringmap.ino
+    Test function started: static void TestProgmemStringMap::findChar_Found_ExpectValidKey(), file test_stringmap.ino
     PASSED
-    Test function started: static void testProgmemStringMap::findChar_NotFound_ExpectDefaultKey(), file test_stringmap.ino
+    Test function started: static void TestProgmemStringMap::findChar_NotFound_ExpectDefaultKey(), file test_stringmap.ino
     PASSED
-    Test function started: static void testProgmemStringMap::testProgmemStringMap_FindChar_NegativeKey_ExpectCorrectNegativeKey(), file test_stringmap.ino
+    Test function started: static void TestProgmemStringMap::testProgmemStringMap_FindChar_NegativeKey_ExpectCorrectNegativeKey(), file test_stringmap.ino
     PASSED
-    Test function started: static void testProgmemStringMap::findChar_CaseSensitive_ExpectDefaultKey(), file test_stringmap.ino
+    Test function started: static void TestProgmemStringMap::findChar_CaseSensitive_ExpectDefaultKey(), file test_stringmap.ino
     PASSED
-    Test function started: static void testProgmemStringMap::findChar_EmptyString_ExpectDefaultKey(), file test_stringmap.ino
+    Test function started: static void TestProgmemStringMap::findChar_EmptyString_ExpectDefaultKey(), file test_stringmap.ino
     PASSED
-    Test function started: static void testProgmemStringMap::findChar_NULLString_ExpectDefaultKey(), file test_stringmap.ino
+    Test function started: static void TestProgmemStringMap::findChar_NULLString_ExpectDefaultKey(), file test_stringmap.ino
     PASSED
-    Test function started: static void testProgmemStringMap::isProgmem_Found_ExpectTrue(), file test_stringmap.ino
+    Test function started: static void TestProgmemStringMap::isProgmem_Found_ExpectTrue(), file test_stringmap.ino
     PASSED
-    Test function started: static void testProgmemStringMap::isProgmem_NotFound_ExpectFalse(), file test_stringmap.ino
+    Test function started: static void TestProgmemStringMap::isProgmem_NotFound_ExpectFalse(), file test_stringmap.ino
     PASSED
-    Test function started: static void testProgmemStringMap::isProgmem_DefaultKey_ExpectFalse(), file test_stringmap.ino
+    Test function started: static void TestProgmemStringMap::isProgmem_DefaultKey_ExpectFalse(), file test_stringmap.ino
     PASSED
-    Test function started: static void testProgmemStringMap::findStringMapKey_Found_ExpectValidString(), file test_stringmap.ino
+    Test function started: static void TestProgmemStringMap::findStringMapKey_Found_ExpectValidString(), file test_stringmap.ino
     PASSED
-    Test function started: static void testProgmemStringMap::findStringMapKey_NotFound_ExpectNULL(), file test_stringmap.ino
+    Test function started: static void TestProgmemStringMap::findStringMapKey_NotFound_ExpectNULL(), file test_stringmap.ino
     PASSED
-    Test function started: static void testProgmemStringMap::findStringMapKey_FindDefault_ExpectNULL(), file test_stringmap.ino
+    Test function started: static void TestProgmemStringMap::findStringMapKey_FindDefault_ExpectNULL(), file test_stringmap.ino
     PASSED
-    Test function started: static void testProgmemStringMap::constainsChar_Found_ExpectTrue(), file test_stringmap.ino
+    Test function started: static void TestProgmemStringMap::constainsChar_Found_ExpectTrue(), file test_stringmap.ino
     PASSED
-    Test function started: static void testProgmemStringMap::constainsChar_NotFound_ExpectFalse(), file test_stringmap.ino
+    Test function started: static void TestProgmemStringMap::constainsChar_NotFound_ExpectFalse(), file test_stringmap.ino
     PASSED
-    Test function started: static void testProgmemStringMap::constainsChar_CaseSensitive_ExpectFalse(), file test_stringmap.ino
+    Test function started: static void TestProgmemStringMap::constainsChar_CaseSensitive_ExpectFalse(), file test_stringmap.ino
     PASSED
-    Test function started: static void testProgmemStringMap::constainsChar_EmptyString_ExpectFalse(), file test_stringmap.ino
+    Test function started: static void TestProgmemStringMap::constainsChar_EmptyString_ExpectFalse(), file test_stringmap.ino
     PASSED
-    Test function started: static void testProgmemStringMap::constainsChar_NULLString_ExpectFalse(), file test_stringmap.ino
+    Test function started: static void TestProgmemStringMap::constainsChar_NULLString_ExpectFalse(), file test_stringmap.ino
     PASSED
-    Test function started: static void testProgmemStringMap::constainsStringMapKey_Found_ExpectTrue(), file test_stringmap.ino
+    Test function started: static void TestProgmemStringMap::constainsStringMapKey_Found_ExpectTrue(), file test_stringmap.ino
     PASSED
-    Test function started: static void testProgmemStringMap::constainsStringMapKey_NotFound_ExpectFalse(), file test_stringmap.ino
+    Test function started: static void TestProgmemStringMap::constainsStringMapKey_NotFound_ExpectFalse(), file test_stringmap.ino
     PASSED
-    Test function started: static void testProgmemStringMap::constainsStringMapKey_DefaultKey_ExpectFalse(), file test_stringmap.ino
+    Test function started: static void TestProgmemStringMap::constainsStringMapKey_DefaultKey_ExpectFalse(), file test_stringmap.ino
     PASSED
-    Test function started: static void testStringMapIteratorWithProgmemStringMap::first_expectFirstItem(), file test_stringmap.ino
+    Test function started: static void TestStringMapIteratorWithProgmemStringMap::first_expectFirstItem(), file test_stringmap.ino
     PASSED
-    Test function started: static void testStringMapIteratorWithProgmemStringMap::next_expectSecondItem(), file test_stringmap.ino
+    Test function started: static void TestStringMapIteratorWithProgmemStringMap::next_expectSecondItem(), file test_stringmap.ino
     PASSED
-    Test function started: static void testStringMapIteratorWithProgmemStringMap::isDone_expectCorrectNumberOfIterations(), file test_stringmap.ino
+    Test function started: static void TestStringMapIteratorWithProgmemStringMap::isDone_expectCorrectNumberOfIterations(), file test_stringmap.ino
+    PASSED
+    Test function started: static void TestStringMapLite::count_Expect3(), file test_stringmap.ino
+    PASSED
+    Test function started: static void TestStringMapLite::findChar_Found_ExpectValidKey(), file test_stringmap.ino
+    PASSED
+    Test function started: static void TestStringMapLite::findChar_NotFound_ExpectNotFound(), file test_stringmap.ino
+    PASSED
+    Test function started: static void TestStringMapLite::findChar_CaseSensitive_ExpectNotFound(), file test_stringmap.ino
+    PASSED
+    Test function started: static void TestStringMapLite::findChar_EmptyStrings_ExpectNotFound(), file test_stringmap.ino
+    PASSED
+    Test function started: static void TestStringMapLite::findChar_NULLStrings_ExpectNotFound(), file test_stringmap.ino
+    PASSED
+    Test function started: static void TestStringMapLite::findInt_Found_ExpectCorrespondingString(), file test_stringmap.ino
+    PASSED
+    Test function started: static void TestStringMapLite::findInt_NotFound_ExpectNULL(), file test_stringmap.ino
+    PASSED
+    Test function started: static void TestStringMapLite::findInt_EmptyStrings_ExpectNULL(), file test_stringmap.ino
+    PASSED
+    Test function started: static void TestStringMapLite::findInt_NULLStrings_ExpectNULL(), file test_stringmap.ino
     PASSED
     
     ---------------- TESTING FINISHED ---------------
-
 # Failed tests
 
 The following example illustrates failed tests reporting:

@@ -14,7 +14,7 @@ const PROGMEM QuickStringMapItem testQuickStringMapItems[] {
   { 10, ""}
 };
 
-class testQuickStringMap {
+class TestQuickStringMap {
   public:
     static void getDefaultKey_ExpectCorrectDefaultKey (void) {
       TEST_FUNC_START();
@@ -281,7 +281,7 @@ class testQuickStringMap {
     }
 };
 
-class testStringMapIteratorWithQuickStringMap {
+class TestStringMapIteratorWithQuickStringMap {
   public:
     static void first_expectFirstItem(void) {
       TEST_FUNC_START();
@@ -335,15 +335,20 @@ class testStringMapIteratorWithQuickStringMap {
     }
 };
 
+const char PROGMEM testProgmemStringMapString0[] = "testval0";
+const char PROGMEM testProgmemStringMapString1[] = "testval1";
+const char PROGMEM testProgmemStringMapString2[] = "testval2";
+const char PROGMEM testProgmemStringMapString_1[] = "testval-1";
+
 const PROGMEM ProgmemStringMapItem testProgmemStringMapItems[] {
-  {0, "testval0"},
-  {1, "testval1"},
-  {2, "testval2"},
-  { -1, "testval-1"},
+  {0, testProgmemStringMapString0},
+  {1, testProgmemStringMapString1},
+  {2, testProgmemStringMapString2},
+  { -1, testProgmemStringMapString_1},
   { 10, ""}
 };
 
-class testProgmemStringMap {
+class TestProgmemStringMap {
   public:
     static void getDefaultKey_ExpectCorrectDefaultKey (void) {
       TEST_FUNC_START();
@@ -610,7 +615,7 @@ class testProgmemStringMap {
     }
 };
 
-class testStringMapIteratorWithProgmemStringMap {
+class TestStringMapIteratorWithProgmemStringMap {
   public:
     static void first_expectFirstItem(void) {
       TEST_FUNC_START();
@@ -664,13 +669,178 @@ class testStringMapIteratorWithProgmemStringMap {
     }
 };
 
+const char PROGMEM testStringMapLiteStrings[] =
+  "testval0" "\0"
+  "testval1" "\0"
+  "testval2" "\0";
+
+const char PROGMEM testStringMapLiteEmpty [] = "\0";
+
+class TestStringMapLite {
+  public:
+    static void count_Expect3 (void) {
+      TEST_FUNC_START();
+      //arrange
+      //act
+      int count = StringMapLite::count(testStringMapLiteStrings);
+      //assert
+      TEST_ASSERT (count == 3);
+      TEST_FUNC_END();
+    }
+    static void count_EmptyStrings_Expect0 (void) {
+      TEST_FUNC_START();
+      //arrange
+      //act
+      int count = StringMapLite::count(testStringMapLiteEmpty);
+      //assert
+      TEST_ASSERT (!count);
+      TEST_FUNC_END();
+    }
+    static void count_NULLStrings_Expect0 (void) {
+      TEST_FUNC_START();
+      //arrange
+      //act
+      int count = StringMapLite::count(NULL);
+      //assert
+      TEST_ASSERT (!count);
+      TEST_FUNC_END();
+    }
+  public:
+    static void testCount(void) {
+      count_Expect3();
+    }
+  public:
+    static void findChar_Found_ExpectValidKey(void) {
+      TEST_FUNC_START();
+      //arrange
+      int findResult[3];
+      //act
+      findResult[0] = StringMapLite::find(testStringMapLiteStrings, "testval0");
+      findResult[1] = StringMapLite::find(testStringMapLiteStrings, "testval1");
+      findResult[2] = StringMapLite::find(testStringMapLiteStrings, "testval2");
+      //assert
+      TEST_ASSERT (findResult[0] == 0);
+      TEST_ASSERT (findResult[1] == 1);
+      TEST_ASSERT (findResult[2] == 2);
+      TEST_FUNC_END();
+    }
+    static void findChar_NotFound_ExpectNotFound(void) {
+      TEST_FUNC_START();
+      //arrange
+      //act
+      int notFound = StringMapLite::find(testStringMapLiteStrings, "testval3");
+      //assert
+      TEST_ASSERT (notFound == StringMapLite::NOT_FOUND);
+      TEST_FUNC_END();
+    }
+    static void findChar_CaseSensitive_ExpectNotFound(void) {
+      TEST_FUNC_START();
+      //arrange
+      //act
+      int notFoundBecauseFindIsCaseSensitive = StringMapLite::find(testStringMapLiteStrings, "Testval1");
+      //assert
+      TEST_ASSERT (notFoundBecauseFindIsCaseSensitive == StringMapLite::NOT_FOUND);
+      TEST_FUNC_END();
+    }
+    static void findChar_EmptyStrings_ExpectNotFound(void) {
+      TEST_FUNC_START();
+      //arrange
+      //act
+      int notFoundBecauseEmptyString = StringMapLite::find(testStringMapLiteStrings, "");
+      int notFoundBecauseEmptyStringMap = StringMapLite::find(testStringMapLiteEmpty, "test1");
+      //assert
+      TEST_ASSERT (notFoundBecauseEmptyString == StringMapLite::NOT_FOUND);
+      TEST_ASSERT (notFoundBecauseEmptyStringMap == StringMapLite::NOT_FOUND);
+      TEST_FUNC_END();
+    }
+    static void findChar_NULLStrings_ExpectNotFound(void) {
+      TEST_FUNC_START();
+      //arrange
+      //act
+      int notFoundBecauseNULL = StringMapLite::find(testStringMapLiteStrings, (char *)NULL);
+      int notFoundBecauseNULLStringMap = StringMapLite::find(NULL, "test1");
+      //assert
+      TEST_ASSERT (notFoundBecauseNULL == StringMapLite::NOT_FOUND);
+      TEST_ASSERT (notFoundBecauseNULLStringMap == StringMapLite::NOT_FOUND);
+      TEST_FUNC_END();
+    }
+  public:
+    static void testFindChar(void) {
+      findChar_Found_ExpectValidKey();
+      findChar_NotFound_ExpectNotFound();
+      findChar_CaseSensitive_ExpectNotFound();
+      findChar_EmptyStrings_ExpectNotFound();
+      findChar_NULLStrings_ExpectNotFound();
+    }
+  public:
+    static void findInt_Found_ExpectCorrespondingString(void) {
+      TEST_FUNC_START();
+      //arrange
+      const char * findResult[3];
+      //act
+      findResult[0] = StringMapLite::find(testStringMapLiteStrings, 0);
+      findResult[1] = StringMapLite::find(testStringMapLiteStrings, 1);
+      findResult[2] = StringMapLite::find(testStringMapLiteStrings, 2);
+      //assert
+      TEST_ASSERT (findResult[0]);
+      TEST_ASSERT (findResult[1]);
+      TEST_ASSERT (findResult[2]);
+      TEST_ASSERT (!strcmp_P("testval0", findResult[0]));
+      TEST_ASSERT (!strcmp_P("testval1", findResult[1]));
+      TEST_ASSERT (!strcmp_P("testval2", findResult[2]));
+      TEST_FUNC_END();
+    }
+    static void findInt_NotFound_ExpectNULL(void) {
+      TEST_FUNC_START();
+      //arrange
+      //act
+      const char * notFound = StringMapLite::find(testStringMapLiteStrings, 3);
+      //assert
+      TEST_ASSERT (!notFound);
+      TEST_FUNC_END();
+    }
+    static void findInt_EmptyStrings_ExpectNULL(void) {
+      TEST_FUNC_START();
+      //arrange
+      //act
+      const char * notFoundBecauseEmptyStringMap = StringMapLite::find(testStringMapLiteEmpty, 0);
+      //assert
+      TEST_ASSERT (!notFoundBecauseEmptyStringMap);
+      TEST_FUNC_END();
+    }
+    static void findInt_NULLStrings_ExpectNULL(void) {
+      TEST_FUNC_START();
+      //arrange
+      //act
+      const char * notFoundBecauseNULLStringMap = StringMapLite::find(NULL, 0);
+      //assert
+      TEST_ASSERT (!notFoundBecauseNULLStringMap);
+      TEST_FUNC_END();
+    }
+
+  public:
+    static void testFindInt(void) {
+      findInt_Found_ExpectCorrespondingString();
+      findInt_NotFound_ExpectNULL();
+      findInt_EmptyStrings_ExpectNULL();
+      findInt_NULLStrings_ExpectNULL();
+    }
+  public:
+    static void runTests(void) {
+      testCount();
+      testFindChar();
+      testFindInt();
+    }
+};
+
 void setup() {
   TEST_SETUP();
   TEST_BEGIN();
-  testQuickStringMap::runTests();
-  testStringMapIteratorWithQuickStringMap::runTests();
-  testProgmemStringMap::runTests();
-  testStringMapIteratorWithProgmemStringMap::runTests();
+  TestQuickStringMap::runTests();
+  TestStringMapIteratorWithQuickStringMap::runTests();
+  TestProgmemStringMap::runTests();
+  TestStringMapIteratorWithProgmemStringMap::runTests();
+  TestStringMapLite::runTests();
   TEST_END();
 }
 

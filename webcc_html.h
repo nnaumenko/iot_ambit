@@ -105,4 +105,15 @@ class WebccHTMLStringMaps : protected WebccHTML {
     void checkBoxParameter(StringMapKey parameter, long value);
 };
 
+class WebccHTMLIndex {
+  public:
+    WebccHTMLIndex(Print &client);
+  private:
+    Print * client = NULL;
+  public:
+    void begin(void);
+    void index(const __FlashStringHelper * name, const __FlashStringHelper * path);
+    void finish(void);
+};
+
 #endif

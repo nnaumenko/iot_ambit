@@ -5,6 +5,7 @@
 * of the MIT license. See the LICENSE file for details.
 */
 
+#include <Arduino.h>
 #include <ESP8266WiFi.h>
 extern "C" {
 #include <user_interface.h>
@@ -12,12 +13,38 @@ extern "C" {
 
 const boolean CONFIG_MODE_WIFI_OPEN = true; //change to false to create password-protected WiFi network in config mode
 
-#include "diag.h"
+const unsigned int WEB_SERVER_PORT = 80;
+WiFiServer webServer(WEB_SERVER_PORT);
+
 #include "version.h"
+
+#include "diag.h"
+#include "webcc.h"
+#include "webconfig.h"
+
+using TempDiagLog = diag::TempDiagLog;
+using WebConfig = webconfig::WebConfig<TempDiagLog>;
+using WebConfigControl = webcc::WebConfigControl<TempDiagLog, HTTPReqParserStateMachine, HTTPStream,
+      WebConfig, TempDiagLog>;
+
+namespace diag {
+const Texts PROGMEM texts;
+};
+namespace webcc {
+const Texts PROGMEM texts;
+};
+namespace webconfig {
+const Texts PROGMEM texts;
+};
+
+#include "diag_legacy.h"
 
 #define BLYNK_PRINT DiagLog
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-parameter"
 #include <BlynkSimpleEsp8266.h>
+#pragma GCC diagnostic pop
 
 #include <Math.h>
 #include <EEPROM.h>
@@ -28,12 +55,11 @@ const boolean CONFIG_MODE_WIFI_OPEN = true; //change to false to create password
 
 #include "adc.h"
 #include "eeprom_config.h"
-#include "http.h"
 #include "stringmap.h"
 #include "uiTexts.h"
-#include "webcc.h"
-#include "webcc_html.h"
+
 #include "webconfig.h"
+#include "webcc.h"
 
 #ifndef ESP8266
 #warning "Please select a ESP8266 board in Tools/Board"
@@ -345,7 +371,13 @@ boolean checkTimedEvent (const unsigned long period, unsigned long * tempTimeVal
 boolean isConfigMode = false;
 
 void setup() {
-  DiagLog.begin(9600);
+  Serial.begin(9600);
+  webServer.begin();
+
+  TempDiagLog::instance()->begin();
+  WebConfigControl::instance()->setServer(webServer);
+  WebConfigControl::instance()->begin();
+  WebConfig::instance()->begin();
 
   DiagLog.println(F("\nInit started."));
   DiagLog.print(F("Firmware version "));
@@ -374,7 +406,9 @@ void setup() {
   calcCalDataMG811();
 
   isConfigMode = !digitalRead(PIN_SWITCH_CONFIG);
-  isConfigMode = true;
+
+  if (isConfigMode) WebConfigControl::instance()->setRootRedirect((const char *)F("webconfig"));
+  
   if (isConfigMode) {
     DiagLog.println(F("Config Mode enabled."));
     const size_t TEXT_SIZE = 32;
@@ -400,8 +434,6 @@ void setup() {
     }
     DiagLog.print(F("IP address: "));
     DiagLog.println(WiFi.softAPIP());
-    webConfigBegin();
-    DiagLog.println(F("Web server started."));
   }
   else {
     DiagLog.println(F("Config Mode not enabled."));
@@ -415,7 +447,7 @@ void setup() {
       DiagLog.print(F("["));
       DiagLog.print(millis());
       DiagLog.print(F("] Waiting"));
-      for (int i = 0; i < eepromSavedParametersStorage.startupDelay; i++) {
+      for (int i = 0; i < (int)eepromSavedParametersStorage.startupDelay; i++) {
         delay(100);
         if (!(i % 10)) DiagLog.print(F("."));
         yield();
@@ -467,6 +499,10 @@ void setup() {
 
 void loop() {
 
+  TempDiagLog::instance()->run();
+  WebConfig::instance()->run();
+  WebConfigControl::instance()->run();
+
   static unsigned long lastMillisSensors = 0;
   if (checkTimedEvent(UPDATE_TIME_SENSORS, &lastMillisSensors)) {
     updateSensorDHT();
@@ -491,8 +527,5 @@ void loop() {
     if (checkTimedEvent(UPDATE_TIME_VALUE_VPINS, &lastMillisValueVirtualPins))
       updateValueVirtualPins();
     Blynk.run();
-  }
-  else {
-    webConfigRun();
   }
 }
