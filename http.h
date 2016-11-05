@@ -12,7 +12,6 @@
 
 enum class HTTPStatusCode {
   UNKNOWN = 0,
-  NO_CHANGE = 0,
   CONTINUE = 100,
   SWITCHING_PROTOCOLS = 101,
   OK = 200,
@@ -114,7 +113,7 @@ class URL {
 class HTTPResponseHeader {
   public:
     static void contentHeader(Print &client, HTTPContentType type, HTTPContentCharset charset = HTTPContentCharset::UTF8);
-    static void redirect(Print &client, __FlashStringHelper * path);
+    static void redirect(Print &client, const __FlashStringHelper * path);
     static void statusLine(Print &client, HTTPStatusCode statusCode);
   public:
     static const __FlashStringHelper * statusCodeText(HTTPStatusCode statusCode);

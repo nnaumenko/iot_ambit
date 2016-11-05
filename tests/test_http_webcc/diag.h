@@ -5,14 +5,12 @@
  * of the MIT license. See the LICENSE file for details.
  */
 
-#ifndef VERSION_H
-#define VERSION_H
+#ifndef DIAG_H
+#define DIAG_H
 
 #include <Arduino.h>
+#include "test.h"
 
-#define FIRMWARE_VERSION_MAJOR     0
-#define FIRMWARE_VERSION_MINOR     9
-
-#define VERSION_STRING #FIRMWARE_VERSION_MAJOR "." FIRMWARE_VERSION_MINOR
+#define DiagLog TEST_STREAM
 
 #endif

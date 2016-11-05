@@ -24,7 +24,7 @@ const char PROGMEM methodConnect[] = "CONNECT";
 HTTPRequestMethod HTTPRequestHelper::getMethod(const char * method) {
   if (!strcmp_P(method, methodOptions)) return (HTTPRequestMethod::OPTIONS);
   if (!strcmp_P(method, methodGet)) return (HTTPRequestMethod::GET);
-  if (!strcmp_P(method, methodHead)) return (HTTPRequestMethod::GET);
+  if (!strcmp_P(method, methodHead)) return (HTTPRequestMethod::HEAD);
   if (!strcmp_P(method, methodPost)) return (HTTPRequestMethod::POST);
   if (!strcmp_P(method, methodPut)) return (HTTPRequestMethod::PUT);
   if (!strcmp_P(method, methodDelete)) return (HTTPRequestMethod::DELETE);
@@ -99,7 +99,7 @@ void HTTPResponseHeader::contentHeader(Print &client, HTTPContentType type, HTTP
   client.print(F("\r\n\r\n"));
 }
 
-void HTTPResponseHeader::redirect(Print &client, __FlashStringHelper * path) {
+void HTTPResponseHeader::redirect(Print &client, const __FlashStringHelper * path) {
   statusLine(client, HTTPStatusCode::SEE_OTHER);
   client.print(F("Location: http://"));
   client.print(WiFi.softAPIP());//TODO
@@ -112,8 +112,7 @@ void HTTPResponseHeader::statusLine(Print &client, HTTPStatusCode statusCode) {
   client.print((int)statusCode);
   client.print(' ');
   client.print(statusCodeText(statusCode));
-  client.print('\r');
-  client.print('\n');
+  client.print(F("\r\n"));
 }
 
 const __FlashStringHelper * HTTPResponseHeader::statusCodeText(HTTPStatusCode statusCode) {

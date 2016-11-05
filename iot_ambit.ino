@@ -23,18 +23,16 @@ WiFiServer webServer(WEB_SERVER_PORT);
 #include "webconfig.h"
 
 using TempDiagLog = diag::TempDiagLog;
-using WebConfig = webconfig::WebConfig<TempDiagLog>;
-using WebConfigControl = webcc::WebConfigControl<TempDiagLog, HTTPReqParserStateMachine, HTTPStream,
+using WebConfig = webconfig::WebConfig <TempDiagLog>;
+using WebConfigControl = webcc::WebConfigControl <TempDiagLog, webcc::HTTPReqParserStateMachine, webcc::BufferedPrint, webcc::WebccForm,
       WebConfig, TempDiagLog>;
 
 namespace diag {
 const Texts PROGMEM texts;
 };
-namespace webcc {
-const Texts PROGMEM texts;
-};
 namespace webconfig {
 const Texts PROGMEM texts;
+const TextsUI PROGMEM textsUI;
 };
 
 #include "diag_legacy.h"
@@ -56,7 +54,6 @@ const Texts PROGMEM texts;
 #include "adc.h"
 #include "eeprom_config.h"
 #include "stringmap.h"
-#include "uiTexts.h"
 
 #include "webconfig.h"
 #include "webcc.h"
@@ -406,9 +403,9 @@ void setup() {
   calcCalDataMG811();
 
   isConfigMode = !digitalRead(PIN_SWITCH_CONFIG);
-
-  if (isConfigMode) WebConfigControl::instance()->setRootRedirect((const char *)F("webconfig"));
   
+  if (isConfigMode) WebConfigControl::instance()->setRootRedirect((const char *)F("webconfig"));
+
   if (isConfigMode) {
     DiagLog.println(F("Config Mode enabled."));
     const size_t TEXT_SIZE = 32;

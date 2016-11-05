@@ -13,18 +13,10 @@
 
 namespace diag {
 
-#ifdef MODULE_TEXT
-#undef MODULE_TEXT
-#endif
-#define MODULE_TEXT(name,value) const char name [sizeof(value)] = value
-
-#ifdef PTEXT
-#undef PTEXT
-#endif
-#define PTEXT(name) (__FlashStringHelper *)name
+#define MODULE_TEXT(name,value) public: const char name [sizeof(value)] = value
+#define FSH(name) reinterpret_cast<const __FlashStringHelper *>(name)
 
 class Texts {
-  public:
     MODULE_TEXT(moduleName, "TempDiagLog");
 } __attribute__((packed));
 
@@ -76,6 +68,8 @@ class TempDiagLog : public Module <TempDiagLog>, public Print {
       return (texts.moduleName);
     }
 };
+
+#undef FSH
 
 };
 
