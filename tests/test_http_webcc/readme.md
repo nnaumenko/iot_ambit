@@ -128,126 +128,158 @@ The following is expected in serial monitor window:
     PASSED
     Test function started: static void TestFakeStream::writeInOut_printString_expectTheSameStringInTheOutBuffer(), file fakestream.cpp
     PASSED
-    Test function started: static void TestParserInputStream::read_StringWithoutCRLF_expectUnmodifiedString(), file test_http_webcc.ino
-    PASSED
-    Test function started: static void TestParserInputStream::read_NotAvailable_expectNotAvailable(), file test_http_webcc.ino
-    PASSED
-    Test function started: static void TestParserInputStream::read_RN_expectN(), file test_http_webcc.ino
-    PASSED
-    Test function started: static void TestParserInputStream::read_NR_expectN(), file test_http_webcc.ino
-    PASSED
-    Test function started: static void TestParserInputStream::read_NN_expectNN(), file test_http_webcc.ino
-    PASSED
-    Test function started: static void TestParserInputStream::read_RR_expectNN(), file test_http_webcc.ino
-    PASSED
-    Test function started: static void TestParserInputStream::read_RNR_expectNN(), file test_http_webcc.ino
-    PASSED
-    Test function started: static void TestParserInputStream::read_NRN_expectNN(), file test_http_webcc.ino
-    PASSED
-    Test function started: static void TestParserInputStream::read_NRRN_expectNN(), file test_http_webcc.ino
-    PASSED
-    Test function started: static void TestParserInputStream::read_NRNR_expectNN(), file test_http_webcc.ino
-    PASSED
-    Test function started: static void TestParserInputStream::read_RNZ_expectNZ(), file test_http_webcc.ino
-    PASSED
-    Test function started: static void TestParserInputStream::read_NRZ_expectNZ(), file test_http_webcc.ino
-    PASSED
-    Test function started: static void TestParserInputStream::read_NNZ_expectNNZ(), file test_http_webcc.ino
-    PASSED
-    Test function started: static void TestParserInputStream::read_RRZ_expectNNZ(), file test_http_webcc.ino
-    PASSED
-    Test function started: static void TestParserInputStream::read_RNRZ_expectNNZ(), file test_http_webcc.ino
-    PASSED
-    Test function started: static void TestParserInputStream::read_NRNZ_expectNNZ(), file test_http_webcc.ino
-    PASSED
-    Test function started: static void TestParserInputStream::read_NRRNZ_expectNNZ(), file test_http_webcc.ino
-    PASSED
-    Test function started: static void TestParserInputStream::read_NRNRZ_expectNNZ(), file test_http_webcc.ino
-    PASSED
-    Test function started: static void TestParserInputStream::peek_StringWithoutCRLF_expectUnmodifiedString(), file test_http_webcc.ino
-    PASSED
-    Test function started: static void TestParserInputStream::peek_NotAvailable_expectNotAvailable(), file test_http_webcc.ino
-    PASSED
-    Test function started: static void TestParserInputStream::peek_RN_expectN(), file test_http_webcc.ino
-    PASSED
-    Test function started: static void TestParserInputStream::peek_NR_expectN(), file test_http_webcc.ino
-    PASSED
-    Test function started: static void TestParserInputStream::peek_NN_expectNN(), file test_http_webcc.ino
-    PASSED
-    Test function started: static void TestParserInputStream::peek_RR_expectNN(), file test_http_webcc.ino
-    PASSED
-    Test function started: static void TestParserInputStream::peek_RNR_expectNN(), file test_http_webcc.ino
-    PASSED
-    Test function started: static void TestParserInputStream::peek_NRN_expectNN(), file test_http_webcc.ino
-    PASSED
-    Test function started: static void TestParserInputStream::peek_NRRN_expectNN(), file test_http_webcc.ino
-    PASSED
-    Test function started: static void TestParserInputStream::peek_NRNR_expectNN(), file test_http_webcc.ino
-    PASSED
-    Test function started: static void TestParserInputStream::peek_RNZ_expectNZ(), file test_http_webcc.ino
-    PASSED
-    Test function started: static void TestParserInputStream::peek_NRZ_expectNZ(), file test_http_webcc.ino
-    PASSED
-    Test function started: static void TestParserInputStream::peek_NNZ_expectNNZ(), file test_http_webcc.ino
-    PASSED
-    Test function started: static void TestParserInputStream::peek_RRZ_expectNNZ(), file test_http_webcc.ino
-    PASSED
-    Test function started: static void TestParserInputStream::peek_RNRZ_expectNNZ(), file test_http_webcc.ino
-    PASSED
-    Test function started: static void TestParserInputStream::peek_NRNZ_expectNNZ(), file test_http_webcc.ino
-    PASSED
-    Test function started: static void TestParserInputStream::peek_NRRNZ_expectNNZ(), file test_http_webcc.ino
-    PASSED
-    Test function started: static void TestParserInputStream::peek_NRNRZ_expectNNZ(), file test_http_webcc.ino
-    PASSED
-    Test function started: static void TestParserInputStream::readUntil_readUntilCharacter_expectPartOfInputString(), file test_http_webcc.ino
-    PASSED
-    Test function started: static void TestParserInputStream::readUntil_readUntilFirstCharacter_expectEmptyString(), file test_http_webcc.ino
-    PASSED
-    Test function started: static void TestParserInputStream::readUntil_characterNotFound_expectSameString(), file test_http_webcc.ino
-    PASSED
-    Test function started: static void TestParserInputStream::readUntil_charNotFoundBecauseCaseSensitive_expectSameString(), file test_http_webcc.ino
-    PASSED
-    Test function started: static void TestParserInputStream::readUntil_stringDoesNotFitInBuffer_expectTruncatedString(), file test_http_webcc.ino
-    PASSED
-    Test function started: static void TestParserInputStream::readUntil_notAvailable_expectEmptyString(), file test_http_webcc.ino
-    PASSED
-    Test function started: static void TestParserInputStream::readUntil_charsToFindNULL_expectEmptyString(), file test_http_webcc.ino
-    PASSED
-    Test function started: static void TestParserInputStream::readUntil_zeroLengthBuffer_expectEmptyString(), file test_http_webcc.ino
-    PASSED
-    Test function started: static void TestParserInputStream::readUntil_readBufferNULL_expectNoCrash(), file test_http_webcc.ino
-    PASSED
-    Test function started: static void TestParserInputStream::readUntil_clientNULL_expectNoCrash(), file test_http_webcc.ino
-    PASSED
-    Test function started: static void TestParserInputStream::readUntil_clientReset_expectNoCrash(), file test_http_webcc.ino
-    PASSED
-    Test function started: static void TestParserInputStream::skipUntil_skipUntilCharacter_expectInputCharsSkipped(), file test_http_webcc.ino
-    PASSED
-    Test function started: static void TestParserInputStream::skipUntil_characterNotFound_expectInputStreamFullySkipped(), file test_http_webcc.ino
-    PASSED
-    Test function started: static void TestParserInputStream::skipUntil_charNotFoundBecauseCaseSensitive_expectInputStreamFullySkipped(), file test_http_webcc.ino
-    PASSED
-    Test function started: static void TestParserInputStream::skipUntil_notAvailable_expectMethodDoesNothing(), file test_http_webcc.ino
-    PASSED
-    Test function started: static void TestParserInputStream::skipUntil_charsToFindNULL_expectMethodDoesNothing(), file test_http_webcc.ino
-    PASSED
-    Test function started: static void TestParserInputStream::skipUntil_clientNULL_expectNoCrash(), file test_http_webcc.ino
-    PASSED
-    Test function started: static void TestParserInputStream::skipUntil_clientReset_expectNoCrash(), file test_http_webcc.ino
-    PASSED
     Test function started: static void TestBufferedPrint::write_stringShorterThanBuffer_expectStringSentAfterBufferedPrintOutOfScope(), file test_http_webcc.ino
     PASSED
     Test function started: static void TestBufferedPrint::write_stringLongerThanBuffer_expectStringSentAfterBufferIsFull(), file test_http_webcc.ino
     PASSED
     Test function started: static void TestHTTPReqParserStateMachine::begin_validateInternals_expectTrue(), file test_http_webcc.ino
     PASSED
-    Test function started: static void TestHTTPReqParserStateMachine::begin_beginNotCalled_expectNoClientError(), file test_http_webcc.ino
+    Test function started: static void TestHTTPReqParserStateMachine::begin_beginNotCalled_expectInternalError(), file test_http_webcc.ino
     PASSED
-    Test function started: static void TestHTTPReqParserStateMachine::parse_parseRequest_expectCorrespondingRequestParts(), file test_http_webcc.ino
+    Test function started: static void TestHTTPReqParserStateMachine::parse_normalGetRequestWithNoFields_expectCorrespondingRequestParts(), file test_http_webcc.ino
+    PASSED
+    Test function started: static void TestHTTPReqParserStateMachine::parse_normalGetRequestWithNoFieldsAndWithSpecialChars_expectCorrespondingRequestParts(), file test_http_webcc.ino
+    PASSED
+    Test function started: static void TestHTTPReqParserStateMachine::parse_normalGetRequest_expectCorrespondingRequestParts(), file test_http_webcc.ino
+    PASSED
+    Test function started: static void TestHTTPReqParserStateMachine::parse_normalPostRequest_expectCorrespondingRequestParts(), file test_http_webcc.ino
+    PASSED
+    Test function started: static void TestHTTPReqParserStateMachine::parse_normalPostRequestWithUrlQuery_expectCorrespondingRequestParts(), file test_http_webcc.ino
+    PASSED
+    Test function started: static void TestHTTPReqParserStateMachine::parse_brokenMethod_expectStructureError(), file test_http_webcc.ino
+    PASSED
+    Test function started: static void TestHTTPReqParserStateMachine::parse_brokenMethodAndTrailingSpace_expectStructureError(), file test_http_webcc.ino
+    PASSED
+    Test function started: static void TestHTTPReqParserStateMachine::parse_headerWithMethodOnly_expectStructureError(), file test_http_webcc.ino
+    PASSED
+    Test function started: static void TestHTTPReqParserStateMachine::parse_headerWithMethodAndTrailingSpace_expectStructureError(), file test_http_webcc.ino
+    PASSED
+    Test function started: static void TestHTTPReqParserStateMachine::parse_tooLongMethod_expectPartTooLongError(), file test_http_webcc.ino
+    PASSED
+    Test function started: static void TestHTTPReqParserStateMachine::parse_NoMethod_expectStructureError(), file test_http_webcc.ino
+    PASSED
+    Test function started: static void TestHTTPReqParserStateMachine::parse_EmptyMethod_expectNoError(), file test_http_webcc.ino
+    PASSED
+    Test function started: static void TestHTTPReqParserStateMachine::parse_brokenPath_expectStructureError(), file test_http_webcc.ino
+    PASSED
+    Test function started: static void TestHTTPReqParserStateMachine::parse_brokenPathAndTrailingSpace_expectStructureError(), file test_http_webcc.ino
+    PASSED
+    Test function started: static void TestHTTPReqParserStateMachine::parse_headerWithMethodAndPathOnly_expectStructureError(), file test_http_webcc.ino
+    PASSED
+    Test function started: static void TestHTTPReqParserStateMachine::parse_tooLongPath_expectPartTooLongError(), file test_http_webcc.ino
+    PASSED
+    Test function started: static void TestHTTPReqParserStateMachine::parse_EmptyPathWithQuery_expectNoError(), file test_http_webcc.ino
+    PASSED
+    Test function started: static void TestHTTPReqParserStateMachine::parse_EmptyPathWithoutQuery_expectNoError(), file test_http_webcc.ino
+    PASSED
+    Test function started: static void TestHTTPReqParserStateMachine::parse_brokenURLQuery1_expectStructureError(), file test_http_webcc.ino
+    PASSED
+    Test function started: static void TestHTTPReqParserStateMachine::parse_brokenURLQuery2_expectStructureError(), file test_http_webcc.ino
+    PASSED
+    Test function started: static void TestHTTPReqParserStateMachine::parse_brokenURLQuery3_expectStructureError(), file test_http_webcc.ino
+    PASSED
+    Test function started: static void TestHTTPReqParserStateMachine::parse_brokenURLQuery4_expectStructureError(), file test_http_webcc.ino
+    PASSED
+    Test function started: static void TestHTTPReqParserStateMachine::parse_brokenURLQuery5_expectStructureError(), file test_http_webcc.ino
+    PASSED
+    Test function started: static void TestHTTPReqParserStateMachine::parse_brokenURLQuery6_expectStructureError(), file test_http_webcc.ino
+    PASSED
+    Test function started: static void TestHTTPReqParserStateMachine::parse_brokenURLQuery7_expectStructureError(), file test_http_webcc.ino
+    PASSED
+    Test function started: static void TestHTTPReqParserStateMachine::parse_brokenURLQuery8_expectStructureError(), file test_http_webcc.ino
+    PASSED
+    Test function started: static void TestHTTPReqParserStateMachine::parse_brokenURLQuery1NoVersion_expectStructureError(), file test_http_webcc.ino
+    PASSED
+    Test function started: static void TestHTTPReqParserStateMachine::parse_brokenURLQuery2NoVersion_expectStructureError(), file test_http_webcc.ino
+    PASSED
+    Test function started: static void TestHTTPReqParserStateMachine::parse_brokenURLQuery3NoVersion_expectStructureError(), file test_http_webcc.ino
+    PASSED
+    Test function started: static void TestHTTPReqParserStateMachine::parse_brokenURLQuery4NoVersion_expectStructureError(), file test_http_webcc.ino
+    PASSED
+    Test function started: static void TestHTTPReqParserStateMachine::parse_brokenURLQuery5NoVersion_expectStructureError(), file test_http_webcc.ino
+    PASSED
+    Test function started: static void TestHTTPReqParserStateMachine::parse_brokenURLQuery6NoVersion_expectStructureError(), file test_http_webcc.ino
+    PASSED
+    Test function started: static void TestHTTPReqParserStateMachine::parse_brokenURLQuery7NoVersion_expectStructureError(), file test_http_webcc.ino
+    PASSED
+    Test function started: static void TestHTTPReqParserStateMachine::parse_brokenURLQuery8NoVersion_expectStructureError(), file test_http_webcc.ino
+    PASSED
+    Test function started: static void TestHTTPReqParserStateMachine::parse_brokenURLQuery1FullHeader_expectStructureError(), file test_http_webcc.ino
+    PASSED
+    Test function started: static void TestHTTPReqParserStateMachine::parse_brokenURLQuery3FullHeader_expectStructureError(), file test_http_webcc.ino
+    PASSED
+    Test function started: static void TestHTTPReqParserStateMachine::parse_brokenURLQuery5FullHeader_expectStructureError(), file test_http_webcc.ino
+    PASSED
+    Test function started: static void TestHTTPReqParserStateMachine::parse_brokenURLQuery6FullHeader_expectStructureError(), file test_http_webcc.ino
+    PASSED
+    Test function started: static void TestHTTPReqParserStateMachine::parse_brokenURLQuery7FullHeader_expectStructureError(), file test_http_webcc.ino
+    PASSED
+    Test function started: static void TestHTTPReqParserStateMachine::parse_tooLongURLQueryName_expectPartTooLongError(), file test_http_webcc.ino
+    PASSED
+    Test function started: static void TestHTTPReqParserStateMachine::parse_EmptyURLQueryName_expectNoError(), file test_http_webcc.ino
+    PASSED
+    Test function started: static void TestHTTPReqParserStateMachine::parse_tooLongURLQueryValue_expectPartTooLongError(), file test_http_webcc.ino
+    PASSED
+    Test function started: static void TestHTTPReqParserStateMachine::parse_EmptyURLQueryValue_expectNoError(), file test_http_webcc.ino
+    PASSED
+    Test function started: static void TestHTTPReqParserStateMachine::parse_brokenVersion_expectStructureError(), file test_http_webcc.ino
+    PASSED
+    Test function started: static void TestHTTPReqParserStateMachine::parse_tooLongVersion_expectPartTooLongError(), file test_http_webcc.ino
+    PASSED
+    Test function started: static void TestHTTPReqParserStateMachine::parse_EmptyVersion_expectNoError(), file test_http_webcc.ino
+    PASSED
+    Test function started: static void TestHTTPReqParserStateMachine::parse_headerWithoutTrailingCRLF_expectStructureError(), file test_http_webcc.ino
+    PASSED
+    Test function started: static void TestHTTPReqParserStateMachine::parse_headerWithOneTrailingCRLF_expectStructureError(), file test_http_webcc.ino
+    PASSED
+    Test function started: static void TestHTTPReqParserStateMachine::parse_brokenFieldName_expectStructureError(), file test_http_webcc.ino
+    PASSED
+    Test function started: static void TestHTTPReqParserStateMachine::parse_fieldWithNameOnly_expectStructureError(), file test_http_webcc.ino
+    PASSED
+    Test function started: static void TestHTTPReqParserStateMachine::parse_emptyFieldName_expectNoError(), file test_http_webcc.ino
+    PASSED
+    Test function started: static void TestHTTPReqParserStateMachine::parse_tooLongFieldName_expectPartTooLongError(), file test_http_webcc.ino
+    PASSED
+    Test function started: static void TestHTTPReqParserStateMachine::parse_brokenFieldWithSeparator_expectStructureError(), file test_http_webcc.ino
+    PASSED
+    Test function started: static void TestHTTPReqParserStateMachine::parse_brokenFieldValue_expectStructureError(), file test_http_webcc.ino
+    PASSED
+    Test function started: static void TestHTTPReqParserStateMachine::parse_emptyFieldValue_expectNoError(), file test_http_webcc.ino
+    PASSED
+    Test function started: static void TestHTTPReqParserStateMachine::parse_tooLongFieldValue_expectNoError(), file test_http_webcc.ino
+    PASSED
+    Test function started: static void TestHTTPReqParserStateMachine::parse_fieldFollowedBySingleCRLF_expectStructureError(), file test_http_webcc.ino
+    PASSED
+    Test function started: static void TestHTTPReqParserStateMachine::parse_brokenPOSTQuery1_expectStructureError(), file test_http_webcc.ino
+    PASSED
+    Test function started: static void TestHTTPReqParserStateMachine::parse_brokenPOSTQuery2_expectStructureError(), file test_http_webcc.ino
+    PASSED
+    Test function started: static void TestHTTPReqParserStateMachine::parse_brokenPOSTQuery3_expectStructureError(), file test_http_webcc.ino
+    PASSED
+    Test function started: static void TestHTTPReqParserStateMachine::parse_brokenPOSTQuery4_expectStructureError(), file test_http_webcc.ino
+    PASSED
+    Test function started: static void TestHTTPReqParserStateMachine::parse_brokenPOSTQuery5_expectStructureError(), file test_http_webcc.ino
+    PASSED
+    Test function started: static void TestHTTPReqParserStateMachine::parse_brokenPOSTQuery6_expectStructureError(), file test_http_webcc.ino
+    PASSED
+    Test function started: static void TestHTTPReqParserStateMachine::parse_brokenPOSTQuery7_expectStructureError(), file test_http_webcc.ino
+    PASSED
+    Test function started: static void TestHTTPReqParserStateMachine::parse_brokenPOSTQuery2FollowedByCRLF_expectStructureError(), file test_http_webcc.ino
+    PASSED
+    Test function started: static void TestHTTPReqParserStateMachine::parse_brokenPOSTQuery4FollowedByCRLF_expectStructureError(), file test_http_webcc.ino
+    PASSED
+    Test function started: static void TestHTTPReqParserStateMachine::parse_brokenPOSTQuery6FollowedByCRLF_expectStructureError(), file test_http_webcc.ino
+    PASSED
+    Test function started: static void TestHTTPReqParserStateMachine::parse_tooLongPOSTQueryName_expectPartTooLongError(), file test_http_webcc.ino
+    PASSED
+    Test function started: static void TestHTTPReqParserStateMachine::parse_EmptyPOSTQueryName_expectNoError(), file test_http_webcc.ino
+    PASSED
+    Test function started: static void TestHTTPReqParserStateMachine::parse_tooLongPOSTQueryValue_expectPartTooLongError(), file test_http_webcc.ino
+    PASSED
+    Test function started: static void TestHTTPReqParserStateMachine::parse_EmptyPOSTQueryValue_expectNoError(), file test_http_webcc.ino
     PASSED
     
-    ---------------- TESTING FINISHED --------------- 
+    ---------------- TESTING FINISHED ---------------
 
 # Failed tests
 

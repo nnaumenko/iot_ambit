@@ -105,6 +105,7 @@ void HTTPResponseHeader::redirect(Print &client, const __FlashStringHelper * pat
   client.print(WiFi.softAPIP());//TODO
   if (pgm_read_byte(path) != '/') client.print('/');
   client.print(path);
+  client.print(F("\r\n\r\n"));  
 }
 
 void HTTPResponseHeader::statusLine(Print &client, HTTPStatusCode statusCode) {

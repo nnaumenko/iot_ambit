@@ -52,7 +52,10 @@ class TextsUI {
     MODULE_TEXT(printMethod, "Method: ");
     MODULE_TEXT(printPath, "Path: ");
     MODULE_TEXT(parsingError, "Error parsing request");
-    MODULE_TEXT(httpStatusCode, "HTTP status code:");
+    MODULE_TEXT(httpStatusCode, "HTTP status code: ");
+    MODULE_TEXT(redirectTo, "Redirecting to: ");
+    MODULE_TEXT(sendModuleIndexBegin, "Sending module index");
+    MODULE_TEXT(sendModuleIndexEnd, "Sending module sent");
 
     MODULE_TEXT(rootCaption, "WebConfigControl");
     MODULE_TEXT(moduleIndex, "Modules");
@@ -74,15 +77,14 @@ const size_t HTTP_REQUEST_PART_MAX_SIZE = 32;
 
 enum class HTTPRequestPart {
   NONE,
-  BEGIN,
-  FINISH,
   METHOD,
   PATH,
   URL_QUERY_NAME,
   URL_QUERY_VALUE,
-  VERSION,
+  HTTP_VERSION,
   FIELD_NAME,
-  FIELD_VALUE,
+  FIELD_VALUE_PART1,
+  FIELD_VALUE_PART2,
   POST_QUERY_NAME,
   POST_QUERY_VALUE,
 };
@@ -195,6 +197,7 @@ void WebConfigControl<Diag, Parser, OutputStream, WebForm, WebModules...>::onRun
     delay(1);
     yield();
   }
+  OutputStream outputClient(client);
   Parser parser;
   parser.begin(client);
   diagLog->setMessageClass(Diag::CLASS_DEBUG);
@@ -203,30 +206,31 @@ void WebConfigControl<Diag, Parser, OutputStream, WebForm, WebModules...>::onRun
   char tempBuffer[HTTP_REQUEST_PART_MAX_SIZE + 1];//+1 char for \0
   tempBuffer[0] = '\0';
   int indexModuleAccepted = WEBMODULES_CALL_NONE_ACCEPTED;
-  OutputStream outputClient(client);
   WebccError error = WebccError::NONE;
+  callWebModulesOnStart();
   do {
-    parser.parse();
+    char readBuffer[HTTP_REQUEST_PART_MAX_SIZE + 1];//+1 char for \0
+    readBuffer[0] = '\0';
+    HTTPRequestPart reqPart = HTTPRequestPart::NONE;
+    parser.parse(readBuffer, sizeof(readBuffer), &reqPart);
     yield();
     if (parser.error()) {
       error = WebccError::PARSER_ERROR;
       break;
     }
-    switch (parser.getReqPart()) {
-      case HTTPRequestPart::BEGIN:
-        callWebModulesOnStart();
-        break;
+    switch (reqPart) {
       case HTTPRequestPart::METHOD:
         diagLog->setMessageClass(Diag::CLASS_DEBUG);
         diagLog->print(FSH(textsUI.printMethod));
-        diagLog->println(parser.getReqPartValue());
-        strncpy(tempBuffer, parser.getReqPartValue(), sizeof(tempBuffer));
+        diagLog->println(readBuffer);
+        strncpy(tempBuffer, readBuffer, sizeof(tempBuffer));
         break;
       case HTTPRequestPart::PATH:
+        //In case of empty path control will not be passed here, thus path check is needed in subsequent parts
         diagLog->setMessageClass(Diag::CLASS_DEBUG);
         diagLog->print(FSH(textsUI.printPath));
-        diagLog->println(parser.getReqPartValue());
-        indexModuleAccepted = callWebModulesOnPath(parser.getReqPartValue());
+        diagLog->println(readBuffer);
+        indexModuleAccepted = callWebModulesOnPath(readBuffer);
         if (indexModuleAccepted == WEBMODULES_CALL_NONE_ACCEPTED) {
           error = WebccError::PATH_NOT_ACCEPTED;
           break;
@@ -236,7 +240,7 @@ void WebConfigControl<Diag, Parser, OutputStream, WebForm, WebModules...>::onRun
           diagLog->setMessageClass(Diag::CLASS_ERROR);
           diagLog->print(getErrorMessage(error));
           diagLog->print(' ');
-          diagLog->println(parser.getReqPartValue());
+          diagLog->println(readBuffer);
           //TODO: print list of the modules which accepted the same path
           break;
         }
@@ -246,16 +250,32 @@ void WebConfigControl<Diag, Parser, OutputStream, WebForm, WebModules...>::onRun
         }
         tempBuffer[0] = '\0';
       case HTTPRequestPart::URL_QUERY_NAME:
-        strncpy(tempBuffer, parser.getReqPartValue(), sizeof(tempBuffer));
+        if (indexModuleAccepted == WEBMODULES_CALL_NONE_ACCEPTED) {
+          error = WebccError::PATH_NOT_ACCEPTED;
+          break;
+        }
+        strncpy(tempBuffer, readBuffer, sizeof(tempBuffer));
         break;
       case HTTPRequestPart::URL_QUERY_VALUE:
-        callWebModulesOnURLQuery(indexModuleAccepted, tempBuffer, parser.getReqPartValue());
+        if (indexModuleAccepted == WEBMODULES_CALL_NONE_ACCEPTED) {
+          error = WebccError::PATH_NOT_ACCEPTED;
+          break;
+        }
+        callWebModulesOnURLQuery(indexModuleAccepted, tempBuffer, readBuffer);
         break;
       case HTTPRequestPart::POST_QUERY_NAME:
-        strncpy(tempBuffer, parser.getReqPartValue(), sizeof(tempBuffer));
+        if (indexModuleAccepted == WEBMODULES_CALL_NONE_ACCEPTED) {
+          error = WebccError::PATH_NOT_ACCEPTED;
+          break;
+        }
+        strncpy(tempBuffer, readBuffer, sizeof(tempBuffer));
         break;
       case HTTPRequestPart::POST_QUERY_VALUE:
-        callWebModulesOnPOSTQuery(indexModuleAccepted, tempBuffer, parser.getReqPartValue());
+        if (indexModuleAccepted == WEBMODULES_CALL_NONE_ACCEPTED) {
+          error = WebccError::PATH_NOT_ACCEPTED;
+          break;
+        }
+        callWebModulesOnPOSTQuery(indexModuleAccepted, tempBuffer, readBuffer);
         break;
       default:
         break;
@@ -377,10 +397,16 @@ boolean WebConfigControl<Diag, Parser, OutputStream, WebForm, WebModules...>::on
 
 template <class Diag, class Parser, class OutputStream, class WebForm, class... WebModules>
 boolean WebConfigControl<Diag, Parser, OutputStream, WebForm, WebModules...>::onRespond(Print &client) {
+  Diag * diagLog = Diag::instance();
   if (rootRedirect) {
     HTTPResponseHeader::redirect(client, (__FlashStringHelper *)rootRedirect);
+    diagLog->print(FSH(textsUI.redirectTo));
+    diagLog->println((__FlashStringHelper *)rootRedirect);
     return (true);
   }
+  diagLog->setMessageClass(Diag::CLASS_DEBUG);
+  diagLog->timestamp();
+  diagLog->println(FSH(textsUI.sendModuleIndexBegin));
   const char * paths[] = { (WebModules::instance()->getMainPath())... };
   const char * names[] = { (WebModules::instance()->moduleName())... };
   int moduleCount = sizeof...(WebModules);
@@ -395,6 +421,9 @@ boolean WebConfigControl<Diag, Parser, OutputStream, WebForm, WebModules...>::on
     index.link(names[i], paths[i], paths[i]);
   }
   index.bodyEnd();
+  diagLog->setMessageClass(Diag::CLASS_DEBUG);
+  diagLog->timestamp();
+  diagLog->print(FSH(textsUI.sendModuleIndexEnd));
   return (true);
 }
 
@@ -725,6 +754,7 @@ class WebccFormHTML {
               "</body>" CRLF
               "</html>" CRLF
              );
+    FORM_PART(defaultFormMethod, "POST");
   public:
     FORM_PART(sectionBegin1,
               "<div class=\"tab-content\">" CRLF
@@ -1025,87 +1055,17 @@ inline size_t BufferedPrint::getBufferSize(void) {
 }
 
 //////////////////////////////////////////////////////////////////////
-// ParserInputStream
-//////////////////////////////////////////////////////////////////////
-
-class ParserInputStream {
-  public:
-    inline void begin(Stream &initClient);
-    inline boolean validate(void);
-    inline void reset(void);
-  public:
-    int read(void);
-    int peek(void);
-    inline int available(void);
-    inline void flush(void);
-    inline size_t write(uint8_t character);
-  public:
-    enum ReturnStatus {
-      FOUND,                //One of chars to find has been encountered
-      NO_CLIENT,            //Client not initialised
-      NO_BUFFER,            //Buffer is NULL or buffer length is zero
-      NO_CHARS_TO_FIND,     //charsToFind is NULL or its length is zero
-      END_OF_STREAM,        //Stream reading returned NOT_AVAILABLE
-      END_OF_BUFFER,        //Buffer is full but chars to find were not encountered
-    };
-    ReturnStatus readUntil(const char * charsToFind, char * buffer, size_t bufferSize);
-    ReturnStatus skipUntil(const char * charsToFind);
-  public:
-    static const int NOT_AVAILABLE = -1;
-  private:
-    Stream * client = NULL;
-  private:
-    int previousChar = NOT_AVAILABLE;
-};
-
-void ParserInputStream::begin(Stream &initClient) {
-  client = &initClient;
-  previousChar = NOT_AVAILABLE;
-}
-
-boolean ParserInputStream::validate(void) {
-  if (!client) return (false);
-  return (true);
-}
-
-void ParserInputStream::reset(void) {
-  previousChar = NOT_AVAILABLE;
-  if (!client) return;
-  client = NULL;
-}
-
-int ParserInputStream::available(void) {
-  if (!client) return (NOT_AVAILABLE);
-  return (client->available());
-}
-
-void ParserInputStream::flush(void) {
-  if (!client) return;
-  client->flush();
-}
-
-//////////////////////////////////////////////////////////////////////
 // HTTPReqParserStateMachine
 //////////////////////////////////////////////////////////////////////
 
 class HTTPReqParserStateMachine {
   public:
-    boolean begin(Stream &client);
-    void parse(void);
-    boolean finished(void) const;
-    boolean error(void) const;
-    ParseError getError(void) const;
-  public:
-    const char * getReqPartValue(void) const;
-    size_t getBufferSize(void) const;
-    HTTPRequestPart getReqPart(void) const;
+    inline boolean begin(Stream &client);
+    void parse(char * buffer, size_t bufferSize, HTTPRequestPart * part);
+    inline boolean finished(void) const;
+    inline boolean error(void) const;
+    inline ParseError getError(void) const;
   private:
-    void setError(ParseError error);
-  private:
-    ParserInputStream inputStream;
-    const static size_t READ_BUFFER_SIZE = HTTP_REQUEST_PART_MAX_SIZE + 1; //+1 char for null character
-    char readBuffer[READ_BUFFER_SIZE];
-  public:
     enum class ParserState {
       UNKNOWN,
       BEGIN,
@@ -1116,108 +1076,184 @@ class HTTPReqParserStateMachine {
       HTTP_VERSION,
       FIELD_OR_HEADER_END,
       FIELD_NAME,
-      FIELD_VALUE,
-      HEADER_END,
+      FIELD_VALUE_PART1,
+      FIELD_VALUE_PART2,
       POST_QUERY_OR_END,
       POST_QUERY_NAME,
       POST_QUERY_VALUE,
       FINISHED,
+      ERROR_INTERNAL,
+      ERROR_REQUEST_PART_TOO_LONG,
+      ERROR_REQUEST_STRUCTURE,
+      ERROR_REQUEST_SEMANTICS,
+    };
+    enum class ControlCharacter {
+      OTHER,       //Character other than listed below
+      SPACE,       //Space (0x20)
+      QUESTION,    //Question mark (0x3F)
+      AMPERSAND,   //Ampersand (0x26)
+      EQUAL,       //Equal sign (0x3D)
+      COLON,       //Colon (0x3A)
+      CRLF,        //\r\n (0x10 & 0x13)
+      SEMICOLON,   //Semicolon (0x3B)
+      UNAVAILABLE, //see STREAM_UNAVAILABLE (-1)
+    };
+    enum class ControlCharacterSet {
+      ALL,        //All control characters used
+      FIELD_VALUE //Only UNAVAILABLE, SEMICOLON, EQUAL and CRLF characters are used
     };
     enum class StreamOperation {
-      DO_NOTHING,  //Do not read anything from stream
-      READ,        //Read from stream to buffer until expected characters (see transition table) are found
-      SKIP,        //Read from stream but do not put characters to buffer until expected characters are found
-      PEEK,        //Do not read anything from stream and peek (rather than read) next character
+      DO_NOTHING,         //Do not read anything from stream
+      READ_UNTIL,         //Read from stream to buffer until one of control characters is found or buffer is full
+      SKIP,               //Read from stream until control character are found
+      READ_SINGLE,        //Read single character
+      READ_IF_CC          //Do not read anything from stream and peek (rather than read) next character
     };
-    struct {
-      ParserState currentState = ParserState::BEGIN;
-      char nextCharacter = CHAR_UNAVAIL;
-      HTTPRequestPart requestPart = HTTPRequestPart::NONE;
-      ParseError error = ParseError::NONE;
-    } parserStatus;
-    void transition(ParserState newState);
   private:
-    enum class InternalError {
-      UNDEFINED,
-      ERROR_BY_STATE,
-      PROCESSING_TABLE,
-      TRANSITION_TABLE,
-      CLIENT_NOT_INITIALISED,
-      STATE_NOT_FOUND,
-      STREAM_OPERATION,
-      STREAM_READ_PARAMETERS
-    };
-    struct {
-      InternalError error = InternalError::UNDEFINED;
-      ParserState state = ParserState::BEGIN;
-      char nextChar = CHAR_UNAVAIL;
-      size_t codeLine = 0;
-    } internalErrorStatus;
-    void setInternalError(InternalError error = InternalError::UNDEFINED, size_t codeLine = 0);
-  public:
-    static const char CHAR_OTHER = '\0';
-    static const char CHAR_UNAVAIL = (char)ParserInputStream::NOT_AVAILABLE;
+    inline void transition(ParserState newState);
+    inline void setError(ParseError error);
+    inline void setInternalError(size_t codeLine = 0);
   private:
-    class ParserTableBase {
+    ParserState currentState = ParserState::BEGIN;
+    Stream * inputStream = NULL;
+    size_t internalErrorCodeLine = 0;
+  private:
+    class InputStreamHelper {
       public:
-        ParserTableBase ();
-      protected:
-        size_t tableSize;
-      protected:
-        size_t tableIndex;
-        size_t getTableIndex(void);
-        boolean setTableIndex(size_t newIndex);
-        void firstEntry(void);
-        boolean nextEntry(void);
+        static ControlCharacter readUntilControlCharacter(Stream &client, ControlCharacterSet controlChars, char *buffer, size_t bufferSize);
+        static ControlCharacter skipUntilControlCharacter(Stream &client, ControlCharacterSet controlChars);
+        static ControlCharacter read(Stream &client, ControlCharacterSet controlChars);
+        static ControlCharacter readIfControlCharacter(Stream &client, ControlCharacterSet controlChars);
+      private:
+        static const int CC_UNAVAILABLE = -1; //returned by Stream::read and Stream::peek if no more data available
+        static const int CC_CR          = static_cast<int>('\r');
+        static const int CC_LF          = static_cast<int>('\n');
+        static const int CC_SPACE       = static_cast<int>(' ');
+        static const int CC_QUESTION    = static_cast<int>('?');
+        static const int CC_AMPERSAND   = static_cast<int>('&');
+        static const int CC_EQUAL       = static_cast<int>('=');
+        static const int CC_COLON       = static_cast<int>(':');
+        static const int CC_SEMICOLON   = static_cast<int>(';');
+      private:
+        static inline boolean isControlCharacter(int i1, int i2 = CC_UNAVAILABLE);
+        static inline boolean isFieldValueControlCharacter(int i1, int i2 = CC_UNAVAILABLE);
+        static inline boolean isControlCharacterInSet(ControlCharacterSet cc, int i1, int i2 = CC_UNAVAILABLE);
+        static ControlCharacter intToControlCharacter(ControlCharacterSet cc, int first, int second = CC_UNAVAILABLE);
     };
-  public:
-    struct ProcessingTableEntry {
-      ParserState state;
-      StreamOperation operation;
-      HTTPRequestPart part;
-    };
-  private:
-    class ProcessingTable : ParserTableBase {
-        const ProcessingTableEntry * table;
-        static const size_t tableEntrySize = (sizeof(table[0]));
+    class ParserTables {
       public:
-        ProcessingTable();
-        boolean begin (void);
-        boolean find (ParserState state);
-        StreamOperation getStreamOperation(void);
-        HTTPRequestPart getRequestPart(void);
+        static boolean getStateProperties(ParserState state,
+                                          StreamOperation *streamOp,
+                                          HTTPRequestPart *reqPart,
+                                          ParserState *defaultTransition,
+                                          ControlCharacterSet *controlChars);
+        static ParserState getNextState(ParserState currentState,
+                                        ControlCharacter nextCharacter,
+                                        ParserState defaultTransition);
       private:
-        ParserState getState(void);
-      private:
-        boolean validate(void);
-        boolean isValidated = false;
-    } processingTable;
-  public:
-    struct TransitionTableEntry {
-      ParserState state;
-      char nextChar;
-      ParserState newState;
-      ParseError error;
+        struct StateTableEntry {
+          ParserState state;
+          StreamOperation streamOp;
+          HTTPRequestPart reqPart;
+          ParserState defaultTransition;
+          ControlCharacterSet controlChars;
+        };
+        struct TransitionTableEntry {
+          ParserState state;
+          ControlCharacter nextCharacter;
+          ParserState newState;
+        };
     };
-  private:
-    class TransitionTable : ParserTableBase {
-      private:
-        const TransitionTableEntry * table;
-        static const size_t tableEntrySize = (sizeof(table[0]));
-      public:
-        TransitionTable();
-        boolean begin (void);
-        boolean find (ParserState state, char nextChar);
-        boolean enumerateNextChars(ParserState state, char * buffer, size_t bufferSize);
-        ParserState getNewState(void);
-        ParseError getError(void);
-      private:
-        ParserState getState(void);
-        char getNextChar(void);
-        boolean validate(void);
-        boolean isValidated = false;
-    } transitionTable;
 };
+
+boolean HTTPReqParserStateMachine::begin(Stream & client) {
+  inputStream = &client;
+  currentState = ParserState::BEGIN;
+  internalErrorCodeLine = 0;
+  return (true);
+}
+
+boolean HTTPReqParserStateMachine::finished(void) const {
+  return (error() || (currentState == ParserState::FINISHED));
+}
+
+boolean HTTPReqParserStateMachine::error(void) const {
+  return ((currentState == ParserState::ERROR_INTERNAL) ||
+          (currentState == ParserState::ERROR_REQUEST_PART_TOO_LONG) ||
+          (currentState == ParserState::ERROR_REQUEST_STRUCTURE) ||
+          (currentState == ParserState::ERROR_REQUEST_SEMANTICS));
+}
+
+ParseError HTTPReqParserStateMachine::getError(void) const {
+  switch (currentState) {
+    case ParserState::ERROR_INTERNAL:
+      return (ParseError::INTERNAL_ERROR);
+    case ParserState::ERROR_REQUEST_PART_TOO_LONG:
+      return (ParseError::REQUEST_PART_TOO_LONG);
+    case ParserState::ERROR_REQUEST_STRUCTURE:
+      return (ParseError::REQUEST_STRUCTURE);
+    case ParserState::ERROR_REQUEST_SEMANTICS:
+      return (ParseError::REQUEST_SEMANTICS);
+    default:
+      return (ParseError::NONE);
+  }
+}
+
+void HTTPReqParserStateMachine::transition(HTTPReqParserStateMachine::ParserState newState) {
+  currentState = newState;
+}
+
+void HTTPReqParserStateMachine::setError(ParseError error) {
+  switch (error) {
+    case ParseError::INTERNAL_ERROR:
+      transition(ParserState::ERROR_INTERNAL);
+      return;
+    case ParseError::REQUEST_PART_TOO_LONG:
+      transition(ParserState::ERROR_REQUEST_PART_TOO_LONG);
+      return;
+    case ParseError::REQUEST_STRUCTURE:
+      transition(ParserState::ERROR_REQUEST_STRUCTURE);
+      return;
+    case ParseError::REQUEST_SEMANTICS:
+      transition(ParserState::ERROR_REQUEST_SEMANTICS);
+      return;
+    default:
+      return;
+  }
+}
+
+void HTTPReqParserStateMachine::setInternalError(size_t codeLine) {
+  internalErrorCodeLine = codeLine;
+  setError(ParseError::INTERNAL_ERROR);
+}
+
+boolean HTTPReqParserStateMachine::InputStreamHelper::isControlCharacter(int i1, int i2) {
+  if ((i1 == CC_CR) && (i2 == CC_LF)) return (true);
+  return ((i1 == CC_UNAVAILABLE) ||
+          (i1 == CC_SPACE) ||
+          (i1 == CC_QUESTION) ||
+          (i1 == CC_AMPERSAND) ||
+          (i1 == CC_EQUAL) ||
+          (i1 == CC_COLON) ||
+          (i1 == CC_SEMICOLON));
+}
+
+boolean HTTPReqParserStateMachine::InputStreamHelper::isFieldValueControlCharacter(int i1, int i2) {
+  if ((i1 == CC_CR) && (i2 == CC_LF)) return (true);
+  return ((i1 == CC_UNAVAILABLE) ||
+          (i1 == CC_EQUAL) ||
+          (i1 == CC_SEMICOLON));
+}
+
+boolean HTTPReqParserStateMachine::InputStreamHelper::isControlCharacterInSet(ControlCharacterSet cc, int i1, int i2) {
+  switch (cc) {
+    case ControlCharacterSet::ALL:
+      return (isControlCharacter(i1, i2));
+    case ControlCharacterSet::FIELD_VALUE:
+      return (isFieldValueControlCharacter(i1, i2));
+  }
+  return (false);
+}
 
 #undef FSH
 

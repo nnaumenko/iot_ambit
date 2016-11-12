@@ -553,1122 +553,6 @@ class TestURL {
     }
 };
 
-class TestParserInputStream {
-  public:
-    static void read_StringWithoutCRLF_expectUnmodifiedString(void) {
-      TEST_FUNC_START();
-      //arrange
-      FakeStreamIn inputStreamStub;
-      char testInBuffer[] = "123456789";
-      inputStreamStub.begin(testInBuffer);
-      webcc::ParserInputStream testStream;
-      testStream.begin(inputStreamStub);
-      char readResult[sizeof(testInBuffer) + 1] = {0};
-      //act
-      int i = 0;
-      while (testStream.available()) {
-        readResult[i++] = testStream.read();
-      }
-      //assert
-      TEST_ASSERT(!strcmp(testInBuffer, readResult));
-      TEST_FUNC_END();
-    }
-    static void read_NotAvailable_expectNotAvailable(void) {
-      TEST_FUNC_START();
-      //arrange
-      FakeStreamIn inputStreamStub;
-      char testInBuffer[] = "";
-      inputStreamStub.begin(testInBuffer);
-      webcc::ParserInputStream testStream;
-      testStream.begin(inputStreamStub);
-      int availableResult[2] = {0};
-      int readResult[2] = {0};
-      //act
-      readResult[0] = testStream.read();
-      availableResult[0] = testStream.available();
-      readResult[1] = testStream.read();
-      availableResult[1] = testStream.available();
-      //assert
-      TEST_ASSERT(readResult[0] == -1);
-      TEST_ASSERT(availableResult[0] == 0);
-      TEST_ASSERT(readResult[1] == -1);
-      TEST_ASSERT(availableResult[1] == 0);
-      TEST_FUNC_END();
-    }
-    static void read_RN_expectN(void) {
-      TEST_FUNC_START();
-      //arrange
-      FakeStreamIn inputStreamStub;
-      char testInBuffer[] = "\r\n";
-      inputStreamStub.begin(testInBuffer);
-      webcc::ParserInputStream testStream;
-      testStream.begin(inputStreamStub);
-      int readResult[2] = {0};
-      //act
-      readResult[0] = testStream.read();
-      readResult[1] = testStream.read();
-      //assert
-      TEST_ASSERT(readResult[0] == '\n');
-      TEST_ASSERT(readResult[1] == -1);
-      TEST_FUNC_END();
-    }
-    static void read_NR_expectN(void) {
-      TEST_FUNC_START();
-      //arrange
-      FakeStreamIn inputStreamStub;
-      char testInBuffer[] = "\n\r";
-      inputStreamStub.begin(testInBuffer);
-      webcc::ParserInputStream testStream;
-      testStream.begin(inputStreamStub);
-      int readResult[2] = {0};
-      //act
-      readResult[0] = testStream.read();
-      readResult[1] = testStream.read();
-      //assert
-      TEST_ASSERT(readResult[0] == '\n');
-      TEST_ASSERT(readResult[1] == -1);
-      TEST_FUNC_END();
-    }
-    static void read_NN_expectNN(void) {
-      TEST_FUNC_START();
-      //arrange
-      FakeStreamIn inputStreamStub;
-      char testInBuffer[] = "\n\n";
-      inputStreamStub.begin(testInBuffer);
-      webcc::ParserInputStream testStream;
-      testStream.begin(inputStreamStub);
-      int readResult[3] = {0};
-      //act
-      readResult[0] = testStream.read();
-      readResult[1] = testStream.read();
-      readResult[2] = testStream.read();
-      //assert
-      TEST_ASSERT(readResult[0] == '\n');
-      TEST_ASSERT(readResult[1] == '\n');
-      TEST_ASSERT(readResult[2] == -1);
-      TEST_FUNC_END();
-    }
-    static void read_RR_expectNN(void) {
-      TEST_FUNC_START();
-      //arrange
-      FakeStreamIn inputStreamStub;
-      char testInBuffer[] = "\r\r";
-      inputStreamStub.begin(testInBuffer);
-      webcc::ParserInputStream testStream;
-      testStream.begin(inputStreamStub);
-      int readResult[3] = {0};
-      //act
-      readResult[0] = testStream.read();
-      readResult[1] = testStream.read();
-      readResult[2] = testStream.read();
-      //assert
-      TEST_ASSERT(readResult[0] == '\n');
-      TEST_ASSERT(readResult[1] == '\n');
-      TEST_ASSERT(readResult[2] == -1);
-      TEST_FUNC_END();
-    }
-    static void read_RNR_expectNN(void) {
-      TEST_FUNC_START();
-      //arrange
-      FakeStreamIn inputStreamStub;
-      char testInBuffer[] = "\r\n\r";
-      inputStreamStub.begin(testInBuffer);
-      webcc::ParserInputStream testStream;
-      testStream.begin(inputStreamStub);
-      int readResult[3] = {0};
-      //act
-      readResult[0] = testStream.read();
-      readResult[1] = testStream.read();
-      readResult[2] = testStream.read();
-      //assert
-      TEST_ASSERT(readResult[0] == '\n');
-      TEST_ASSERT(readResult[1] == '\n');
-      TEST_ASSERT(readResult[2] == -1);
-      TEST_FUNC_END();
-    }
-    static void read_NRN_expectNN(void) {
-      TEST_FUNC_START();
-      //arrange
-      FakeStreamIn inputStreamStub;
-      char testInBuffer[] = "\n\r\n";
-      inputStreamStub.begin(testInBuffer);
-      webcc::ParserInputStream testStream;
-      testStream.begin(inputStreamStub);
-      int readResult[3] = {0};
-      //act
-      readResult[0] = testStream.read();
-      readResult[1] = testStream.read();
-      readResult[2] = testStream.read();
-      //assert
-      TEST_ASSERT(readResult[0] == '\n');
-      TEST_ASSERT(readResult[1] == '\n');
-      TEST_ASSERT(readResult[2] == -1);
-      TEST_FUNC_END();
-    }
-    static void read_NRRN_expectNN(void) {
-      TEST_FUNC_START();
-      //arrange
-      FakeStreamIn inputStreamStub;
-      char testInBuffer[] = "\n\r\r\n";
-      inputStreamStub.begin(testInBuffer);
-      webcc::ParserInputStream testStream;
-      testStream.begin(inputStreamStub);
-      int readResult[3] = {0};
-      //act
-      readResult[0] = testStream.read();
-      readResult[1] = testStream.read();
-      readResult[2] = testStream.read();
-      //assert
-      TEST_ASSERT(readResult[0] == '\n');
-      TEST_ASSERT(readResult[1] == '\n');
-      TEST_ASSERT(readResult[2] == -1);
-      TEST_FUNC_END();
-    }
-    static void read_NRNR_expectNN(void) {
-      TEST_FUNC_START();
-      //arrange
-      FakeStreamIn inputStreamStub;
-      char testInBuffer[] = "\n\r\n\r";
-      inputStreamStub.begin(testInBuffer);
-      webcc::ParserInputStream testStream;
-      testStream.begin(inputStreamStub);
-      int readResult[3] = {0};
-      //act
-      readResult[0] = testStream.read();
-      readResult[1] = testStream.read();
-      readResult[2] = testStream.read();
-      //assert
-      TEST_ASSERT(readResult[0] == '\n');
-      TEST_ASSERT(readResult[1] == '\n');
-      TEST_ASSERT(readResult[2] == -1);
-      TEST_FUNC_END();
-    }
-    static void read_RNZ_expectNZ(void) {
-      TEST_FUNC_START();
-      //arrange
-      FakeStreamIn inputStreamStub;
-      char testInBuffer[] = "\r\nz";
-      inputStreamStub.begin(testInBuffer);
-      webcc::ParserInputStream testStream;
-      testStream.begin(inputStreamStub);
-      int readResult[2] = {0};
-      //act
-      readResult[0] = testStream.read();
-      readResult[1] = testStream.read();
-      //assert
-      TEST_ASSERT(readResult[0] == '\n');
-      TEST_ASSERT(readResult[1] == 'z');
-      TEST_FUNC_END();
-    }
-    static void read_NRZ_expectNZ(void) {
-      TEST_FUNC_START();
-      //arrange
-      FakeStreamIn inputStreamStub;
-      char testInBuffer[] = "\n\rz";
-      inputStreamStub.begin(testInBuffer);
-      webcc::ParserInputStream testStream;
-      testStream.begin(inputStreamStub);
-      int readResult[2] = {0};
-      //act
-      readResult[0] = testStream.read();
-      readResult[1] = testStream.read();
-      //assert
-      TEST_ASSERT(readResult[0] == '\n');
-      TEST_ASSERT(readResult[1] == 'z');
-      TEST_FUNC_END();
-    }
-    static void read_NNZ_expectNNZ(void) {
-      TEST_FUNC_START();
-      //arrange
-      FakeStreamIn inputStreamStub;
-      char testInBuffer[] = "\n\nz";
-      inputStreamStub.begin(testInBuffer);
-      webcc::ParserInputStream testStream;
-      testStream.begin(inputStreamStub);
-      int readResult[3] = {0};
-      //act
-      readResult[0] = testStream.read();
-      readResult[1] = testStream.read();
-      readResult[2] = testStream.read();
-      //assert
-      TEST_ASSERT(readResult[0] == '\n');
-      TEST_ASSERT(readResult[1] == '\n');
-      TEST_ASSERT(readResult[2] == 'z');
-      TEST_FUNC_END();
-    }
-    static void read_RRZ_expectNNZ(void) {
-      TEST_FUNC_START();
-      //arrange
-      FakeStreamIn inputStreamStub;
-      char testInBuffer[] = "\r\rz";
-      inputStreamStub.begin(testInBuffer);
-      webcc::ParserInputStream testStream;
-      testStream.begin(inputStreamStub);
-      int readResult[3] = {0};
-      //act
-      readResult[0] = testStream.read();
-      readResult[1] = testStream.read();
-      readResult[2] = testStream.read();
-      //assert
-      TEST_ASSERT(readResult[0] == '\n');
-      TEST_ASSERT(readResult[1] == '\n');
-      TEST_ASSERT(readResult[2] == 'z');
-      TEST_FUNC_END();
-    }
-    static void read_RNRZ_expectNNZ(void) {
-      TEST_FUNC_START();
-      //arrange
-      FakeStreamIn inputStreamStub;
-      char testInBuffer[] = "\r\n\rz";
-      inputStreamStub.begin(testInBuffer);
-      webcc::ParserInputStream testStream;
-      testStream.begin(inputStreamStub);
-      int readResult[3] = {0};
-      //act
-      readResult[0] = testStream.read();
-      readResult[1] = testStream.read();
-      readResult[2] = testStream.read();
-      //assert
-      TEST_ASSERT(readResult[0] == '\n');
-      TEST_ASSERT(readResult[1] == '\n');
-      TEST_ASSERT(readResult[2] == 'z');
-      TEST_FUNC_END();
-    }
-    static void read_NRNZ_expectNNZ(void) {
-      TEST_FUNC_START();
-      //arrange
-      FakeStreamIn inputStreamStub;
-      char testInBuffer[] = "\n\r\nz";
-      inputStreamStub.begin(testInBuffer);
-      webcc::ParserInputStream testStream;
-      testStream.begin(inputStreamStub);
-      int readResult[3] = {0};
-      //act
-      readResult[0] = testStream.read();
-      readResult[1] = testStream.read();
-      readResult[2] = testStream.read();
-      //assert
-      TEST_ASSERT(readResult[0] == '\n');
-      TEST_ASSERT(readResult[1] == '\n');
-      TEST_ASSERT(readResult[2] == 'z');
-      TEST_FUNC_END();
-    }
-    static void read_NRRNZ_expectNNZ(void) {
-      TEST_FUNC_START();
-      //arrange
-      FakeStreamIn inputStreamStub;
-      char testInBuffer[] = "\n\r\r\nz";
-      inputStreamStub.begin(testInBuffer);
-      webcc::ParserInputStream testStream;
-      testStream.begin(inputStreamStub);
-      int readResult[3] = {0};
-      //act
-      readResult[0] = testStream.read();
-      readResult[1] = testStream.read();
-      readResult[2] = testStream.read();
-      //assert
-      TEST_ASSERT(readResult[0] == '\n');
-      TEST_ASSERT(readResult[1] == '\n');
-      TEST_ASSERT(readResult[2] == 'z');
-      TEST_FUNC_END();
-    }
-    static void read_NRNRZ_expectNNZ(void) {
-      TEST_FUNC_START();
-      //arrange
-      FakeStreamIn inputStreamStub;
-      char testInBuffer[] = "\n\r\n\rz";
-      inputStreamStub.begin(testInBuffer);
-      webcc::ParserInputStream testStream;
-      testStream.begin(inputStreamStub);
-      int readResult[3] = {0};
-      //act
-      readResult[0] = testStream.read();
-      readResult[1] = testStream.read();
-      readResult[2] = testStream.read();
-      //assert
-      TEST_ASSERT(readResult[0] == '\n');
-      TEST_ASSERT(readResult[1] == '\n');
-      TEST_ASSERT(readResult[2] == 'z');
-      TEST_FUNC_END();
-    }
-  public:
-    static void test_read(void) {
-      read_StringWithoutCRLF_expectUnmodifiedString();
-      read_NotAvailable_expectNotAvailable();
-      read_RN_expectN();
-      read_NR_expectN();
-      read_NN_expectNN();
-      read_RR_expectNN();
-      read_RNR_expectNN();
-      read_NRN_expectNN();
-      read_NRRN_expectNN();
-      read_NRNR_expectNN();
-      read_RNZ_expectNZ();
-      read_NRZ_expectNZ();
-      read_NNZ_expectNNZ();
-      read_RRZ_expectNNZ();
-      read_RNRZ_expectNNZ();
-      read_NRNZ_expectNNZ();
-      read_NRRNZ_expectNNZ();
-      read_NRNRZ_expectNNZ();
-    }
-  public:
-    static void peek_StringWithoutCRLF_expectUnmodifiedString(void) {
-      TEST_FUNC_START();
-      //arrange
-      FakeStreamIn inputStreamStub;
-      char testInBuffer[] = "123456789";
-      inputStreamStub.begin(testInBuffer);
-      webcc::ParserInputStream testStream;
-      testStream.begin(inputStreamStub);
-      char peekResult[sizeof(testInBuffer) + 1] = {0};
-      //act
-      int i = 0;
-      while (testStream.available()) {
-        peekResult[i++] = testStream.peek();
-        testStream.read();
-      }
-      //assert
-      TEST_ASSERT(!strcmp(testInBuffer, peekResult));
-      TEST_FUNC_END();
-    }
-    static void peek_NotAvailable_expectNotAvailable(void) {
-      TEST_FUNC_START();
-      //arrange
-      FakeStreamIn inputStreamStub;
-      char testInBuffer[] = "";
-      inputStreamStub.begin(testInBuffer);
-      webcc::ParserInputStream testStream;
-      testStream.begin(inputStreamStub);
-      int peekResult[2] = {0};
-      //act
-      peekResult[0] = testStream.peek();
-      testStream.read();
-      peekResult[1] = testStream.peek();
-      //assert
-      TEST_ASSERT(peekResult[0] == -1);
-      TEST_ASSERT(peekResult[1] == -1);
-      TEST_FUNC_END();
-    }
-    static void peek_RN_expectN(void) {
-      TEST_FUNC_START();
-      //arrange
-      FakeStreamIn inputStreamStub;
-      char testInBuffer[] = "\r\n";
-      inputStreamStub.begin(testInBuffer);
-      webcc::ParserInputStream testStream;
-      testStream.begin(inputStreamStub);
-      int peekResult[2] = {0};
-      //act
-      peekResult[0] = testStream.peek();
-      testStream.read();
-      peekResult[1] = testStream.peek();
-      //assert
-      TEST_ASSERT(peekResult[0] == '\n');
-      TEST_ASSERT(peekResult[1] == -1);
-      TEST_FUNC_END();
-    }
-    static void peek_NR_expectN(void) {
-      TEST_FUNC_START();
-      //arrange
-      FakeStreamIn inputStreamStub;
-      char testInBuffer[] = "\n\r";
-      inputStreamStub.begin(testInBuffer);
-      webcc::ParserInputStream testStream;
-      testStream.begin(inputStreamStub);
-      int peekResult[2] = {0};
-      //act
-      peekResult[0] = testStream.peek();
-      testStream.read();
-      peekResult[1] = testStream.peek();
-      //assert
-      TEST_ASSERT(peekResult[0] == '\n');
-      TEST_ASSERT(peekResult[1] == -1);
-      TEST_FUNC_END();
-    }
-    static void peek_NN_expectNN(void) {
-      TEST_FUNC_START();
-      //arrange
-      FakeStreamIn inputStreamStub;
-      char testInBuffer[] = "\n\n";
-      inputStreamStub.begin(testInBuffer);
-      webcc::ParserInputStream testStream;
-      testStream.begin(inputStreamStub);
-      int peekResult[3] = {0};
-      //act
-      peekResult[0] = testStream.peek();
-      testStream.read();
-      peekResult[1] = testStream.peek();
-      testStream.read();
-      peekResult[2] = testStream.peek();
-      //assert
-      TEST_ASSERT(peekResult[0] == '\n');
-      TEST_ASSERT(peekResult[1] == '\n');
-      TEST_ASSERT(peekResult[2] == -1);
-      TEST_FUNC_END();
-    }
-    static void peek_RR_expectNN(void) {
-      TEST_FUNC_START();
-      //arrange
-      FakeStreamIn inputStreamStub;
-      char testInBuffer[] = "\r\r";
-      inputStreamStub.begin(testInBuffer);
-      webcc::ParserInputStream testStream;
-      testStream.begin(inputStreamStub);
-      int peekResult[3] = {0};
-      //act
-      peekResult[0] = testStream.peek();
-      testStream.read();
-      peekResult[1] = testStream.peek();
-      testStream.read();
-      peekResult[2] = testStream.peek();
-      //assert
-      TEST_ASSERT(peekResult[0] == '\n');
-      TEST_ASSERT(peekResult[1] == '\n');
-      TEST_ASSERT(peekResult[2] == -1);
-      TEST_FUNC_END();
-    }
-    static void peek_RNR_expectNN(void) {
-      TEST_FUNC_START();
-      //arrange
-      FakeStreamIn inputStreamStub;
-      char testInBuffer[] = "\r\n\r";
-      inputStreamStub.begin(testInBuffer);
-      webcc::ParserInputStream testStream;
-      testStream.begin(inputStreamStub);
-      int peekResult[3] = {0};
-      //act
-      peekResult[0] = testStream.peek();
-      testStream.read();
-      peekResult[1] = testStream.peek();
-      testStream.read();
-      peekResult[2] = testStream.peek();
-      //assert
-      TEST_ASSERT(peekResult[0] == '\n');
-      TEST_ASSERT(peekResult[1] == '\n');
-      TEST_ASSERT(peekResult[2] == -1);
-      TEST_FUNC_END();
-    }
-    static void peek_NRN_expectNN(void) {
-      TEST_FUNC_START();
-      //arrange
-      FakeStreamIn inputStreamStub;
-      char testInBuffer[] = "\n\r\n";
-      inputStreamStub.begin(testInBuffer);
-      webcc::ParserInputStream testStream;
-      testStream.begin(inputStreamStub);
-      int peekResult[3] = {0};
-      //act
-      peekResult[0] = testStream.peek();
-      testStream.read();
-      peekResult[1] = testStream.peek();
-      testStream.read();
-      peekResult[2] = testStream.peek();
-      //assert
-      TEST_ASSERT(peekResult[0] == '\n');
-      TEST_ASSERT(peekResult[1] == '\n');
-      TEST_ASSERT(peekResult[2] == -1);
-      TEST_FUNC_END();
-    }
-    static void peek_NRRN_expectNN(void) {
-      TEST_FUNC_START();
-      //arrange
-      FakeStreamIn inputStreamStub;
-      char testInBuffer[] = "\n\r\r\n";
-      inputStreamStub.begin(testInBuffer);
-      webcc::ParserInputStream testStream;
-      testStream.begin(inputStreamStub);
-      int peekResult[3] = {0};
-      //act
-      peekResult[0] = testStream.peek();
-      testStream.read();
-      peekResult[1] = testStream.peek();
-      testStream.read();
-      peekResult[2] = testStream.peek();
-      //assert
-      TEST_ASSERT(peekResult[0] == '\n');
-      TEST_ASSERT(peekResult[1] == '\n');
-      TEST_ASSERT(peekResult[2] == -1);
-      TEST_FUNC_END();
-    }
-    static void peek_NRNR_expectNN(void) {
-      TEST_FUNC_START();
-      //arrange
-      FakeStreamIn inputStreamStub;
-      char testInBuffer[] = "\n\r\n\r";
-      inputStreamStub.begin(testInBuffer);
-      webcc::ParserInputStream testStream;
-      testStream.begin(inputStreamStub);
-      int peekResult[3] = {0};
-      //act
-      peekResult[0] = testStream.peek();
-      testStream.read();
-      peekResult[1] = testStream.peek();
-      testStream.read();
-      peekResult[2] = testStream.peek();
-      //assert
-      TEST_ASSERT(peekResult[0] == '\n');
-      TEST_ASSERT(peekResult[1] == '\n');
-      TEST_ASSERT(peekResult[2] == -1);
-      TEST_FUNC_END();
-    }
-    static void peek_RNZ_expectNZ(void) {
-      TEST_FUNC_START();
-      //arrange
-      FakeStreamIn inputStreamStub;
-      char testInBuffer[] = "\r\nz";
-      inputStreamStub.begin(testInBuffer);
-      webcc::ParserInputStream testStream;
-      testStream.begin(inputStreamStub);
-      int peekResult[2] = {0};
-      //act
-      peekResult[0] = testStream.peek();
-      testStream.read();
-      peekResult[1] = testStream.peek();
-      //assert
-      TEST_ASSERT(peekResult[0] == '\n');
-      TEST_ASSERT(peekResult[1] == 'z');
-      TEST_FUNC_END();
-    }
-    static void peek_NRZ_expectNZ(void) {
-      TEST_FUNC_START();
-      //arrange
-      FakeStreamIn inputStreamStub;
-      char testInBuffer[] = "\n\rz";
-      inputStreamStub.begin(testInBuffer);
-      webcc::ParserInputStream testStream;
-      testStream.begin(inputStreamStub);
-      int peekResult[2] = {0};
-      //act
-      peekResult[0] = testStream.peek();
-      testStream.read();
-      peekResult[1] = testStream.peek();
-      //assert
-      TEST_ASSERT(peekResult[0] == '\n');
-      TEST_ASSERT(peekResult[1] == 'z');
-      TEST_FUNC_END();
-    }
-    static void peek_NNZ_expectNNZ(void) {
-      TEST_FUNC_START();
-      //arrange
-      FakeStreamIn inputStreamStub;
-      char testInBuffer[] = "\n\nz";
-      inputStreamStub.begin(testInBuffer);
-      webcc::ParserInputStream testStream;
-      testStream.begin(inputStreamStub);
-      int peekResult[3] = {0};
-      //act
-      peekResult[0] = testStream.peek();
-      testStream.read();
-      peekResult[1] = testStream.peek();
-      testStream.read();
-      peekResult[2] = testStream.peek();
-      //assert
-      TEST_ASSERT(peekResult[0] == '\n');
-      TEST_ASSERT(peekResult[1] == '\n');
-      TEST_ASSERT(peekResult[2] == 'z');
-      TEST_FUNC_END();
-    }
-    static void peek_RRZ_expectNNZ(void) {
-      TEST_FUNC_START();
-      //arrange
-      FakeStreamIn inputStreamStub;
-      char testInBuffer[] = "\r\rz";
-      inputStreamStub.begin(testInBuffer);
-      webcc::ParserInputStream testStream;
-      testStream.begin(inputStreamStub);
-      int peekResult[3] = {0};
-      //act
-      peekResult[0] = testStream.peek();
-      testStream.read();
-      peekResult[1] = testStream.peek();
-      testStream.read();
-      peekResult[2] = testStream.peek();
-      //assert
-      TEST_ASSERT(peekResult[0] == '\n');
-      TEST_ASSERT(peekResult[1] == '\n');
-      TEST_ASSERT(peekResult[2] == 'z');
-      TEST_FUNC_END();
-    }
-    static void peek_RNRZ_expectNNZ(void) {
-      TEST_FUNC_START();
-      //arrange
-      FakeStreamIn inputStreamStub;
-      char testInBuffer[] = "\r\n\rz";
-      inputStreamStub.begin(testInBuffer);
-      webcc::ParserInputStream testStream;
-      testStream.begin(inputStreamStub);
-      int peekResult[3] = {0};
-      //act
-      peekResult[0] = testStream.peek();
-      testStream.read();
-      peekResult[1] = testStream.peek();
-      testStream.read();
-      peekResult[2] = testStream.peek();
-      //assert
-      TEST_ASSERT(peekResult[0] == '\n');
-      TEST_ASSERT(peekResult[1] == '\n');
-      TEST_ASSERT(peekResult[2] == 'z');
-      TEST_FUNC_END();
-    }
-    static void peek_NRNZ_expectNNZ(void) {
-      TEST_FUNC_START();
-      //arrange
-      FakeStreamIn inputStreamStub;
-      char testInBuffer[] = "\n\r\nz";
-      inputStreamStub.begin(testInBuffer);
-      webcc::ParserInputStream testStream;
-      testStream.begin(inputStreamStub);
-      int peekResult[3] = {0};
-      //act
-      peekResult[0] = testStream.peek();
-      testStream.read();
-      peekResult[1] = testStream.peek();
-      testStream.read();
-      peekResult[2] = testStream.peek();
-      //assert
-      TEST_ASSERT(peekResult[0] == '\n');
-      TEST_ASSERT(peekResult[1] == '\n');
-      TEST_ASSERT(peekResult[2] == 'z');
-      TEST_FUNC_END();
-    }
-    static void peek_NRRNZ_expectNNZ(void) {
-      TEST_FUNC_START();
-      //arrange
-      FakeStreamIn inputStreamStub;
-      char testInBuffer[] = "\n\r\r\nz";
-      inputStreamStub.begin(testInBuffer);
-      webcc::ParserInputStream testStream;
-      testStream.begin(inputStreamStub);
-      int peekResult[3] = {0};
-      //act
-      peekResult[0] = testStream.peek();
-      testStream.read();
-      peekResult[1] = testStream.peek();
-      testStream.read();
-      peekResult[2] = testStream.peek();
-      //assert
-      TEST_ASSERT(peekResult[0] == '\n');
-      TEST_ASSERT(peekResult[1] == '\n');
-      TEST_ASSERT(peekResult[2] == 'z');
-      TEST_FUNC_END();
-    }
-    static void peek_NRNRZ_expectNNZ(void) {
-      TEST_FUNC_START();
-      //arrange
-      FakeStreamIn inputStreamStub;
-      char testInBuffer[] = "\n\r\n\rz";
-      inputStreamStub.begin(testInBuffer);
-      webcc::ParserInputStream testStream;
-      testStream.begin(inputStreamStub);
-      int peekResult[3] = {0};
-      //act
-      peekResult[0] = testStream.peek();
-      testStream.read();
-      peekResult[1] = testStream.peek();
-      testStream.read();
-      peekResult[2] = testStream.peek();
-      //assert
-      TEST_ASSERT(peekResult[0] == '\n');
-      TEST_ASSERT(peekResult[1] == '\n');
-      TEST_ASSERT(peekResult[2] == 'z');
-      TEST_FUNC_END();
-    }
-  public:
-    static void test_peek(void) {
-      peek_StringWithoutCRLF_expectUnmodifiedString();
-      peek_NotAvailable_expectNotAvailable();
-      peek_RN_expectN();
-      peek_NR_expectN();
-      peek_NN_expectNN();
-      peek_RR_expectNN();
-      peek_RNR_expectNN();
-      peek_NRN_expectNN();
-      peek_NRRN_expectNN();
-      peek_NRNR_expectNN();
-      peek_RNZ_expectNZ();
-      peek_NRZ_expectNZ();
-      peek_NNZ_expectNNZ();
-      peek_RRZ_expectNNZ();
-      peek_RNRZ_expectNNZ();
-      peek_NRNZ_expectNNZ();
-      peek_NRRNZ_expectNNZ();
-      peek_NRNRZ_expectNNZ();
-    }
-  public:
-    static void readUntil_readUntilCharacter_expectPartOfInputString(void) {
-      TEST_FUNC_START();
-      //arrange
-      FakeStreamIn inputStreamStub;
-      char testInBuffer[] = "0123456789abcdefgh";
-      inputStreamStub.begin(testInBuffer);
-      char resultBuffer[3][sizeof(testInBuffer)] = {0};
-      char separatorChars[2] = {0};
-      webcc::ParserInputStream::ReturnStatus returnStatus[3];
-      webcc::ParserInputStream testStream;
-      testStream.begin(inputStreamStub);
-      //act
-      returnStatus[0] = testStream.readUntil("a4", resultBuffer[0], sizeof(testInBuffer));
-      separatorChars[0] = inputStreamStub.read();
-      returnStatus[1] = testStream.readUntil("a4", resultBuffer[1], sizeof(testInBuffer));
-      separatorChars[1] = inputStreamStub.read();
-      returnStatus[2] = testStream.readUntil("a4", resultBuffer[2], sizeof(testInBuffer));
-      //assert
-      TEST_ASSERT(testStream.validate());
-      TEST_ASSERT(!strcmp(resultBuffer[0], "0123"));
-      TEST_ASSERT(separatorChars[0] == '4');
-      TEST_ASSERT(returnStatus[0] == webcc::ParserInputStream::ReturnStatus::FOUND);
-      TEST_ASSERT(!strcmp(resultBuffer[1], "56789"));
-      TEST_ASSERT(separatorChars[1] == 'a');
-      TEST_ASSERT(returnStatus[1] == webcc::ParserInputStream::ReturnStatus::FOUND);
-      TEST_ASSERT(!strcmp(resultBuffer[2], "bcdefgh"));
-      TEST_ASSERT(returnStatus[2] == webcc::ParserInputStream::ReturnStatus::END_OF_STREAM);
-      TEST_FUNC_END();
-    }
-    static void readUntil_readUntilFirstCharacter_expectEmptyString(void) {
-      TEST_FUNC_START();
-      //arrange
-      FakeStreamIn inputStreamStub;
-      char testInBuffer[] = "0123456789abcdefgh";
-      inputStreamStub.begin(testInBuffer);
-      char resultBuffer[sizeof(testInBuffer)] = {0};
-      char separatorChar = '\0';
-      webcc::ParserInputStream::ReturnStatus returnStatus;
-      webcc::ParserInputStream testStream;
-      testStream.begin(inputStreamStub);
-      //act
-      returnStatus = testStream.readUntil("0", resultBuffer, sizeof(resultBuffer));
-      separatorChar = inputStreamStub.read();
-      //assert
-      TEST_ASSERT(!strcmp(resultBuffer, ""));
-      TEST_ASSERT(separatorChar == '0');
-      TEST_ASSERT(returnStatus == webcc::ParserInputStream::ReturnStatus::FOUND);
-      TEST_FUNC_END();
-    }
-    static void readUntil_characterNotFound_expectSameString(void) {
-      TEST_FUNC_START();
-      //arrange
-      FakeStreamIn inputStreamStub;
-      char testInBuffer[] = "0123456789abcdefgh";
-      inputStreamStub.begin(testInBuffer);
-      char resultBuffer[sizeof(testInBuffer) + 2] = {0}; //+1 char for null-terminator and +1 char to make sure input stream is empty before buffer is full
-      webcc::ParserInputStream::ReturnStatus returnStatus;
-      webcc::ParserInputStream testStream;
-      testStream.begin(inputStreamStub);
-      //act
-      returnStatus = testStream.readUntil("ijklmnopqrstuvwxyz+-=* ", resultBuffer, sizeof(resultBuffer));
-      //assert
-      TEST_ASSERT(!strcmp(resultBuffer, testInBuffer));
-      TEST_ASSERT(returnStatus == webcc::ParserInputStream::ReturnStatus::END_OF_STREAM);
-      TEST_FUNC_END();
-    }
-    static void readUntil_charNotFoundBecauseCaseSensitive_expectSameString(void) {
-      TEST_FUNC_START();
-      //arrange
-      FakeStreamIn inputStreamStub;
-      char testInBuffer[] = "0123456789abcdefgh";
-      inputStreamStub.begin(testInBuffer);
-      webcc::ParserInputStream testStream;
-      testStream.begin(inputStreamStub);
-      char resultBuffer[sizeof(testInBuffer) + 2] = {0}; //+1 char for null-terminator and +1 char to make sure input stream is empty before buffer is full
-      webcc::ParserInputStream::ReturnStatus returnStatus;
-      //act
-      returnStatus = testStream.readUntil("A", resultBuffer, sizeof(resultBuffer));
-      //assert
-      TEST_ASSERT(!strcmp(resultBuffer, testInBuffer));
-      TEST_ASSERT(returnStatus == webcc::ParserInputStream::ReturnStatus::END_OF_STREAM);
-      TEST_FUNC_END();
-    }
-    static void readUntil_stringDoesNotFitInBuffer_expectTruncatedString(void) {
-      TEST_FUNC_START();
-      //arrange
-      FakeStreamIn inputStreamStub;
-      char testInBuffer[] = "0123456789abcdefgh";
-      inputStreamStub.begin(testInBuffer);
-      char resultBuffer[11 + 1] = {0}; //11 chars + null-terminator
-      webcc::ParserInputStream::ReturnStatus returnStatus;
-      webcc::ParserInputStream testStream;
-      testStream.begin(inputStreamStub);
-      //act
-      returnStatus = testStream.readUntil(" ", resultBuffer, sizeof(resultBuffer)); //+1 = terminating /0 char
-      //assert
-      TEST_ASSERT(!strcmp(resultBuffer, "0123456789a"));
-      TEST_ASSERT(returnStatus == webcc::ParserInputStream::ReturnStatus::END_OF_BUFFER);
-      TEST_FUNC_END();
-    }
-    static void readUntil_notAvailable_expectEmptyString(void) {
-      TEST_FUNC_START();
-      //arrange
-      FakeStreamIn inputStreamStub;
-      char testInBuffer[] = "";
-      inputStreamStub.begin(testInBuffer);
-      char resultBuffer[sizeof(testInBuffer) + 2] = {0}; //+1 char for null-terminator and +1 char to make sure input stream is empty before buffer is full
-      webcc::ParserInputStream::ReturnStatus returnStatus;
-      webcc::ParserInputStream testStream;
-      testStream.begin(inputStreamStub);
-      //act
-      returnStatus = testStream.readUntil(" ", resultBuffer, sizeof(resultBuffer));
-      //assert
-      TEST_ASSERT(!strcmp(resultBuffer, ""));
-      TEST_ASSERT(returnStatus == webcc::ParserInputStream::ReturnStatus::END_OF_STREAM);
-      TEST_FUNC_END();
-    }
-    static void readUntil_charsToFindNULL_expectEmptyString(void) {
-      TEST_FUNC_START();
-      //arrange
-      FakeStreamIn inputStreamStub;
-      char testInBuffer[] = "abcdef";
-      inputStreamStub.begin(testInBuffer);
-      char resultBuffer[sizeof(testInBuffer)] = {0};
-      webcc::ParserInputStream::ReturnStatus returnStatus;
-      webcc::ParserInputStream testStream;
-      testStream.begin(inputStreamStub);
-      //act
-      returnStatus = testStream.readUntil(NULL, resultBuffer, sizeof(resultBuffer));
-      //assert
-      TEST_ASSERT(!strcmp(resultBuffer, ""));
-      TEST_ASSERT(returnStatus == webcc::ParserInputStream::ReturnStatus::NO_CHARS_TO_FIND);
-      TEST_FUNC_END();
-    }
-    static void readUntil_zeroLengthBuffer_expectEmptyString(void) {
-      TEST_FUNC_START();
-      //arrange
-      FakeStreamIn inputStreamStub;
-      char testInBuffer[] = "0123456789abcdefgh";
-      inputStreamStub.begin(testInBuffer);
-      char resultBuffer[sizeof(testInBuffer) + 1] = {0};
-      webcc::ParserInputStream::ReturnStatus returnStatus;
-      webcc::ParserInputStream testStream;
-      testStream.begin(inputStreamStub);
-      //act
-      returnStatus = testStream.readUntil("a", resultBuffer, 0);
-      //assert
-      TEST_ASSERT(!strcmp(resultBuffer, ""));
-      TEST_ASSERT(returnStatus == webcc::ParserInputStream::ReturnStatus::NO_BUFFER);
-      TEST_FUNC_END();
-    }
-    static void readUntil_readBufferNULL_expectNoCrash(void) {
-      TEST_FUNC_START();
-      //arrange
-      FakeStreamIn inputStreamStub;
-      char testInBuffer[] = "0123456789abcdefgh";
-      inputStreamStub.begin(testInBuffer);
-      webcc::ParserInputStream::ReturnStatus returnStatus;
-      webcc::ParserInputStream testStream;
-      testStream.begin(inputStreamStub);
-      //act
-      returnStatus = testStream.readUntil("a", NULL, 65535);
-      //assert
-      TEST_ASSERT(returnStatus == webcc::ParserInputStream::ReturnStatus::NO_BUFFER);
-      TEST_FUNC_END();
-    }
-    static void readUntil_clientNULL_expectNoCrash(void) {
-      TEST_FUNC_START();
-      //arrange
-      FakeStreamIn inputStreamStub;
-      char testInBuffer[] = "0123456789abcdefgh";
-      char resultBuffer[sizeof(testInBuffer) + 1] = {0};
-      inputStreamStub.begin(testInBuffer);
-      webcc::ParserInputStream::ReturnStatus returnStatus;
-      webcc::ParserInputStream testStream;
-      //testStream.begin(inputStreamStub); is NOT called to leave client unitialised
-      //act
-      returnStatus = testStream.readUntil("a", resultBuffer, sizeof(resultBuffer));
-      //assert
-      TEST_ASSERT(!testStream.validate());
-      TEST_ASSERT(returnStatus == webcc::ParserInputStream::ReturnStatus::NO_CLIENT);
-      TEST_FUNC_END();
-    }
-    static void readUntil_clientReset_expectNoCrash(void) {
-      TEST_FUNC_START();
-      //arrange
-      FakeStreamIn inputStreamStub;
-      char testInBuffer[] = "0123456789abcdefgh";
-      char resultBuffer[sizeof(testInBuffer) + 1] = {0};
-      inputStreamStub.begin(testInBuffer);
-      webcc::ParserInputStream::ReturnStatus returnStatus;
-      webcc::ParserInputStream testStream;
-      testStream.begin(inputStreamStub);
-      boolean validationResult[2];
-      //act
-      validationResult[0] = testStream.validate();
-      testStream.reset();
-      validationResult[1] = testStream.validate();
-      returnStatus = testStream.readUntil("a", resultBuffer, sizeof(resultBuffer));
-      //assert
-      TEST_ASSERT(validationResult[0]);
-      TEST_ASSERT(!validationResult[1]);
-      TEST_ASSERT(returnStatus == webcc::ParserInputStream::ReturnStatus::NO_CLIENT);
-      TEST_FUNC_END();
-    }
-  public:
-    static void test_readUntil(void) {
-      readUntil_readUntilCharacter_expectPartOfInputString();
-      readUntil_readUntilFirstCharacter_expectEmptyString();
-      readUntil_characterNotFound_expectSameString();
-      readUntil_charNotFoundBecauseCaseSensitive_expectSameString();
-      readUntil_stringDoesNotFitInBuffer_expectTruncatedString();
-      readUntil_notAvailable_expectEmptyString();
-      readUntil_charsToFindNULL_expectEmptyString();
-      readUntil_zeroLengthBuffer_expectEmptyString();
-      readUntil_readBufferNULL_expectNoCrash();
-      readUntil_clientNULL_expectNoCrash();
-      readUntil_clientReset_expectNoCrash();
-    }
-  public:
-    static void skipUntil_skipUntilCharacter_expectInputCharsSkipped(void) {
-      TEST_FUNC_START();
-      //arrange
-      FakeStreamIn inputStreamStub;
-      char testInBuffer[] = "0123456789abcdefgh";
-      inputStreamStub.begin(testInBuffer);
-      int separatorChars[3] = {0};
-      webcc::ParserInputStream::ReturnStatus returnStatus[3];
-      webcc::ParserInputStream testStream;
-      testStream.begin(inputStreamStub);
-      //act
-      returnStatus[0] = testStream.skipUntil("a4");
-      separatorChars[0] = inputStreamStub.read();
-      returnStatus[1] = testStream.skipUntil("a4");
-      separatorChars[1] = inputStreamStub.read();
-      returnStatus[2] = testStream.skipUntil("a4");
-      separatorChars[2] = inputStreamStub.read();
-      //assert
-      TEST_ASSERT(testStream.validate());
-      TEST_ASSERT(separatorChars[0] == (int)'4');
-      TEST_ASSERT(returnStatus[0] == webcc::ParserInputStream::ReturnStatus::FOUND);
-      TEST_ASSERT(separatorChars[1] == (int)'a');
-      TEST_ASSERT(returnStatus[1] == webcc::ParserInputStream::ReturnStatus::FOUND);
-      TEST_ASSERT(separatorChars[2] == webcc::ParserInputStream::NOT_AVAILABLE);
-      TEST_ASSERT(returnStatus[2] == webcc::ParserInputStream::ReturnStatus::END_OF_STREAM);
-      TEST_FUNC_END();
-    }
-    static void skipUntil_characterNotFound_expectInputStreamFullySkipped(void) {
-      TEST_FUNC_START();
-      //arrange
-      FakeStreamIn inputStreamStub;
-      char testInBuffer[] = "0123456789abcdefgh";
-      inputStreamStub.begin(testInBuffer);
-      webcc::ParserInputStream::ReturnStatus returnStatus;
-      webcc::ParserInputStream testStream;
-      testStream.begin(inputStreamStub);
-      int nextChar;
-      //act
-      returnStatus = testStream.skipUntil("ijklmnopqrstuvwxyz+-=* ");
-      nextChar = testStream.read();
-      //assert
-      TEST_ASSERT(returnStatus == webcc::ParserInputStream::ReturnStatus::END_OF_STREAM);
-      TEST_ASSERT(nextChar == webcc::ParserInputStream::NOT_AVAILABLE);
-      TEST_FUNC_END();
-    }
-    static void skipUntil_charNotFoundBecauseCaseSensitive_expectInputStreamFullySkipped(void) {
-      TEST_FUNC_START();
-      //arrange
-      FakeStreamIn inputStreamStub;
-      char testInBuffer[] = "0123456789abcdefgh";
-      inputStreamStub.begin(testInBuffer);
-      webcc::ParserInputStream testStream;
-      testStream.begin(inputStreamStub);
-      webcc::ParserInputStream::ReturnStatus returnStatus;
-      int nextChar;
-      //act
-      returnStatus = testStream.skipUntil("A");
-      nextChar = testStream.read();
-      //assert
-      TEST_ASSERT(returnStatus == webcc::ParserInputStream::ReturnStatus::END_OF_STREAM);
-      TEST_ASSERT(nextChar == webcc::ParserInputStream::NOT_AVAILABLE);
-      TEST_FUNC_END();
-    }
-    static void skipUntil_notAvailable_expectMethodDoesNothing(void) {
-      TEST_FUNC_START();
-      //arrange
-      FakeStreamIn inputStreamStub;
-      char testInBuffer[] = "";
-      inputStreamStub.begin(testInBuffer);
-      webcc::ParserInputStream::ReturnStatus returnStatus;
-      webcc::ParserInputStream testStream;
-      testStream.begin(inputStreamStub);
-      //act
-      returnStatus = testStream.skipUntil(" ");
-      //assert
-      TEST_ASSERT(returnStatus == webcc::ParserInputStream::ReturnStatus::END_OF_STREAM);
-      TEST_FUNC_END();
-    }
-    static void skipUntil_charsToFindNULL_expectMethodDoesNothing(void) {
-      TEST_FUNC_START();
-      //arrange
-      FakeStreamIn inputStreamStub;
-      char testInBuffer[] = "abcd";
-      inputStreamStub.begin(testInBuffer);
-      webcc::ParserInputStream::ReturnStatus returnStatus;
-      webcc::ParserInputStream testStream;
-      testStream.begin(inputStreamStub);
-      int nextChar;
-      //act
-      returnStatus = testStream.skipUntil(NULL);
-      nextChar = testStream.read();
-      //assert
-      TEST_ASSERT(returnStatus == webcc::ParserInputStream::ReturnStatus::NO_CHARS_TO_FIND);
-      TEST_ASSERT(nextChar == (int)'a');
-      TEST_FUNC_END();
-    }
-    static void skipUntil_clientNULL_expectNoCrash(void) {
-      TEST_FUNC_START();
-      //arrange
-      FakeStreamIn inputStreamStub;
-      char testInBuffer[] = "0123456789abcdefgh";
-      inputStreamStub.begin(testInBuffer);
-      webcc::ParserInputStream::ReturnStatus returnStatus;
-      webcc::ParserInputStream testStream;
-      //testStream.begin(inputStreamStub); is NOT called to leave client unitialised
-      //act
-      returnStatus = testStream.skipUntil("a");
-      //assert
-      TEST_ASSERT(!testStream.validate());
-      TEST_ASSERT(returnStatus == webcc::ParserInputStream::ReturnStatus::NO_CLIENT);
-      TEST_FUNC_END();
-    }
-    static void skipUntil_clientReset_expectNoCrash(void) {
-      TEST_FUNC_START();
-      //arrange
-      FakeStreamIn inputStreamStub;
-      char testInBuffer[] = "0123456789abcdefgh";
-      inputStreamStub.begin(testInBuffer);
-      webcc::ParserInputStream::ReturnStatus returnStatus;
-      webcc::ParserInputStream testStream;
-      testStream.begin(inputStreamStub);
-      boolean validationResult[2];
-      //act
-      validationResult[0] = testStream.validate();
-      testStream.reset();
-      validationResult[1] = testStream.validate();
-      returnStatus = testStream.skipUntil("a");
-      //assert
-      TEST_ASSERT(validationResult[0]);
-      TEST_ASSERT(!validationResult[1]);
-      TEST_ASSERT(returnStatus == webcc::ParserInputStream::ReturnStatus::NO_CLIENT);
-      TEST_FUNC_END();
-    }
-  public:
-    static void test_skipUntil(void) {
-      skipUntil_skipUntilCharacter_expectInputCharsSkipped();
-      skipUntil_characterNotFound_expectInputStreamFullySkipped();
-      skipUntil_charNotFoundBecauseCaseSensitive_expectInputStreamFullySkipped();
-      skipUntil_notAvailable_expectMethodDoesNothing();
-      skipUntil_charsToFindNULL_expectMethodDoesNothing();
-      skipUntil_clientNULL_expectNoCrash();
-      skipUntil_clientReset_expectNoCrash();
-    }
-  public:
-    static void runTests(void) {
-      test_read();
-      test_peek();
-      test_readUntil();
-      test_skipUntil();
-    }
-
-};
-
 class TestBufferedPrint {
   public:
     static void write_stringShorterThanBuffer_expectStringSentAfterBufferedPrintOutOfScope(void) {
@@ -1742,7 +626,7 @@ class TestHTTPReqParserStateMachine {
       TEST_ASSERT(beginResult);
       TEST_FUNC_END();
     }
-    static void begin_beginNotCalled_expectNoClientError(void) {
+    static void begin_beginNotCalled_expectInternalError(void) {
       TEST_FUNC_START();
       //arrange
       char testInBuffer[] = "GET / HTTP/1.1\r\n\r\n";
@@ -1751,7 +635,10 @@ class TestHTTPReqParserStateMachine {
       webcc::HTTPReqParserStateMachine testParser;
       //act
       //testParser.begin(testInputStream); is NOT called deliberately
-      testParser.parse();
+      const size_t bufferSize = 32;
+      char buffer[bufferSize] = {};
+      webcc::HTTPRequestPart reqPart;
+      testParser.parse(buffer, bufferSize, &reqPart);
       //assert
       TEST_ASSERT(testParser.finished());
       TEST_ASSERT(testParser.error());
@@ -1759,86 +646,1317 @@ class TestHTTPReqParserStateMachine {
       TEST_FUNC_END();
     }
   public:
-    static void testGeneralFunctionality(void) {
+    static void test_begin(void) {
       begin_validateInternals_expectTrue();
-      begin_beginNotCalled_expectNoClientError();
+      begin_beginNotCalled_expectInternalError();
+    }
+  private:
+    struct ParserTestResult {
+      static const int resultEntries = 25;
+      static const size_t RESULT_BUFFER_ENTRY_SIZE = 32;
+      char parseResultValue[resultEntries][RESULT_BUFFER_ENTRY_SIZE] = {};
+      webcc::HTTPRequestPart parseResultPart[resultEntries] = {};
+      boolean beginResult = false;
+      size_t requestPartCount = 0;
+      boolean error = false;
+      webcc::ParseError errorCode = webcc::ParseError::NONE;
+    };
+    static boolean testParseRequest(char * request, ParserTestResult * result) {
+      if (!request || !result) return (false);
+      FakeStreamIn testInputStream;
+      testInputStream.begin(request);
+      webcc::HTTPReqParserStateMachine testParser;
+      result->beginResult = testParser.begin(testInputStream);
+      result->requestPartCount = 0;
+      do {
+        testParser.parse(result->parseResultValue[result->requestPartCount],
+                         sizeof(result->parseResultValue[result->requestPartCount]),
+                         &result->parseResultPart[result->requestPartCount]);
+        result->requestPartCount++;
+        yield();
+      } while (!testParser.finished());
+      result->error = testParser.error();
+      result->errorCode = testParser.getError();
+      return (true);
     }
   public:
-      static void parse_parseRequest_expectCorrespondingRequestParts(void) {
-        TEST_FUNC_START();
-        //arrange
-        char testInBuffer[] = "POST index%2bindex.htm?a=b&c=d HTTP/1.1\r\nUser-Agent: Mozilla/4.0 (compatible; MSIE5.01; Windows NT)\r\nHost: 192.168.4.1\r\nAccept-Encoding: gzip, deflate\r\n\r\ne=f+g&h=i\r\n";
-        FakeStreamIn testInputStream;
-        testInputStream.begin(testInBuffer);
-        webcc::HTTPReqParserStateMachine testParser;
-        const int resultEntries = 25;
-        const size_t RESULT_BUFFER_ENTRY_SIZE = 64;
-        char parseResultValue[resultEntries][RESULT_BUFFER_ENTRY_SIZE] = {0};
-        webcc::HTTPRequestPart parseResultPart[resultEntries] = {};
-        //act
-        boolean beginResult = testParser.begin(testInputStream);
-        int i = 0;
-        do {
-          testParser.parse();
-          if ((i < resultEntries) && (testParser.getReqPart() != webcc::HTTPRequestPart::NONE)) {
-            strncpy(parseResultValue[i], testParser.getReqPartValue(), sizeof(parseResultValue[i]) - 1);
-            parseResultPart[i] = testParser.getReqPart();
-            i++;
-          }
-          yield();
-        } while (!testParser.finished());
-        //assert
-        TEST_ASSERT(RESULT_BUFFER_ENTRY_SIZE >= testParser.getBufferSize());
-        TEST_ASSERT(i < resultEntries);
-        TEST_ASSERT(beginResult);
-        TEST_ASSERT(parseResultPart[0] == webcc::HTTPRequestPart::BEGIN);
-        TEST_ASSERT(!strcmp(parseResultValue[0], ""));
-        TEST_ASSERT(parseResultPart[1] == webcc::HTTPRequestPart::METHOD);
-        TEST_ASSERT(!strcmp(parseResultValue[1], "POST"));
-        TEST_ASSERT(parseResultPart[2] == webcc::HTTPRequestPart::PATH);
-        TEST_ASSERT(!strcmp(parseResultValue[2], "index+index.htm"));
-        TEST_ASSERT(parseResultPart[3] == webcc::HTTPRequestPart::URL_QUERY_NAME);
-        TEST_ASSERT(!strcmp(parseResultValue[3], "a"));
-        TEST_ASSERT(parseResultPart[4] == webcc::HTTPRequestPart::URL_QUERY_VALUE);
-        TEST_ASSERT(!strcmp(parseResultValue[4], "b"));
-        TEST_ASSERT(parseResultPart[5] == webcc::HTTPRequestPart::URL_QUERY_NAME);
-        TEST_ASSERT(!strcmp(parseResultValue[5], "c"));
-        TEST_ASSERT(parseResultPart[6] == webcc::HTTPRequestPart::URL_QUERY_VALUE);
-        TEST_ASSERT(!strcmp(parseResultValue[6], "d"));
-        TEST_ASSERT(parseResultPart[7] == webcc::HTTPRequestPart::VERSION);
-        TEST_ASSERT(!strcmp(parseResultValue[7], "HTTP/1.1"));
-        TEST_ASSERT(parseResultPart[8] == webcc::HTTPRequestPart::FIELD_NAME);
-        TEST_ASSERT(!strcmp(parseResultValue[8], ""));
-        TEST_ASSERT(parseResultPart[9] == webcc::HTTPRequestPart::FIELD_VALUE);
-        TEST_ASSERT(!strcmp(parseResultValue[9], ""));
-        TEST_ASSERT(parseResultPart[10] == webcc::HTTPRequestPart::FIELD_NAME);
-        TEST_ASSERT(!strcmp(parseResultValue[10], ""));
-        TEST_ASSERT(parseResultPart[11] == webcc::HTTPRequestPart::FIELD_VALUE);
-        TEST_ASSERT(!strcmp(parseResultValue[11], ""));
-        TEST_ASSERT(parseResultPart[12] == webcc::HTTPRequestPart::FIELD_NAME);
-        TEST_ASSERT(!strcmp(parseResultValue[12], ""));
-        TEST_ASSERT(parseResultPart[13] == webcc::HTTPRequestPart::FIELD_VALUE);
-        TEST_ASSERT(!strcmp(parseResultValue[13], ""));
-        TEST_ASSERT(parseResultPart[14] == webcc::HTTPRequestPart::POST_QUERY_NAME);
-        TEST_ASSERT(!strcmp(parseResultValue[14], "e"));
-        TEST_ASSERT(parseResultPart[15] == webcc::HTTPRequestPart::POST_QUERY_VALUE);
-        TEST_ASSERT(!strcmp(parseResultValue[15], "f g"));
-        TEST_ASSERT(parseResultPart[16] == webcc::HTTPRequestPart::POST_QUERY_NAME);
-        TEST_ASSERT(!strcmp(parseResultValue[16], "h"));
-        TEST_ASSERT(parseResultPart[17] == webcc::HTTPRequestPart::POST_QUERY_VALUE);
-        TEST_ASSERT(!strcmp(parseResultValue[17], "i"));
-        TEST_ASSERT(i == 18);
-        TEST_ASSERT(!testParser.error());
-        TEST_FUNC_END();
-      }
+    static void parse_normalGetRequestWithNoFields_expectCorrespondingRequestParts(void) {
+      TEST_FUNC_START();
+      //arrange
+      char testRequest[] = "GET index.htm HTTP/1.1\r\n\r\n";
+      ParserTestResult testResult;
+      //act
+      boolean testPerformed = testParseRequest(testRequest, &testResult);
+      //assert
+      TEST_ASSERT(testPerformed);
+      TEST_ASSERT(testResult.beginResult);
+      TEST_ASSERT(testResult.parseResultPart[0] == webcc::HTTPRequestPart::METHOD);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[0], "GET"));
+      TEST_ASSERT(testResult.parseResultPart[1] == webcc::HTTPRequestPart::PATH);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[1], "index.htm"));
+      TEST_ASSERT(testResult.parseResultPart[2] == webcc::HTTPRequestPart::HTTP_VERSION);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[2], "HTTP/1.1"));
+      TEST_ASSERT(!testResult.error);
+      TEST_FUNC_END();
+    }
+    static void parse_normalGetRequestWithNoFieldsAndWithSpecialChars_expectCorrespondingRequestParts(void) {
+      TEST_FUNC_START();
+      //arrange
+      char testRequest[] = "GET in+dex%2Ehtm HTTP/1.1\r\n\r\n";
+      ParserTestResult testResult;
+      //act
+      boolean testPerformed = testParseRequest(testRequest, &testResult);
+      //assert
+      TEST_ASSERT(testPerformed);
+      TEST_ASSERT(testResult.beginResult);
+      TEST_ASSERT(testResult.parseResultPart[0] == webcc::HTTPRequestPart::METHOD);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[0], "GET"));
+      TEST_ASSERT(testResult.parseResultPart[1] == webcc::HTTPRequestPart::PATH);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[1], "in dex.htm"));
+      TEST_ASSERT(testResult.parseResultPart[2] == webcc::HTTPRequestPart::HTTP_VERSION);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[2], "HTTP/1.1"));
+      TEST_ASSERT(!testResult.error);
+      TEST_FUNC_END();
+    }
+    static void parse_normalGetRequest_expectCorrespondingRequestParts(void) {
+      TEST_FUNC_START();
+      //arrange
+      char testRequest[] = "GET index.htm?a=b&c=d HTTP/1.1\r\nUser-agent: parser-test\r\n\r\n";
+      ParserTestResult testResult;
+      //act
+      boolean testPerformed = testParseRequest(testRequest, &testResult);
+      //assert
+      TEST_ASSERT(testPerformed);
+      TEST_ASSERT(testResult.beginResult);
+      TEST_ASSERT(testResult.parseResultPart[0] == webcc::HTTPRequestPart::METHOD);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[0], "GET"));
+      TEST_ASSERT(testResult.parseResultPart[1] == webcc::HTTPRequestPart::PATH);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[1], "index.htm"));
+      TEST_ASSERT(testResult.parseResultPart[2] == webcc::HTTPRequestPart::URL_QUERY_NAME);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[2], "a"));
+      TEST_ASSERT(testResult.parseResultPart[3] == webcc::HTTPRequestPart::URL_QUERY_VALUE);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[3], "b"));
+      TEST_ASSERT(testResult.parseResultPart[4] == webcc::HTTPRequestPart::URL_QUERY_NAME);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[4], "c"));
+      TEST_ASSERT(testResult.parseResultPart[5] == webcc::HTTPRequestPart::URL_QUERY_VALUE);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[5], "d"));
+      TEST_ASSERT(testResult.parseResultPart[6] == webcc::HTTPRequestPart::HTTP_VERSION);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[6], "HTTP/1.1"));
+      TEST_ASSERT(testResult.parseResultPart[7] == webcc::HTTPRequestPart::FIELD_NAME);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[7], "User-agent"));
+      TEST_ASSERT(testResult.parseResultPart[8] == webcc::HTTPRequestPart::FIELD_VALUE_PART1);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[8], " parser-test"));
+      TEST_ASSERT(!testResult.error);
+      TEST_FUNC_END();
+    }
+    static void parse_normalPostRequest_expectCorrespondingRequestParts(void) {
+      TEST_FUNC_START();
+      //arrange
+      char testRequest[] = "POST index.htm HTTP/1.1\r\nUser-agent: parser-test\r\n\r\na=b&c=d\r\n";
+      ParserTestResult testResult;
+      //act
+      boolean testPerformed = testParseRequest(testRequest, &testResult);
+      //assert
+      TEST_ASSERT(testPerformed);
+      TEST_ASSERT(testResult.beginResult);
+      TEST_ASSERT(testResult.parseResultPart[0] == webcc::HTTPRequestPart::METHOD);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[0], "POST"));
+      TEST_ASSERT(testResult.parseResultPart[1] == webcc::HTTPRequestPart::PATH);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[1], "index.htm"));
+      TEST_ASSERT(testResult.parseResultPart[2] == webcc::HTTPRequestPart::HTTP_VERSION);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[2], "HTTP/1.1"));
+      TEST_ASSERT(testResult.parseResultPart[3] == webcc::HTTPRequestPart::FIELD_NAME);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[3], "User-agent"));
+      TEST_ASSERT(testResult.parseResultPart[4] == webcc::HTTPRequestPart::FIELD_VALUE_PART1);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[4], " parser-test"));
+      TEST_ASSERT(testResult.parseResultPart[5] == webcc::HTTPRequestPart::POST_QUERY_NAME);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[5], "a"));
+      TEST_ASSERT(testResult.parseResultPart[6] == webcc::HTTPRequestPart::POST_QUERY_VALUE);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[6], "b"));
+      TEST_ASSERT(testResult.parseResultPart[7] == webcc::HTTPRequestPart::POST_QUERY_NAME);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[7], "c"));
+      TEST_ASSERT(testResult.parseResultPart[8] == webcc::HTTPRequestPart::POST_QUERY_VALUE);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[8], "d"));
+      TEST_ASSERT(!testResult.error);
+      TEST_FUNC_END();
+    }
+    static void parse_normalPostRequestWithUrlQuery_expectCorrespondingRequestParts(void) {
+      TEST_FUNC_START();
+      //arrange
+      char testRequest[] = "POST index.htm?a=b&c=d HTTP/1.1\r\nUser-agent: parser-test\r\nHost: 192.168.4.1\r\nAccept-Encoding: gzip, deflate\r\n\r\ne=f+g&h=i\r\n";
+      ParserTestResult testResult;
+      //act
+      boolean testPerformed = testParseRequest(testRequest, &testResult);
+      //assert
+      TEST_ASSERT(testPerformed);
+      TEST_ASSERT(testResult.beginResult);
+      TEST_ASSERT(testResult.parseResultPart[0] == webcc::HTTPRequestPart::METHOD);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[0], "POST"));
+      TEST_ASSERT(testResult.parseResultPart[1] == webcc::HTTPRequestPart::PATH);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[1], "index.htm"));
+      TEST_ASSERT(testResult.parseResultPart[2] == webcc::HTTPRequestPart::URL_QUERY_NAME);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[2], "a"));
+      TEST_ASSERT(testResult.parseResultPart[3] == webcc::HTTPRequestPart::URL_QUERY_VALUE);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[3], "b"));
+      TEST_ASSERT(testResult.parseResultPart[4] == webcc::HTTPRequestPart::URL_QUERY_NAME);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[4], "c"));
+      TEST_ASSERT(testResult.parseResultPart[5] == webcc::HTTPRequestPart::URL_QUERY_VALUE);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[5], "d"));
+      TEST_ASSERT(testResult.parseResultPart[6] == webcc::HTTPRequestPart::HTTP_VERSION);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[6], "HTTP/1.1"));
+      TEST_ASSERT(testResult.parseResultPart[7] == webcc::HTTPRequestPart::FIELD_NAME);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[7], "User-agent"));
+      TEST_ASSERT(testResult.parseResultPart[8] == webcc::HTTPRequestPart::FIELD_VALUE_PART1);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[8], " parser-test"));
+      TEST_ASSERT(testResult.parseResultPart[9] == webcc::HTTPRequestPart::FIELD_NAME);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[9], "Host"));
+      TEST_ASSERT(testResult.parseResultPart[10] == webcc::HTTPRequestPart::FIELD_VALUE_PART1);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[10], " 192.168.4.1"));
+      TEST_ASSERT(testResult.parseResultPart[11] == webcc::HTTPRequestPart::FIELD_NAME);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[11], "Accept-Encoding"));
+      TEST_ASSERT(testResult.parseResultPart[12] == webcc::HTTPRequestPart::FIELD_VALUE_PART1);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[12], " gzip, deflate"));
+      TEST_ASSERT(testResult.parseResultPart[13] == webcc::HTTPRequestPart::POST_QUERY_NAME);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[13], "e"));
+      TEST_ASSERT(testResult.parseResultPart[14] == webcc::HTTPRequestPart::POST_QUERY_VALUE);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[14], "f g"));
+      TEST_ASSERT(testResult.parseResultPart[15] == webcc::HTTPRequestPart::POST_QUERY_NAME);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[15], "h"));
+      TEST_ASSERT(testResult.parseResultPart[16] == webcc::HTTPRequestPart::POST_QUERY_VALUE);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[16], "i"));
+      TEST_ASSERT(!testResult.error);
+      TEST_FUNC_END();
+    }
   public:
-    static void testParsing(void) {
-      parse_parseRequest_expectCorrespondingRequestParts();
+    static void test_parse_normalRequests(void) {
+      parse_normalGetRequestWithNoFields_expectCorrespondingRequestParts();
+      parse_normalGetRequestWithNoFieldsAndWithSpecialChars_expectCorrespondingRequestParts();
+      parse_normalGetRequest_expectCorrespondingRequestParts();
+      parse_normalPostRequest_expectCorrespondingRequestParts();
+      parse_normalPostRequestWithUrlQuery_expectCorrespondingRequestParts();
+    }
+  public:
+    static void parse_brokenMethod_expectStructureError(void) {
+      TEST_FUNC_START();
+      //arrange
+      char testRequest[] = "GE";
+      ParserTestResult testResult;
+      //act
+      boolean testPerformed = testParseRequest(testRequest, &testResult);
+      //assert
+      TEST_ASSERT(testPerformed);
+      TEST_ASSERT(testResult.beginResult);
+      TEST_ASSERT(testResult.error);
+      TEST_ASSERT(testResult.errorCode == webcc::ParseError::REQUEST_STRUCTURE);
+      TEST_FUNC_END();
+    }
+    static void parse_brokenMethodAndTrailingSpace_expectStructureError(void) {
+      TEST_FUNC_START();
+      //arrange
+      char testRequest[] = "GET ";
+      ParserTestResult testResult;
+      //act
+      boolean testPerformed = testParseRequest(testRequest, &testResult);
+      //assert
+      TEST_ASSERT(testPerformed);
+      TEST_ASSERT(testResult.beginResult);
+      TEST_ASSERT(testResult.error);
+      TEST_ASSERT(testResult.errorCode == webcc::ParseError::REQUEST_STRUCTURE);
+      TEST_FUNC_END();
+    }
+    static void parse_headerWithMethodOnly_expectStructureError(void) {
+      TEST_FUNC_START();
+      //arrange
+      char testRequest[] = "GET\r\nUser-agent: parser-test\r\n\r\n";
+      ParserTestResult testResult;
+      //act
+      boolean testPerformed = testParseRequest(testRequest, &testResult);
+      //assert
+      TEST_ASSERT(testPerformed);
+      TEST_ASSERT(testResult.beginResult);
+      TEST_ASSERT(testResult.error);
+      TEST_ASSERT(testResult.errorCode == webcc::ParseError::REQUEST_STRUCTURE);
+      TEST_FUNC_END();
+    }
+    static void parse_headerWithMethodAndTrailingSpace_expectStructureError(void) {
+      TEST_FUNC_START();
+      //arrange
+      char testRequest[] = "GET \r\nUser-agent: parser-test\r\n\r\n";
+      ParserTestResult testResult;
+      //act
+      boolean testPerformed = testParseRequest(testRequest, &testResult);
+      //assert
+      TEST_ASSERT(testPerformed);
+      TEST_ASSERT(testResult.beginResult);
+      TEST_ASSERT(testResult.parseResultPart[0] == webcc::HTTPRequestPart::METHOD);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[0], "GET"));
+      TEST_ASSERT(testResult.error);
+      TEST_ASSERT(testResult.errorCode == webcc::ParseError::REQUEST_STRUCTURE);
+      TEST_FUNC_END();
+    }
+    static void parse_tooLongMethod_expectPartTooLongError(void) {
+      TEST_FUNC_START();
+      //arrange
+      char testRequest[] = "01234567890123467890123456789012 index.htm?a=b&c=d HTTP/1.1\r\nUser-agent: parser-test\r\n\r\n";
+      ParserTestResult testResult;
+      //act
+      boolean testPerformed = testParseRequest(testRequest, &testResult);
+      //assert
+      TEST_ASSERT(testPerformed);
+      TEST_ASSERT(testResult.beginResult);
+      TEST_ASSERT(testResult.error);
+      TEST_ASSERT(testResult.errorCode == webcc::ParseError::REQUEST_PART_TOO_LONG);
+      TEST_FUNC_END();
+    }
+    static void parse_NoMethod_expectStructureError(void) {
+      TEST_FUNC_START();
+      //arrange
+      char testRequest[] = "index.htm?a=b&c=d HTTP/1.1\r\nUser-agent: parser-test\r\n\r\n";
+      ParserTestResult testResult;
+      //act
+      boolean testPerformed = testParseRequest(testRequest, &testResult);
+      //assert
+      TEST_ASSERT(testPerformed);
+      TEST_ASSERT(testResult.beginResult);
+      TEST_ASSERT(testResult.error);
+      TEST_ASSERT(testResult.errorCode == webcc::ParseError::REQUEST_STRUCTURE);
+      TEST_FUNC_END();
+    }
+    static void parse_EmptyMethod_expectNoError(void) {
+      TEST_FUNC_START();
+      //arrange
+      char testRequest[] = " index.htm?a=b&c=d HTTP/1.1\r\nUser-agent: parser-test\r\n\r\n";
+      ParserTestResult testResult;
+      //act
+      boolean testPerformed = testParseRequest(testRequest, &testResult);
+      //assert
+      TEST_ASSERT(testPerformed);
+      TEST_ASSERT(testResult.beginResult);
+      TEST_ASSERT(testResult.parseResultPart[0] == webcc::HTTPRequestPart::PATH);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[0], "index.htm"));
+      TEST_ASSERT(!testResult.error);
+      TEST_FUNC_END();
+    }
+  public:
+    static void test_parse_requestsWithMethodIssues(void) {
+      parse_brokenMethod_expectStructureError();
+      parse_brokenMethodAndTrailingSpace_expectStructureError();
+      parse_headerWithMethodOnly_expectStructureError();
+      parse_headerWithMethodAndTrailingSpace_expectStructureError();
+      parse_tooLongMethod_expectPartTooLongError();
+      parse_NoMethod_expectStructureError();
+      parse_EmptyMethod_expectNoError();
+    }
+  public:
+    static void parse_brokenPath_expectStructureError(void) {
+      TEST_FUNC_START();
+      //arrange
+      char testRequest[] = "GET index";
+      ParserTestResult testResult;
+      //act
+      boolean testPerformed = testParseRequest(testRequest, &testResult);
+      //assert
+      TEST_ASSERT(testPerformed);
+      TEST_ASSERT(testResult.beginResult);
+      TEST_ASSERT(testResult.error);
+      TEST_ASSERT(testResult.errorCode == webcc::ParseError::REQUEST_STRUCTURE);
+      TEST_FUNC_END();
+    }
+    static void parse_brokenPathAndTrailingSpace_expectStructureError(void) {
+      TEST_FUNC_START();
+      //arrange
+      char testRequest[] = "GET index.htm ";
+      ParserTestResult testResult;
+      //act
+      boolean testPerformed = testParseRequest(testRequest, &testResult);
+      //assert
+      TEST_ASSERT(testPerformed);
+      TEST_ASSERT(testResult.beginResult);
+      TEST_ASSERT(testResult.error);
+      TEST_ASSERT(testResult.errorCode == webcc::ParseError::REQUEST_STRUCTURE);
+      TEST_FUNC_END();
+    }
+    static void parse_headerWithMethodAndPathOnly_expectStructureError(void) {
+      TEST_FUNC_START();
+      //arrange
+      char testRequest[] = "GET index.htm\r\nUser-agent: parser-test\r\n\r\n";
+      ParserTestResult testResult;
+      //act
+      boolean testPerformed = testParseRequest(testRequest, &testResult);
+      //assert
+      TEST_ASSERT(testPerformed);
+      TEST_ASSERT(testResult.beginResult);
+      TEST_ASSERT(testResult.error);
+      TEST_ASSERT(testResult.errorCode == webcc::ParseError::REQUEST_STRUCTURE);
+      TEST_FUNC_END();
+    }
+    static void parse_tooLongPath_expectPartTooLongError(void) {
+      TEST_FUNC_START();
+      //arrange
+      char testRequest[] = "GET 012345678901234567890123456789012?a=b&c=d HTTP/1.1\r\nUser-agent: parser-test\r\n\r\n";
+      ParserTestResult testResult;
+      //act
+      boolean testPerformed = testParseRequest(testRequest, &testResult);
+      //assert
+      TEST_ASSERT(testPerformed);
+      TEST_ASSERT(testResult.beginResult);
+      TEST_ASSERT(testResult.error);
+      TEST_ASSERT(testResult.errorCode == webcc::ParseError::REQUEST_PART_TOO_LONG);
+      TEST_FUNC_END();
+    }
+    static void parse_EmptyPathWithQuery_expectNoError(void) {
+      TEST_FUNC_START();
+      //arrange
+      char testRequest[] = "GET ?a=b&c=d HTTP/1.1\r\nUser-agent: parser-test\r\n\r\n";
+      ParserTestResult testResult;
+      //act
+      boolean testPerformed = testParseRequest(testRequest, &testResult);
+      //assert
+      TEST_ASSERT(testPerformed);
+      TEST_ASSERT(testResult.beginResult);
+      TEST_ASSERT(testResult.parseResultPart[0] == webcc::HTTPRequestPart::METHOD);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[0], "GET"));
+      TEST_ASSERT(testResult.parseResultPart[1] == webcc::HTTPRequestPart::URL_QUERY_NAME);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[1], "a"));
+      TEST_ASSERT(!testResult.error);
+      TEST_FUNC_END();
+    }
+    static void parse_EmptyPathWithoutQuery_expectNoError(void) {
+      TEST_FUNC_START();
+      //arrange
+      char testRequest[] = "GET  HTTP/1.1\r\nUser-agent: parser-test\r\n\r\n";
+      ParserTestResult testResult;
+      //act
+      boolean testPerformed = testParseRequest(testRequest, &testResult);
+      //assert
+      TEST_ASSERT(testPerformed);
+      TEST_ASSERT(testResult.beginResult);
+      TEST_ASSERT(testResult.parseResultPart[0] == webcc::HTTPRequestPart::METHOD);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[0], "GET"));
+      TEST_ASSERT(testResult.parseResultPart[1] == webcc::HTTPRequestPart::HTTP_VERSION);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[1], "HTTP/1.1"));
+      TEST_ASSERT(!testResult.error);
+      TEST_FUNC_END();
+    }
+  public:
+    static void test_parse_requestsWithPathIssues(void) {
+      parse_brokenPath_expectStructureError();
+      parse_brokenPathAndTrailingSpace_expectStructureError();
+      parse_headerWithMethodAndPathOnly_expectStructureError();
+      parse_tooLongPath_expectPartTooLongError();
+      parse_EmptyPathWithQuery_expectNoError();
+      parse_EmptyPathWithoutQuery_expectNoError();
+    }
+  public:
+    static void parse_brokenURLQuery1_expectStructureError(void) {
+      TEST_FUNC_START();
+      //arrange
+      char testRequest[] = "GET index.htm?";
+      ParserTestResult testResult;
+      //act
+      boolean testPerformed = testParseRequest(testRequest, &testResult);
+      //assert
+      TEST_ASSERT(testPerformed);
+      TEST_ASSERT(testResult.beginResult);
+      TEST_ASSERT(testResult.error);
+      TEST_ASSERT(testResult.errorCode == webcc::ParseError::REQUEST_STRUCTURE);
+      TEST_FUNC_END();
+    }
+    static void parse_brokenURLQuery2_expectStructureError(void) {
+      TEST_FUNC_START();
+      //arrange
+      char testRequest[] = "GET index.htm?a=";
+      ParserTestResult testResult;
+      //act
+      boolean testPerformed = testParseRequest(testRequest, &testResult);
+      //assert
+      TEST_ASSERT(testPerformed);
+      TEST_ASSERT(testResult.beginResult);
+      TEST_ASSERT(testResult.error);
+      TEST_ASSERT(testResult.errorCode == webcc::ParseError::REQUEST_STRUCTURE);
+      TEST_FUNC_END();
+    }
+    static void parse_brokenURLQuery3_expectStructureError(void) {
+      TEST_FUNC_START();
+      //arrange
+      char testRequest[] = "GET index.htm?a=b&";
+      ParserTestResult testResult;
+      //act
+      boolean testPerformed = testParseRequest(testRequest, &testResult);
+      //assert
+      TEST_ASSERT(testPerformed);
+      TEST_ASSERT(testResult.beginResult);
+      TEST_ASSERT(testResult.error);
+      TEST_ASSERT(testResult.errorCode == webcc::ParseError::REQUEST_STRUCTURE);
+      TEST_FUNC_END();
+    }
+    static void parse_brokenURLQuery4_expectStructureError(void) {
+      TEST_FUNC_START();
+      //arrange
+      char testRequest[] = "GET index.htm?a=b&c=";
+      ParserTestResult testResult;
+      //act
+      boolean testPerformed = testParseRequest(testRequest, &testResult);
+      //assert
+      TEST_ASSERT(testPerformed);
+      TEST_ASSERT(testResult.beginResult);
+      TEST_ASSERT(testResult.error);
+      TEST_ASSERT(testResult.errorCode == webcc::ParseError::REQUEST_STRUCTURE);
+      TEST_FUNC_END();
+    }
+    static void parse_brokenURLQuery5_expectStructureError(void) {
+      TEST_FUNC_START();
+      //arrange
+      char testRequest[] = "GET index.htm&";
+      ParserTestResult testResult;
+      //act
+      boolean testPerformed = testParseRequest(testRequest, &testResult);
+      //assert
+      TEST_ASSERT(testPerformed);
+      TEST_ASSERT(testResult.beginResult);
+      TEST_ASSERT(testResult.error);
+      TEST_ASSERT(testResult.errorCode == webcc::ParseError::REQUEST_STRUCTURE);
+      TEST_FUNC_END();
+    }
+    static void parse_brokenURLQuery6_expectStructureError(void) {
+      TEST_FUNC_START();
+      //arrange
+      char testRequest[] = "GET index.htm=";
+      ParserTestResult testResult;
+      //act
+      boolean testPerformed = testParseRequest(testRequest, &testResult);
+      //assert
+      TEST_ASSERT(testPerformed);
+      TEST_ASSERT(testResult.beginResult);
+      TEST_ASSERT(testResult.error);
+      TEST_ASSERT(testResult.errorCode == webcc::ParseError::REQUEST_STRUCTURE);
+      TEST_FUNC_END();
+    }
+    static void parse_brokenURLQuery7_expectStructureError(void) {
+      TEST_FUNC_START();
+      //arrange
+      char testRequest[] = "GET index.htm?&";
+      ParserTestResult testResult;
+      //act
+      boolean testPerformed = testParseRequest(testRequest, &testResult);
+      //assert
+      TEST_ASSERT(testPerformed);
+      TEST_ASSERT(testResult.beginResult);
+      TEST_ASSERT(testResult.error);
+      TEST_ASSERT(testResult.errorCode == webcc::ParseError::REQUEST_STRUCTURE);
+      TEST_FUNC_END();
+    }
+    static void parse_brokenURLQuery8_expectStructureError(void) {
+      TEST_FUNC_START();
+      //arrange
+      char testRequest[] = "GET index.htm?=&=";
+      ParserTestResult testResult;
+      //act
+      boolean testPerformed = testParseRequest(testRequest, &testResult);
+      //assert
+      TEST_ASSERT(testPerformed);
+      TEST_ASSERT(testResult.beginResult);
+      TEST_ASSERT(testResult.error);
+      TEST_ASSERT(testResult.errorCode == webcc::ParseError::REQUEST_STRUCTURE);
+      TEST_FUNC_END();
+    }
+    static void parse_brokenURLQuery1NoVersion_expectStructureError(void) {
+      TEST_FUNC_START();
+      //arrange
+      char testRequest[] = "GET index.htm?\r\nUser-agent: parser-test\r\n\r\n";
+      ParserTestResult testResult;
+      //act
+      boolean testPerformed = testParseRequest(testRequest, &testResult);
+      //assert
+      TEST_ASSERT(testPerformed);
+      TEST_ASSERT(testResult.beginResult);
+      TEST_ASSERT(testResult.error);
+      TEST_ASSERT(testResult.errorCode == webcc::ParseError::REQUEST_STRUCTURE);
+      TEST_FUNC_END();
+    }
+    static void parse_brokenURLQuery2NoVersion_expectStructureError(void) {
+      TEST_FUNC_START();
+      //arrange
+      char testRequest[] = "GET index.htm?a=\r\nUser-agent: parser-test\r\n\r\n";
+      ParserTestResult testResult;
+      //act
+      boolean testPerformed = testParseRequest(testRequest, &testResult);
+      //assert
+      TEST_ASSERT(testPerformed);
+      TEST_ASSERT(testResult.beginResult);
+      TEST_ASSERT(testResult.error);
+      TEST_ASSERT(testResult.errorCode == webcc::ParseError::REQUEST_STRUCTURE);
+      TEST_FUNC_END();
+    }
+    static void parse_brokenURLQuery3NoVersion_expectStructureError(void) {
+      TEST_FUNC_START();
+      //arrange
+      char testRequest[] = "GET index.htm?a=b&\r\nUser-agent: parser-test\r\n\r\n";
+      ParserTestResult testResult;
+      //act
+      boolean testPerformed = testParseRequest(testRequest, &testResult);
+      //assert
+      TEST_ASSERT(testPerformed);
+      TEST_ASSERT(testResult.beginResult);
+      TEST_ASSERT(testResult.error);
+      TEST_ASSERT(testResult.errorCode == webcc::ParseError::REQUEST_STRUCTURE);
+      TEST_FUNC_END();
+    }
+    static void parse_brokenURLQuery4NoVersion_expectStructureError(void) {
+      TEST_FUNC_START();
+      //arrange
+      char testRequest[] = "GET index.htm?a=b&c=\r\nUser-agent: parser-test\r\n\r\n";
+      ParserTestResult testResult;
+      //act
+      boolean testPerformed = testParseRequest(testRequest, &testResult);
+      //assert
+      TEST_ASSERT(testPerformed);
+      TEST_ASSERT(testResult.beginResult);
+      TEST_ASSERT(testResult.error);
+      TEST_ASSERT(testResult.errorCode == webcc::ParseError::REQUEST_STRUCTURE);
+      TEST_FUNC_END();
+    }
+    static void parse_brokenURLQuery5NoVersion_expectStructureError(void) {
+      TEST_FUNC_START();
+      //arrange
+      char testRequest[] = "GET index.htm&\r\nUser-agent: parser-test\r\n\r\n";
+      ParserTestResult testResult;
+      //act
+      boolean testPerformed = testParseRequest(testRequest, &testResult);
+      //assert
+      TEST_ASSERT(testPerformed);
+      TEST_ASSERT(testResult.beginResult);
+      TEST_ASSERT(testResult.error);
+      TEST_ASSERT(testResult.errorCode == webcc::ParseError::REQUEST_STRUCTURE);
+      TEST_FUNC_END();
+    }
+    static void parse_brokenURLQuery6NoVersion_expectStructureError(void) {
+      TEST_FUNC_START();
+      //arrange
+      char testRequest[] = "GET index.htm=\r\nUser-agent: parser-test\r\n\r\n";
+      ParserTestResult testResult;
+      //act
+      boolean testPerformed = testParseRequest(testRequest, &testResult);
+      //assert
+      TEST_ASSERT(testPerformed);
+      TEST_ASSERT(testResult.beginResult);
+      TEST_ASSERT(testResult.error);
+      TEST_ASSERT(testResult.errorCode == webcc::ParseError::REQUEST_STRUCTURE);
+      TEST_FUNC_END();
+    }
+    static void parse_brokenURLQuery7NoVersion_expectStructureError(void) {
+      TEST_FUNC_START();
+      //arrange
+      char testRequest[] = "GET index.htm?&\r\nUser-agent: parser-test\r\n\r\n";
+      ParserTestResult testResult;
+      //act
+      boolean testPerformed = testParseRequest(testRequest, &testResult);
+      //assert
+      TEST_ASSERT(testPerformed);
+      TEST_ASSERT(testResult.beginResult);
+      TEST_ASSERT(testResult.error);
+      TEST_ASSERT(testResult.errorCode == webcc::ParseError::REQUEST_STRUCTURE);
+      TEST_FUNC_END();
+    }
+    static void parse_brokenURLQuery8NoVersion_expectStructureError(void) {
+      TEST_FUNC_START();
+      //arrange
+      char testRequest[] = "GET index.htm?=&=\r\nUser-agent: parser-test\r\n\r\n";
+      ParserTestResult testResult;
+      //act
+      boolean testPerformed = testParseRequest(testRequest, &testResult);
+      //assert
+      TEST_ASSERT(testPerformed);
+      TEST_ASSERT(testResult.beginResult);
+      TEST_ASSERT(testResult.error);
+      TEST_ASSERT(testResult.errorCode == webcc::ParseError::REQUEST_STRUCTURE);
+      TEST_FUNC_END();
+    }
+    static void parse_brokenURLQuery1FullHeader_expectStructureError(void) {
+      TEST_FUNC_START();
+      //arrange
+      char testRequest[] = "GET index.htm? HTTP/1.1\r\nUser-agent: parser-test\r\n\r\n";
+      ParserTestResult testResult;
+      //act
+      boolean testPerformed = testParseRequest(testRequest, &testResult);
+      //assert
+      TEST_ASSERT(testPerformed);
+      TEST_ASSERT(testResult.beginResult);
+      TEST_ASSERT(testResult.error);
+      TEST_ASSERT(testResult.errorCode == webcc::ParseError::REQUEST_STRUCTURE);
+      TEST_FUNC_END();
+    }
+    static void parse_brokenURLQuery3FullHeader_expectStructureError(void) {
+      TEST_FUNC_START();
+      //arrange
+      char testRequest[] = "GET index.htm?a=b& HTTP/1.1\r\nUser-agent: parser-test\r\n\r\n";
+      ParserTestResult testResult;
+      //act
+      boolean testPerformed = testParseRequest(testRequest, &testResult);
+      //assert
+      TEST_ASSERT(testPerformed);
+      TEST_ASSERT(testResult.beginResult);
+      TEST_ASSERT(testResult.error);
+      TEST_ASSERT(testResult.errorCode == webcc::ParseError::REQUEST_STRUCTURE);
+      TEST_FUNC_END();
+    }
+    static void parse_brokenURLQuery5FullHeader_expectStructureError(void) {
+      TEST_FUNC_START();
+      //arrange
+      char testRequest[] = "GET index.htm& HTTP/1.1\r\nUser-agent: parser-test\r\n\r\n";
+      ParserTestResult testResult;
+      //act
+      boolean testPerformed = testParseRequest(testRequest, &testResult);
+      //assert
+      TEST_ASSERT(testPerformed);
+      TEST_ASSERT(testResult.beginResult);
+      TEST_ASSERT(testResult.error);
+      TEST_ASSERT(testResult.errorCode == webcc::ParseError::REQUEST_STRUCTURE);
+      TEST_FUNC_END();
+    }
+    static void parse_brokenURLQuery6FullHeader_expectStructureError(void) {
+      TEST_FUNC_START();
+      //arrange
+      char testRequest[] = "GET index.htm= HTTP/1.1\r\nUser-agent: parser-test\r\n\r\n";
+      ParserTestResult testResult;
+      //act
+      boolean testPerformed = testParseRequest(testRequest, &testResult);
+      //assert
+      TEST_ASSERT(testPerformed);
+      TEST_ASSERT(testResult.beginResult);
+      TEST_ASSERT(testResult.error);
+      TEST_ASSERT(testResult.errorCode == webcc::ParseError::REQUEST_STRUCTURE);
+      TEST_FUNC_END();
+    }
+    static void parse_brokenURLQuery7FullHeader_expectStructureError(void) {
+      TEST_FUNC_START();
+      //arrange
+      char testRequest[] = "GET index.htm?& HTTP/1.1\r\nUser-agent: parser-test\r\n\r\n";
+      ParserTestResult testResult;
+      //act
+      boolean testPerformed = testParseRequest(testRequest, &testResult);
+      //assert
+      TEST_ASSERT(testPerformed);
+      TEST_ASSERT(testResult.beginResult);
+      TEST_ASSERT(testResult.error);
+      TEST_ASSERT(testResult.errorCode == webcc::ParseError::REQUEST_STRUCTURE);
+      TEST_FUNC_END();
+    }
+  public:
+    static void test_parse_requestsWithURLQueryIssues(void) {
+      parse_brokenURLQuery1_expectStructureError();
+      parse_brokenURLQuery2_expectStructureError();
+      parse_brokenURLQuery3_expectStructureError();
+      parse_brokenURLQuery4_expectStructureError();
+      parse_brokenURLQuery5_expectStructureError();
+      parse_brokenURLQuery6_expectStructureError();
+      parse_brokenURLQuery7_expectStructureError();
+      parse_brokenURLQuery8_expectStructureError();
+      parse_brokenURLQuery1NoVersion_expectStructureError();
+      parse_brokenURLQuery2NoVersion_expectStructureError();
+      parse_brokenURLQuery3NoVersion_expectStructureError();
+      parse_brokenURLQuery4NoVersion_expectStructureError();
+      parse_brokenURLQuery5NoVersion_expectStructureError();
+      parse_brokenURLQuery6NoVersion_expectStructureError();
+      parse_brokenURLQuery7NoVersion_expectStructureError();
+      parse_brokenURLQuery8NoVersion_expectStructureError();
+      parse_brokenURLQuery1FullHeader_expectStructureError();
+      parse_brokenURLQuery3FullHeader_expectStructureError();
+      parse_brokenURLQuery5FullHeader_expectStructureError();
+      parse_brokenURLQuery6FullHeader_expectStructureError();
+      parse_brokenURLQuery7FullHeader_expectStructureError();
+    }
+  public:
+    static void parse_tooLongURLQueryName_expectPartTooLongError(void) {
+      TEST_FUNC_START();
+      //arrange
+      char testRequest[] = "GET index.htm?012345678901234567890123456789012=b&c=d HTTP/1.1\r\nUser-agent: parser-test\r\n\r\n";
+      ParserTestResult testResult;
+      //act
+      boolean testPerformed = testParseRequest(testRequest, &testResult);
+      //assert
+      TEST_ASSERT(testPerformed);
+      TEST_ASSERT(testResult.beginResult);
+      TEST_ASSERT(testResult.error);
+      TEST_ASSERT(testResult.errorCode == webcc::ParseError::REQUEST_PART_TOO_LONG);
+      TEST_FUNC_END();
+    }
+    static void parse_EmptyURLQueryName_expectNoError(void) {
+      TEST_FUNC_START();
+      //arrange
+      char testRequest[] = "GET index.htm?=b&c=d HTTP/1.1\r\nUser-agent: parser-test\r\n\r\n";
+      ParserTestResult testResult;
+      //act
+      boolean testPerformed = testParseRequest(testRequest, &testResult);
+      //assert
+      TEST_ASSERT(testPerformed);
+      TEST_ASSERT(testResult.beginResult);
+      TEST_ASSERT(testResult.parseResultPart[0] == webcc::HTTPRequestPart::METHOD);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[0], "GET"));
+      TEST_ASSERT(testResult.parseResultPart[1] == webcc::HTTPRequestPart::PATH);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[1], "index.htm"));
+      TEST_ASSERT(testResult.parseResultPart[2] == webcc::HTTPRequestPart::URL_QUERY_VALUE);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[2], "b"));
+      TEST_ASSERT(!testResult.error);
+      TEST_FUNC_END();
+    }
+  public:
+    static void test_parse_requestsWithURLQueryNameIssues(void) {
+      parse_tooLongURLQueryName_expectPartTooLongError();
+      parse_EmptyURLQueryName_expectNoError();
+    }
+  public:
+    static void parse_tooLongURLQueryValue_expectPartTooLongError(void) {
+      TEST_FUNC_START();
+      //arrange
+      char testRequest[] = "GET index.htm?a=012345678901234567890123456789012&c=d HTTP/1.1\r\nUser-agent: parser-test\r\n\r\n";
+      ParserTestResult testResult;
+      //act
+      boolean testPerformed = testParseRequest(testRequest, &testResult);
+      //assert
+      TEST_ASSERT(testPerformed);
+      TEST_ASSERT(testResult.beginResult);
+      TEST_ASSERT(testResult.error);
+      TEST_ASSERT(testResult.errorCode == webcc::ParseError::REQUEST_PART_TOO_LONG);
+      TEST_FUNC_END();
+    }
+    static void parse_EmptyURLQueryValue_expectNoError(void) {
+      TEST_FUNC_START();
+      //arrange
+      char testRequest[] = "GET index.htm?a=&c=d HTTP/1.1\r\nUser-agent: parser-test\r\n\r\n";
+      ParserTestResult testResult;
+      //act
+      boolean testPerformed = testParseRequest(testRequest, &testResult);
+      //assert
+      TEST_ASSERT(testPerformed);
+      TEST_ASSERT(testResult.beginResult);
+      TEST_ASSERT(testResult.parseResultPart[0] == webcc::HTTPRequestPart::METHOD);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[0], "GET"));
+      TEST_ASSERT(testResult.parseResultPart[1] == webcc::HTTPRequestPart::PATH);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[1], "index.htm"));
+      TEST_ASSERT(testResult.parseResultPart[2] == webcc::HTTPRequestPart::URL_QUERY_NAME);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[2], "a"));
+      TEST_ASSERT(testResult.parseResultPart[3] == webcc::HTTPRequestPart::URL_QUERY_NAME);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[3], "c"));
+      TEST_ASSERT(!testResult.error);
+      TEST_FUNC_END();
+    }
+  public:
+    static void test_parse_requestsWithURLQueryValueIssues(void) {
+      parse_tooLongURLQueryValue_expectPartTooLongError();
+      parse_EmptyURLQueryValue_expectNoError();
+    }
+  public:
+    static void parse_brokenVersion_expectStructureError(void) {
+      TEST_FUNC_START();
+      //arrange
+      char testRequest[] = "GET index.htm?a=b&c=d HTTP";
+      ParserTestResult testResult;
+      //act
+      boolean testPerformed = testParseRequest(testRequest, &testResult);
+      //assert
+      TEST_ASSERT(testPerformed);
+      TEST_ASSERT(testResult.beginResult);
+      TEST_ASSERT(testResult.error);
+      TEST_ASSERT(testResult.errorCode == webcc::ParseError::REQUEST_STRUCTURE);
+      TEST_FUNC_END();
+    }
+    static void parse_tooLongVersion_expectPartTooLongError(void) {
+      TEST_FUNC_START();
+      //arrange
+      char testRequest[] = "GET index.htm?a=b&c=d 012345678901234567890123456789012\r\nUser-agent: parser-test\r\n\r\n";
+      ParserTestResult testResult;
+      //act
+      boolean testPerformed = testParseRequest(testRequest, &testResult);
+      //assert
+      TEST_ASSERT(testPerformed);
+      TEST_ASSERT(testResult.beginResult);
+      TEST_ASSERT(testResult.error);
+      TEST_ASSERT(testResult.errorCode == webcc::ParseError::REQUEST_PART_TOO_LONG);
+      TEST_FUNC_END();
+    }
+    static void parse_EmptyVersion_expectNoError(void) {
+      TEST_FUNC_START();
+      //arrange
+      char testRequest[] = "GET index.htm?a=b&c=d \r\nUser-agent: parser-test\r\n\r\n";
+      ParserTestResult testResult;
+      //act
+      boolean testPerformed = testParseRequest(testRequest, &testResult);
+      //assert
+      TEST_ASSERT(testPerformed);
+      TEST_ASSERT(testResult.beginResult);
+      TEST_ASSERT(testResult.parseResultPart[0] == webcc::HTTPRequestPart::METHOD);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[0], "GET"));
+      TEST_ASSERT(testResult.parseResultPart[1] == webcc::HTTPRequestPart::PATH);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[1], "index.htm"));
+      TEST_ASSERT(testResult.parseResultPart[2] == webcc::HTTPRequestPart::URL_QUERY_NAME);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[2], "a"));
+      TEST_ASSERT(testResult.parseResultPart[3] == webcc::HTTPRequestPart::URL_QUERY_VALUE);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[3], "b"));
+      TEST_ASSERT(testResult.parseResultPart[4] == webcc::HTTPRequestPart::URL_QUERY_NAME);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[4], "c"));
+      TEST_ASSERT(testResult.parseResultPart[5] == webcc::HTTPRequestPart::URL_QUERY_VALUE);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[5], "d"));
+      TEST_ASSERT(testResult.parseResultPart[6] == webcc::HTTPRequestPart::FIELD_NAME);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[6], "User-agent"));
+      TEST_ASSERT(!testResult.error);
+      TEST_FUNC_END();
+    }
+  public:
+    static void test_parse_requestsWithVersionIssues(void) {
+      parse_brokenVersion_expectStructureError();
+      parse_tooLongVersion_expectPartTooLongError();
+      parse_EmptyVersion_expectNoError();
+    }
+  public:
+    static void parse_headerWithoutTrailingCRLF_expectStructureError(void) {
+      TEST_FUNC_START();
+      //arrange
+      char testRequest[] = "GET index.htm HTTP/1.1";
+      ParserTestResult testResult;
+      //act
+      boolean testPerformed = testParseRequest(testRequest, &testResult);
+      //assert
+      TEST_ASSERT(testPerformed);
+      TEST_ASSERT(testResult.beginResult);
+      TEST_ASSERT(testResult.error);
+      TEST_ASSERT(testResult.errorCode == webcc::ParseError::REQUEST_STRUCTURE);
+      TEST_FUNC_END();
+    }
+    static void parse_headerWithOneTrailingCRLF_expectStructureError(void) {
+      TEST_FUNC_START();
+      //arrange
+      char testRequest[] = "GET index.htm HTTP/1.1\r\n";
+      ParserTestResult testResult;
+      //act
+      boolean testPerformed = testParseRequest(testRequest, &testResult);
+      //assert
+      TEST_ASSERT(testPerformed);
+      TEST_ASSERT(testResult.beginResult);
+      TEST_ASSERT(testResult.error);
+      TEST_ASSERT(testResult.errorCode == webcc::ParseError::REQUEST_STRUCTURE);
+      TEST_FUNC_END();
+    }
+  public:
+    static void test_parse_requestsWithHeaderIssues(void) {
+      parse_headerWithoutTrailingCRLF_expectStructureError();
+      parse_headerWithOneTrailingCRLF_expectStructureError();
+    }
+  public:
+    static void parse_brokenFieldName_expectStructureError(void) {
+      TEST_FUNC_START();
+      //arrange
+      char testRequest[] = "GET index.htm HTTP/1.1\r\nUser";
+      ParserTestResult testResult;
+      //act
+      boolean testPerformed = testParseRequest(testRequest, &testResult);
+      //assert
+      TEST_ASSERT(testPerformed);
+      TEST_ASSERT(testResult.beginResult);
+      TEST_ASSERT(testResult.error);
+      TEST_ASSERT(testResult.errorCode == webcc::ParseError::REQUEST_STRUCTURE);
+      TEST_FUNC_END();
+    }
+    static void parse_fieldWithNameOnly_expectStructureError(void) {
+      TEST_FUNC_START();
+      //arrange
+      char testRequest[] = "GET index.htm HTTP/1.1\r\nUser\r\n\r\n";
+      ParserTestResult testResult;
+      //act
+      boolean testPerformed = testParseRequest(testRequest, &testResult);
+      //assert
+      TEST_ASSERT(testPerformed);
+      TEST_ASSERT(testResult.beginResult);
+      TEST_ASSERT(testResult.error);
+      TEST_ASSERT(testResult.errorCode == webcc::ParseError::REQUEST_STRUCTURE);
+      TEST_FUNC_END();
+    }
+    static void parse_emptyFieldName_expectNoError(void) {
+      TEST_FUNC_START();
+      //arrange
+      char testRequest[] = "GET index.htm HTTP/1.1\r\n: parser-test\r\n\r\n";
+      ParserTestResult testResult;
+      //act
+      boolean testPerformed = testParseRequest(testRequest, &testResult);
+      //assert
+      TEST_ASSERT(testPerformed);
+      TEST_ASSERT(testResult.beginResult);
+      TEST_ASSERT(testResult.parseResultPart[0] == webcc::HTTPRequestPart::METHOD);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[0], "GET"));
+      TEST_ASSERT(testResult.parseResultPart[1] == webcc::HTTPRequestPart::PATH);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[1], "index.htm"));
+      TEST_ASSERT(testResult.parseResultPart[2] == webcc::HTTPRequestPart::HTTP_VERSION);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[2], "HTTP/1.1"));
+      TEST_ASSERT(testResult.parseResultPart[3] == webcc::HTTPRequestPart::FIELD_VALUE_PART1);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[3], " parser-test"));
+      TEST_ASSERT(!testResult.error);
+      TEST_FUNC_END();
+    }
+    static void parse_tooLongFieldName_expectPartTooLongError(void) {
+      TEST_FUNC_START();
+      //arrange
+      char testRequest[] = "GET index.htm HTTP/1.1\r\n012345678901234567890123456789012: parser-test\r\n\r\n";
+      ParserTestResult testResult;
+      //act
+      boolean testPerformed = testParseRequest(testRequest, &testResult);
+      //assert
+      TEST_ASSERT(testPerformed);
+      TEST_ASSERT(testResult.beginResult);
+      TEST_ASSERT(testResult.error);
+      TEST_ASSERT(testResult.errorCode == webcc::ParseError::REQUEST_PART_TOO_LONG);
+      TEST_FUNC_END();
+    }
+    static void parse_brokenFieldWithSeparator_expectStructureError(void) {
+      TEST_FUNC_START();
+      //arrange
+      char testRequest[] = "GET index.htm HTTP/1.1\r\nUser-agent:";
+      ParserTestResult testResult;
+      //act
+      boolean testPerformed = testParseRequest(testRequest, &testResult);
+      //assert
+      TEST_ASSERT(testPerformed);
+      TEST_ASSERT(testResult.beginResult);
+      TEST_ASSERT(testResult.error);
+      TEST_ASSERT(testResult.errorCode == webcc::ParseError::REQUEST_STRUCTURE);
+      TEST_FUNC_END();
+    }
+    static void parse_brokenFieldValue_expectStructureError(void) {
+      TEST_FUNC_START();
+      //arrange
+      char testRequest[] = "GET index.htm HTTP/1.1\r\nUser-agent: p";
+      ParserTestResult testResult;
+      //act
+      boolean testPerformed = testParseRequest(testRequest, &testResult);
+      //assert
+      TEST_ASSERT(testPerformed);
+      TEST_ASSERT(testResult.beginResult);
+      TEST_ASSERT(testResult.error);
+      TEST_ASSERT(testResult.errorCode == webcc::ParseError::REQUEST_STRUCTURE);
+      TEST_FUNC_END();
+    }
+    static void parse_emptyFieldValue_expectNoError(void) {
+      TEST_FUNC_START();
+      //arrange
+      char testRequest[] = "GET index.htm HTTP/1.1\r\nUser-agent:\r\nHost: 192.168.4.1\r\n\r\n";
+      ParserTestResult testResult;
+      //act
+      boolean testPerformed = testParseRequest(testRequest, &testResult);
+      //assert
+      TEST_ASSERT(testPerformed);
+      TEST_ASSERT(testResult.beginResult);
+      TEST_ASSERT(testResult.parseResultPart[0] == webcc::HTTPRequestPart::METHOD);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[0], "GET"));
+      TEST_ASSERT(testResult.parseResultPart[1] == webcc::HTTPRequestPart::PATH);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[1], "index.htm"));
+      TEST_ASSERT(testResult.parseResultPart[2] == webcc::HTTPRequestPart::HTTP_VERSION);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[2], "HTTP/1.1"));
+      TEST_ASSERT(testResult.parseResultPart[3] == webcc::HTTPRequestPart::FIELD_NAME);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[3], "User-agent"));
+      TEST_ASSERT(testResult.parseResultPart[4] == webcc::HTTPRequestPart::FIELD_NAME);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[4], "Host"));
+      TEST_ASSERT(!testResult.error);
+      TEST_FUNC_END();
+    }
+    static void parse_tooLongFieldValue_expectNoError(void) {
+      TEST_FUNC_START();
+      //arrange
+      char testRequest[] = "GET index.htm HTTP/1.1\r\nUser-agent:012345678901234567890123456789012\r\n\r\n";
+      ParserTestResult testResult;
+      //act
+      boolean testPerformed = testParseRequest(testRequest, &testResult);
+      //assert
+      TEST_ASSERT(testPerformed);
+      TEST_ASSERT(testResult.beginResult);
+      TEST_ASSERT(!testResult.error);
+      TEST_FUNC_END();
+    }
+    static void parse_fieldFollowedBySingleCRLF_expectStructureError(void) {
+      TEST_FUNC_START();
+      //arrange
+      char testRequest[] = "GET index.htm HTTP/1.1\r\nUser-agent: parser-test\r\n";
+      ParserTestResult testResult;
+      //act
+      boolean testPerformed = testParseRequest(testRequest, &testResult);
+      //assert
+      TEST_ASSERT(testPerformed);
+      TEST_ASSERT(testResult.beginResult);
+      TEST_ASSERT(testResult.error);
+      TEST_ASSERT(testResult.errorCode == webcc::ParseError::REQUEST_STRUCTURE);
+      TEST_FUNC_END();
+    }
+  public:
+    static void test_parse_requestsWithFieldIssues(void) {
+      parse_brokenFieldName_expectStructureError();
+      parse_fieldWithNameOnly_expectStructureError();
+      parse_emptyFieldName_expectNoError();
+      parse_tooLongFieldName_expectPartTooLongError();
+      parse_brokenFieldWithSeparator_expectStructureError();
+      parse_brokenFieldValue_expectStructureError();
+      parse_emptyFieldValue_expectNoError();
+      parse_tooLongFieldValue_expectNoError();
+      parse_fieldFollowedBySingleCRLF_expectStructureError();
+    }
+  public:
+    static void parse_brokenPOSTQuery1_expectStructureError(void) {
+      TEST_FUNC_START();
+      //arrange
+      char testRequest[] = "POST index.htm HTTP/1.1\r\nUser-agent: parser-test\r\na=";
+      ParserTestResult testResult;
+      //act
+      boolean testPerformed = testParseRequest(testRequest, &testResult);
+      //assert
+      TEST_ASSERT(testPerformed);
+      TEST_ASSERT(testResult.beginResult);
+      TEST_ASSERT(testResult.error);
+      TEST_ASSERT(testResult.errorCode == webcc::ParseError::REQUEST_STRUCTURE);
+      TEST_FUNC_END();
+    }
+    static void parse_brokenPOSTQuery2_expectStructureError(void) {
+      TEST_FUNC_START();
+      //arrange
+      char testRequest[] = "POST index.htm HTTP/1.1\r\nUser-agent: parser-test\r\na=b&";
+      ParserTestResult testResult;
+      //act
+      boolean testPerformed = testParseRequest(testRequest, &testResult);
+      //assert
+      TEST_ASSERT(testPerformed);
+      TEST_ASSERT(testResult.beginResult);
+      TEST_ASSERT(testResult.error);
+      TEST_ASSERT(testResult.errorCode == webcc::ParseError::REQUEST_STRUCTURE);
+      TEST_FUNC_END();
+    }
+    static void parse_brokenPOSTQuery3_expectStructureError(void) {
+      TEST_FUNC_START();
+      //arrange
+      char testRequest[] = "POST index.htm HTTP/1.1\r\nUser-agent: parser-test\r\na=b&c=";
+      ParserTestResult testResult;
+      //act
+      boolean testPerformed = testParseRequest(testRequest, &testResult);
+      //assert
+      TEST_ASSERT(testPerformed);
+      TEST_ASSERT(testResult.beginResult);
+      TEST_ASSERT(testResult.error);
+      TEST_ASSERT(testResult.errorCode == webcc::ParseError::REQUEST_STRUCTURE);
+      TEST_FUNC_END();
+    }
+    static void parse_brokenPOSTQuery4_expectStructureError(void) {
+      TEST_FUNC_START();
+      //arrange
+      char testRequest[] = "POST index.htm HTTP/1.1\r\nUser-agent: parser-test\r\n&";
+      ParserTestResult testResult;
+      //act
+      boolean testPerformed = testParseRequest(testRequest, &testResult);
+      //assert
+      TEST_ASSERT(testPerformed);
+      TEST_ASSERT(testResult.beginResult);
+      TEST_ASSERT(testResult.error);
+      TEST_ASSERT(testResult.errorCode == webcc::ParseError::REQUEST_STRUCTURE);
+      TEST_FUNC_END();
+    }
+    static void parse_brokenPOSTQuery5_expectStructureError(void) {
+      TEST_FUNC_START();
+      //arrange
+      char testRequest[] = "POST index.htm HTTP/1.1\r\nUser-agent: parser-test\r\n=";
+      ParserTestResult testResult;
+      //act
+      boolean testPerformed = testParseRequest(testRequest, &testResult);
+      //assert
+      TEST_ASSERT(testPerformed);
+      TEST_ASSERT(testResult.beginResult);
+      TEST_ASSERT(testResult.error);
+      TEST_ASSERT(testResult.errorCode == webcc::ParseError::REQUEST_STRUCTURE);
+      TEST_FUNC_END();
+    }
+    static void parse_brokenPOSTQuery6_expectStructureError(void) {
+      TEST_FUNC_START();
+      //arrange
+      char testRequest[] = "POST index.htm HTTP/1.1\r\nUser-agent: parser-test\r\n?&";
+      ParserTestResult testResult;
+      //act
+      boolean testPerformed = testParseRequest(testRequest, &testResult);
+      //assert
+      TEST_ASSERT(testPerformed);
+      TEST_ASSERT(testResult.beginResult);
+      TEST_ASSERT(testResult.error);
+      TEST_ASSERT(testResult.errorCode == webcc::ParseError::REQUEST_STRUCTURE);
+      TEST_FUNC_END();
+    }
+    static void parse_brokenPOSTQuery7_expectStructureError(void) {
+      TEST_FUNC_START();
+      //arrange
+      char testRequest[] = "POST index.htm HTTP/1.1\r\nUser-agent: parser-test\r\n=&=";
+      ParserTestResult testResult;
+      //act
+      boolean testPerformed = testParseRequest(testRequest, &testResult);
+      //assert
+      TEST_ASSERT(testPerformed);
+      TEST_ASSERT(testResult.beginResult);
+      TEST_ASSERT(testResult.error);
+      TEST_ASSERT(testResult.errorCode == webcc::ParseError::REQUEST_STRUCTURE);
+      TEST_FUNC_END();
+    }
+    static void parse_brokenPOSTQuery2FollowedByCRLF_expectStructureError(void) {
+      TEST_FUNC_START();
+      //arrange
+      char testRequest[] = "POST index.htm HTTP/1.1\r\nUser-agent: parser-test\r\na=b&\r\n";
+      ParserTestResult testResult;
+      //act
+      boolean testPerformed = testParseRequest(testRequest, &testResult);
+      //assert
+      TEST_ASSERT(testPerformed);
+      TEST_ASSERT(testResult.beginResult);
+      TEST_ASSERT(testResult.error);
+      TEST_ASSERT(testResult.errorCode == webcc::ParseError::REQUEST_STRUCTURE);
+      TEST_FUNC_END();
+    }
+    static void parse_brokenPOSTQuery4FollowedByCRLF_expectStructureError(void) {
+      TEST_FUNC_START();
+      //arrange
+      char testRequest[] = "POST index.htm HTTP/1.1\r\nUser-agent: parser-test\r\n&\r\n";
+      ParserTestResult testResult;
+      //act
+      boolean testPerformed = testParseRequest(testRequest, &testResult);
+      //assert
+      TEST_ASSERT(testPerformed);
+      TEST_ASSERT(testResult.beginResult);
+      TEST_ASSERT(testResult.error);
+      TEST_ASSERT(testResult.errorCode == webcc::ParseError::REQUEST_STRUCTURE);
+      TEST_FUNC_END();
+    }
+    static void parse_brokenPOSTQuery6FollowedByCRLF_expectStructureError(void) {
+      TEST_FUNC_START();
+      //arrange
+      char testRequest[] = "POST index.htm HTTP/1.1\r\nUser-agent: parser-test\r\n?&\r\n";
+      ParserTestResult testResult;
+      //act
+      boolean testPerformed = testParseRequest(testRequest, &testResult);
+      //assert
+      TEST_ASSERT(testPerformed);
+      TEST_ASSERT(testResult.beginResult);
+      TEST_ASSERT(testResult.error);
+      TEST_ASSERT(testResult.errorCode == webcc::ParseError::REQUEST_STRUCTURE);
+      TEST_FUNC_END();
+    }
+  public:
+    static void test_parse_requestsWithPostQueryIssues(void) {
+      parse_brokenPOSTQuery1_expectStructureError();
+      parse_brokenPOSTQuery2_expectStructureError();
+      parse_brokenPOSTQuery3_expectStructureError();
+      parse_brokenPOSTQuery4_expectStructureError();
+      parse_brokenPOSTQuery5_expectStructureError();
+      parse_brokenPOSTQuery6_expectStructureError();
+      parse_brokenPOSTQuery7_expectStructureError();
+      parse_brokenPOSTQuery2FollowedByCRLF_expectStructureError();
+      parse_brokenPOSTQuery4FollowedByCRLF_expectStructureError();
+      parse_brokenPOSTQuery6FollowedByCRLF_expectStructureError();
+    }
+  public:
+    static void parse_tooLongPOSTQueryName_expectPartTooLongError(void) {
+      TEST_FUNC_START();
+      //arrange
+      char testRequest[] = "POST index.htm HTTP/1.1\r\nUser-agent: parser-test\r\n\r\n012345678901234567890123456789012=b&c=d\r\n";
+      ParserTestResult testResult;
+      //act
+      boolean testPerformed = testParseRequest(testRequest, &testResult);
+      //assert
+      TEST_ASSERT(testPerformed);
+      TEST_ASSERT(testResult.beginResult);
+      TEST_ASSERT(testResult.error);
+      TEST_ASSERT(testResult.errorCode == webcc::ParseError::REQUEST_PART_TOO_LONG);
+      TEST_FUNC_END();
+    }
+    static void parse_EmptyPOSTQueryName_expectNoError(void) {
+      TEST_FUNC_START();
+      //arrange
+      char testRequest[] = "POST index.htm HTTP/1.1\r\nUser-agent: parser-test\r\n\r\n=b&c=d\r\n";
+      ParserTestResult testResult;
+      //act
+      boolean testPerformed = testParseRequest(testRequest, &testResult);
+      //assert
+      TEST_ASSERT(testPerformed);
+      TEST_ASSERT(testResult.beginResult);
+      TEST_ASSERT(testResult.parseResultPart[0] == webcc::HTTPRequestPart::METHOD);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[0], "POST"));
+      TEST_ASSERT(testResult.parseResultPart[1] == webcc::HTTPRequestPart::PATH);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[1], "index.htm"));
+      TEST_ASSERT(testResult.parseResultPart[2] == webcc::HTTPRequestPart::HTTP_VERSION);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[2], "HTTP/1.1"));
+      TEST_ASSERT(testResult.parseResultPart[3] == webcc::HTTPRequestPart::FIELD_NAME);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[3], "User-agent"));
+      TEST_ASSERT(testResult.parseResultPart[4] == webcc::HTTPRequestPart::FIELD_VALUE_PART1);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[4], " parser-test"));
+      TEST_ASSERT(testResult.parseResultPart[5] == webcc::HTTPRequestPart::POST_QUERY_VALUE);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[5], "b"));
+      TEST_ASSERT(!testResult.error);
+      TEST_FUNC_END();
+    }
+  public:
+    static void test_parse_requestsWithPostQueryNameIssues(void) {
+      parse_tooLongPOSTQueryName_expectPartTooLongError();
+      parse_EmptyPOSTQueryName_expectNoError();
+    }
+  public:
+    static void parse_tooLongPOSTQueryValue_expectPartTooLongError(void) {
+      TEST_FUNC_START();
+      //arrange
+      char testRequest[] = "POST index.htm HTTP/1.1\r\nUser-agent: parser-test\r\n\r\na=012345678901234567890123456789012&c=d\r\n";
+      ParserTestResult testResult;
+      //act
+      boolean testPerformed = testParseRequest(testRequest, &testResult);
+      //assert
+      TEST_ASSERT(testPerformed);
+      TEST_ASSERT(testResult.beginResult);
+      TEST_ASSERT(testResult.error);
+      TEST_ASSERT(testResult.errorCode == webcc::ParseError::REQUEST_PART_TOO_LONG);
+      TEST_FUNC_END();
+    }
+    static void parse_EmptyPOSTQueryValue_expectNoError(void) {
+      TEST_FUNC_START();
+      //arrange
+      char testRequest[] = "POST index.htm HTTP/1.1\r\nUser-agent: parser-test\r\n\r\na=&c=d\r\n";
+      ParserTestResult testResult;
+      //act
+      boolean testPerformed = testParseRequest(testRequest, &testResult);
+      //assert
+      TEST_ASSERT(testPerformed);
+      TEST_ASSERT(testResult.beginResult);
+      TEST_ASSERT(testResult.parseResultPart[0] == webcc::HTTPRequestPart::METHOD);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[0], "POST"));
+      TEST_ASSERT(testResult.parseResultPart[1] == webcc::HTTPRequestPart::PATH);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[1], "index.htm"));
+      TEST_ASSERT(testResult.parseResultPart[2] == webcc::HTTPRequestPart::HTTP_VERSION);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[2], "HTTP/1.1"));
+      TEST_ASSERT(testResult.parseResultPart[3] == webcc::HTTPRequestPart::FIELD_NAME);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[3], "User-agent"));
+      TEST_ASSERT(testResult.parseResultPart[4] == webcc::HTTPRequestPart::FIELD_VALUE_PART1);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[4], " parser-test"));
+      TEST_ASSERT(testResult.parseResultPart[5] == webcc::HTTPRequestPart::POST_QUERY_NAME);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[5], "a"));
+      TEST_ASSERT(testResult.parseResultPart[6] == webcc::HTTPRequestPart::POST_QUERY_NAME);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[6], "c"));
+      TEST_ASSERT(!testResult.error);
+      TEST_FUNC_END();
+    }
+  public:
+    static void test_parse_requestsWithPostQueryValueIssues(void) {
+      parse_tooLongPOSTQueryValue_expectPartTooLongError();
+      parse_EmptyPOSTQueryValue_expectNoError();
     }
   public:
     static void runTests(void) {
-      testGeneralFunctionality();
-      testParsing();
+      test_begin();
+      test_parse_normalRequests();
+      test_parse_requestsWithMethodIssues();
+      test_parse_requestsWithPathIssues();
+      test_parse_requestsWithURLQueryIssues();
+      test_parse_requestsWithURLQueryNameIssues();
+      test_parse_requestsWithURLQueryValueIssues();
+      test_parse_requestsWithVersionIssues();
+      test_parse_requestsWithHeaderIssues();
+      test_parse_requestsWithFieldIssues();
+      test_parse_requestsWithPostQueryIssues();
+      test_parse_requestsWithPostQueryNameIssues();
+      test_parse_requestsWithPostQueryValueIssues();
     }
 };
 
@@ -1849,7 +1967,6 @@ void setup() {
   TestHTTPPercentCode::runTests();
   TestURL::runTests();
   TestFakeStream::runTests();
-  TestParserInputStream::runTests();
   TestBufferedPrint::runTests();
   TestHTTPReqParserStateMachine::runTests();
   TEST_END();

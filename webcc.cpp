@@ -43,7 +43,7 @@ void WebccForm::bodyBegin(const char * formURL,
   client->print(FSH(webccFormHTML.bodyBegin1));
   print(caption, progmemStrings);
   client->print(FSH(webccFormHTML.bodyBegin2));
-  print(formMethod, progmemStrings, F("POST"));
+  print(formMethod, progmemStrings, FSH(webccFormHTML.defaultFormMethod));
   client->print(FSH(webccFormHTML.bodyBegin3));
   print(formURL, progmemStrings);
   client->print(FSH(webccFormHTML.bodyBegin4));
@@ -180,433 +180,254 @@ void BufferedPrint::sendBuffer(void) {
 }
 
 //////////////////////////////////////////////////////////////////////
-// ParserInputStream
+// HTTPReqParserStateMachine::InputStreamHelper
 //////////////////////////////////////////////////////////////////////
 
-int ParserInputStream::read(void) {
-  const int CR = (int)'\r';
-  const int LF = (int)'\n';
-  if (!client) return (NOT_AVAILABLE);
-  int i = client->read();
-  if (i == NOT_AVAILABLE) return (NOT_AVAILABLE);
-  if (((i == CR) && (previousChar == LF)) || ((i == LF) && (previousChar == CR))) i = client->read();
-  if (i == NOT_AVAILABLE) return (NOT_AVAILABLE);
-  previousChar = i;
-  if (i == CR) i = LF;
-  return (i);
-}
 
-int ParserInputStream::peek(void) {
-  const int CR = (int)'\r';
-  const int LF = (int)'\n';
-  if (!client) return (NOT_AVAILABLE);
-  int i = client->peek();
-  if (i == NOT_AVAILABLE) return (NOT_AVAILABLE);
-  if (((i == CR) && (previousChar == LF)) || ((i == LF) && (previousChar == CR))) {
-    client->read();
-    i = client->peek();
-  }
-  if (i == NOT_AVAILABLE) return (NOT_AVAILABLE);
-  previousChar = i;
-  if (i == CR) i = LF;
-  return (i);
-}
-
-ParserInputStream::ReturnStatus ParserInputStream::readUntil(const char * charsToFind, char * buffer, size_t bufferSize) {
-  if (!buffer || !bufferSize) return (NO_BUFFER);
-  if (!client) return (NO_CLIENT);
-  buffer[0] = 0;
-  if (!charsToFind || !strlen(charsToFind)) return (NO_CHARS_TO_FIND);
-  for (size_t bufferPos = 0; bufferPos < (bufferSize - 1); bufferPos++) {
-    buffer[bufferPos] = 0;
-    int i = peek();
-    if (i == NOT_AVAILABLE) return (END_OF_STREAM);
-    if (strchr(charsToFind, (char)i)) return (FOUND);
-    buffer[bufferPos] = (char)i;
-    read();
-  }
-  buffer[bufferSize - 1] = 0;
-  return (END_OF_BUFFER);
-}
-
-ParserInputStream::ReturnStatus ParserInputStream::skipUntil(const char * charsToFind) {
-  int i;
-  if (!client) return (NO_CLIENT);
-  if (!charsToFind || !strlen(charsToFind)) return (NO_CHARS_TO_FIND);
+HTTPReqParserStateMachine::ControlCharacter HTTPReqParserStateMachine::InputStreamHelper::readUntilControlCharacter(
+  Stream &client,
+  ControlCharacterSet controlChars,
+  char * buffer,
+  size_t bufferSize)
+{
+  ControlCharacter cc;
+  size_t bufferPosition = 0;
   do {
-    i = peek();
-    if (strchr(charsToFind, (char)i)) return (FOUND);
-    read();
-  } while (i != NOT_AVAILABLE);
-  return (END_OF_STREAM);
-};
+    int i1 = client.read();
+    int i2 = CC_UNAVAILABLE;
+    if (i1 == CC_CR) i2 = client.read();
+    cc = intToControlCharacter(controlChars, i1, i2);
+    if (cc == ControlCharacter::OTHER) {
+      buffer[bufferPosition++] = static_cast<char>(i1);
+      if ((bufferPosition < (bufferSize - 1)) && i2 != CC_UNAVAILABLE)
+        buffer[bufferPosition++] = static_cast<char>(i2);
+    }
+    else {
+      break;
+    }
+  } while (bufferPosition < (bufferSize - 1));
+  buffer[bufferPosition] = '\0';
+  return (cc);
+}
 
+HTTPReqParserStateMachine::ControlCharacter HTTPReqParserStateMachine::InputStreamHelper::skipUntilControlCharacter(
+  Stream &client,
+  ControlCharacterSet controlChars)
+{
+  ControlCharacter cc;
+  do {
+    int i1 = client.read();
+    int i2 = CC_UNAVAILABLE;
+    if (i1 == CC_CR) i2 = client.read();
+    cc = intToControlCharacter(controlChars, i1, i2);
+  } while (cc == ControlCharacter::OTHER);
+  return (cc);
+}
 
+HTTPReqParserStateMachine::ControlCharacter HTTPReqParserStateMachine::InputStreamHelper::read(
+  Stream &client,
+  ControlCharacterSet controlChars)
+{
+  int i1 = client.read();
+  int i2 = CC_UNAVAILABLE;
+  if (i1 == CC_CR) {
+    client.read();
+    i2 = client.read();
+  }
+  return (intToControlCharacter(controlChars, i1, i2));
+}
+
+HTTPReqParserStateMachine::ControlCharacter HTTPReqParserStateMachine::InputStreamHelper::readIfControlCharacter(
+  Stream &client,
+  ControlCharacterSet controlChars)
+{
+  int i1 = client.peek();
+  int i2 = CC_UNAVAILABLE;
+  if (i1 == CC_CR) {
+    client.read();
+    i2 = client.peek();
+  }
+  ControlCharacter cc = intToControlCharacter(controlChars, i1, i2);
+  if (cc != ControlCharacter::OTHER) client.read();
+  return (cc);
+}
+
+HTTPReqParserStateMachine::ControlCharacter HTTPReqParserStateMachine::InputStreamHelper::intToControlCharacter(ControlCharacterSet cc, int first, int second) {
+  if (!isControlCharacterInSet(cc, first, second)) return (ControlCharacter::OTHER);
+  switch (first) {
+    case CC_UNAVAILABLE:
+      return (ControlCharacter::UNAVAILABLE);
+    case CC_CR:
+      if (second == CC_LF) return (ControlCharacter::CRLF);
+      return (ControlCharacter::OTHER);
+    case CC_SPACE:
+      return (ControlCharacter::SPACE);
+    case CC_QUESTION:
+      return (ControlCharacter::QUESTION);
+    case CC_AMPERSAND:
+      return (ControlCharacter::AMPERSAND);
+    case CC_EQUAL:
+      return (ControlCharacter::EQUAL);
+    case CC_COLON:
+      return (ControlCharacter::COLON);
+    case CC_SEMICOLON:
+      return (ControlCharacter::SEMICOLON);
+    default:
+      return (ControlCharacter::OTHER);
+  }
+}
 
 //////////////////////////////////////////////////////////////////////
-// HTTPReqParserStateMachine::ParserTableBase
+// HTTPReqParserStateMachine::ParserTables
 //////////////////////////////////////////////////////////////////////
 
-HTTPReqParserStateMachine::ParserTableBase::ParserTableBase() {
-  firstEntry();
-}
-
-size_t HTTPReqParserStateMachine::ParserTableBase::getTableIndex(void) {
-  return (tableIndex);
-}
-
-
-boolean HTTPReqParserStateMachine::ParserTableBase::setTableIndex(size_t newIndex) {
-  if (tableIndex >= (tableSize - 1)) return (false);
-  tableIndex = newIndex;
-  return (true);
-}
-
-void HTTPReqParserStateMachine::ParserTableBase::firstEntry(void) {
-  tableIndex = 0;
-}
-
-boolean HTTPReqParserStateMachine::ParserTableBase::nextEntry(void) {
-  if (tableIndex >= (tableSize - 1)) return (false);
-  tableIndex++;
-  return (true);
-}
-
-//////////////////////////////////////////////////////////////////////
-// HTTPReqParserStateMachine::ProcessingTable
-//////////////////////////////////////////////////////////////////////
-
-//Processing table defines operations performed by state machine at the particular state as follows
-//Based on Current State, a Stream Operation is performed on the HTTP client stream
-//Current State defines, which HTTP Request Part (e.g. method, path, version, fields, etc...) it corresponds to
-const PROGMEM HTTPReqParserStateMachine::ProcessingTableEntry HTTPReqParserStateMachineProcessingTableInit[] = {
-  //Current State                                                 Stream Operation                                         Request Part
-  { HTTPReqParserStateMachine::ParserState::UNKNOWN,              HTTPReqParserStateMachine::StreamOperation::DO_NOTHING,  HTTPRequestPart::NONE},
-  { HTTPReqParserStateMachine::ParserState::BEGIN,                HTTPReqParserStateMachine::StreamOperation::DO_NOTHING,  HTTPRequestPart::BEGIN},
-  { HTTPReqParserStateMachine::ParserState::METHOD,               HTTPReqParserStateMachine::StreamOperation::READ,        HTTPRequestPart::METHOD},
-  { HTTPReqParserStateMachine::ParserState::PATH,                 HTTPReqParserStateMachine::StreamOperation::READ,        HTTPRequestPart::PATH},
-  { HTTPReqParserStateMachine::ParserState::URL_QUERY_NAME,       HTTPReqParserStateMachine::StreamOperation::READ,        HTTPRequestPart::URL_QUERY_NAME},
-  { HTTPReqParserStateMachine::ParserState::URL_QUERY_VALUE,      HTTPReqParserStateMachine::StreamOperation::READ,        HTTPRequestPart::URL_QUERY_VALUE},
-  { HTTPReqParserStateMachine::ParserState::HTTP_VERSION,         HTTPReqParserStateMachine::StreamOperation::READ,        HTTPRequestPart::VERSION},
-  { HTTPReqParserStateMachine::ParserState::FIELD_OR_HEADER_END,  HTTPReqParserStateMachine::StreamOperation::PEEK,        HTTPRequestPart::NONE},
-  { HTTPReqParserStateMachine::ParserState::FIELD_NAME,           HTTPReqParserStateMachine::StreamOperation::SKIP,        HTTPRequestPart::FIELD_NAME},
-  { HTTPReqParserStateMachine::ParserState::FIELD_VALUE,          HTTPReqParserStateMachine::StreamOperation::SKIP,        HTTPRequestPart::FIELD_VALUE},
-  { HTTPReqParserStateMachine::ParserState::HEADER_END,           HTTPReqParserStateMachine::StreamOperation::READ,        HTTPRequestPart::NONE},
-  { HTTPReqParserStateMachine::ParserState::POST_QUERY_OR_END,    HTTPReqParserStateMachine::StreamOperation::PEEK,        HTTPRequestPart::NONE},
-  { HTTPReqParserStateMachine::ParserState::POST_QUERY_NAME,      HTTPReqParserStateMachine::StreamOperation::READ,        HTTPRequestPart::POST_QUERY_NAME},
-  { HTTPReqParserStateMachine::ParserState::POST_QUERY_VALUE,     HTTPReqParserStateMachine::StreamOperation::READ,        HTTPRequestPart::POST_QUERY_VALUE},
-  { HTTPReqParserStateMachine::ParserState::FINISHED,             HTTPReqParserStateMachine::StreamOperation::DO_NOTHING,  HTTPRequestPart::FINISH},
-};
-
-HTTPReqParserStateMachine::ProcessingTable::ProcessingTable() {
-  table = HTTPReqParserStateMachineProcessingTableInit;
-  tableSize = sizeof (HTTPReqParserStateMachineProcessingTableInit) / tableEntrySize;
-  this->isValidated = this->validate();
-}
-
-boolean HTTPReqParserStateMachine::ProcessingTable::begin (void) {
-  firstEntry();
-  return (this->isValidated);
-}
-
-boolean HTTPReqParserStateMachine::ProcessingTable::validate (void) {
-  for (size_t i = 0; i < tableSize; i++) {
-    uint32_t * statePointerI = (uint32_t *) &table[i].state;
-    for (size_t j = i + 1; j < tableSize; j++) {
-      //check that all states are unique
-      uint32_t * statePointerJ = (uint32_t *) &table[j].state;
-      if (pgm_read_dword(statePointerI) == pgm_read_dword(statePointerJ)) return (false);
+boolean HTTPReqParserStateMachine::ParserTables::getStateProperties(
+  ParserState state,
+  StreamOperation *streamOp,
+  HTTPRequestPart *reqPart,
+  ParserState *defaultTransition,
+  ControlCharacterSet *controlChars)
+{
+  if (!streamOp || !reqPart || !defaultTransition) return (false);
+  static const PROGMEM StateTableEntry stateTable[] = {
+    //State                                     Stream operation                Request Part                        Default transition state                  Control char set
+    {ParserState::UNKNOWN,                      StreamOperation::DO_NOTHING,    HTTPRequestPart::NONE,              ParserState::ERROR_INTERNAL,              ControlCharacterSet::ALL},
+    {ParserState::BEGIN,                        StreamOperation::DO_NOTHING,    HTTPRequestPart::NONE,              ParserState::METHOD,                      ControlCharacterSet::ALL},
+    {ParserState::METHOD,                       StreamOperation::READ_UNTIL,    HTTPRequestPart::METHOD,            ParserState::ERROR_REQUEST_STRUCTURE,     ControlCharacterSet::ALL},
+    {ParserState::PATH,                         StreamOperation::READ_UNTIL,    HTTPRequestPart::PATH,              ParserState::ERROR_REQUEST_STRUCTURE,     ControlCharacterSet::ALL},
+    {ParserState::URL_QUERY_NAME,               StreamOperation::READ_UNTIL,    HTTPRequestPart::URL_QUERY_NAME,    ParserState::ERROR_REQUEST_STRUCTURE,     ControlCharacterSet::ALL},
+    {ParserState::URL_QUERY_VALUE,              StreamOperation::READ_UNTIL,    HTTPRequestPart::URL_QUERY_VALUE,   ParserState::ERROR_REQUEST_STRUCTURE,     ControlCharacterSet::ALL},
+    {ParserState::HTTP_VERSION,                 StreamOperation::READ_UNTIL,    HTTPRequestPart::HTTP_VERSION,      ParserState::ERROR_REQUEST_STRUCTURE,     ControlCharacterSet::ALL},
+    {ParserState::FIELD_OR_HEADER_END,          StreamOperation::READ_IF_CC,    HTTPRequestPart::NONE,              ParserState::ERROR_REQUEST_STRUCTURE,     ControlCharacterSet::ALL},
+    {ParserState::FIELD_NAME,                   StreamOperation::READ_UNTIL,    HTTPRequestPart::FIELD_NAME,        ParserState::ERROR_REQUEST_STRUCTURE,     ControlCharacterSet::ALL},
+    {ParserState::FIELD_VALUE_PART1,            StreamOperation::READ_UNTIL,    HTTPRequestPart::FIELD_VALUE_PART1, ParserState::ERROR_REQUEST_STRUCTURE,     ControlCharacterSet::FIELD_VALUE},
+    {ParserState::FIELD_VALUE_PART2,            StreamOperation::READ_UNTIL,    HTTPRequestPart::FIELD_VALUE_PART2, ParserState::ERROR_REQUEST_STRUCTURE,     ControlCharacterSet::FIELD_VALUE},
+    {ParserState::POST_QUERY_OR_END,            StreamOperation::READ_IF_CC,    HTTPRequestPart::NONE,              ParserState::ERROR_REQUEST_STRUCTURE,     ControlCharacterSet::ALL},
+    {ParserState::POST_QUERY_NAME,              StreamOperation::READ_UNTIL,    HTTPRequestPart::POST_QUERY_NAME,   ParserState::ERROR_REQUEST_STRUCTURE,     ControlCharacterSet::ALL},
+    {ParserState::POST_QUERY_VALUE,             StreamOperation::READ_UNTIL,    HTTPRequestPart::POST_QUERY_VALUE,  ParserState::ERROR_REQUEST_STRUCTURE,     ControlCharacterSet::ALL},
+    {ParserState::FINISHED,                     StreamOperation::DO_NOTHING,    HTTPRequestPart::NONE,              ParserState::FINISHED,                    ControlCharacterSet::ALL},
+    {ParserState::ERROR_INTERNAL,               StreamOperation::DO_NOTHING,    HTTPRequestPart::NONE,              ParserState::ERROR_INTERNAL,              ControlCharacterSet::ALL},
+    {ParserState::ERROR_REQUEST_PART_TOO_LONG,  StreamOperation::DO_NOTHING,    HTTPRequestPart::NONE,              ParserState::ERROR_REQUEST_PART_TOO_LONG, ControlCharacterSet::ALL},
+    {ParserState::ERROR_REQUEST_STRUCTURE,      StreamOperation::DO_NOTHING,    HTTPRequestPart::NONE,              ParserState::ERROR_REQUEST_STRUCTURE,     ControlCharacterSet::ALL},
+    {ParserState::ERROR_REQUEST_SEMANTICS,      StreamOperation::DO_NOTHING,    HTTPRequestPart::NONE,              ParserState::ERROR_REQUEST_SEMANTICS,     ControlCharacterSet::ALL},
+  };
+  const size_t stateTableSize = sizeof(stateTable) / sizeof(StateTableEntry);
+  for (size_t i = 0; i < stateTableSize; i++) {
+    StateTableEntry tempEntry;
+    memcpy_P(&tempEntry, &stateTable[i], sizeof (tempEntry));
+    if (tempEntry.state == state) {
+      *streamOp = tempEntry.streamOp;
+      *reqPart = tempEntry.reqPart;
+      *defaultTransition = tempEntry.defaultTransition;
+      *controlChars = tempEntry.controlChars;
+      return (true);
     }
   }
-  return (true);
-  static_assert(sizeof(table[0].state) == 4, "table[].state is expected to be dword");
-}
-
-boolean HTTPReqParserStateMachine::ProcessingTable::find (ParserState state) {
-  firstEntry();
-  do {
-    if (getState() == state) return (true);
-  } while (nextEntry());
   return (false);
 }
 
-HTTPReqParserStateMachine::StreamOperation HTTPReqParserStateMachine::ProcessingTable::getStreamOperation(void) {
-  uint32_t * streamOperationPointer = (uint32_t *)&table[tableIndex].operation;
-  return ((StreamOperation)pgm_read_dword(streamOperationPointer));
-  static_assert (sizeof(table[0].operation) == 4, "table[].operation is expected to be dword");
-}
-
-HTTPRequestPart HTTPReqParserStateMachine::ProcessingTable::getRequestPart(void) {
-  uint32_t * requestPartPointer = (uint32_t *)&table[tableIndex].part;
-  return ((HTTPRequestPart)pgm_read_dword(requestPartPointer));
-  static_assert (sizeof(table[0].part) == 4, "table[].part is expected to be dword");
-}
-
-
-HTTPReqParserStateMachine::ParserState HTTPReqParserStateMachine::ProcessingTable::getState(void) {
-  uint32_t * statePointer = (uint32_t *)&table[tableIndex].state;
-  return ((ParserState)pgm_read_dword(statePointer));
-  static_assert (sizeof(table[0].state) == 4, "table[].state is expected to be dword");
-}
-
-//////////////////////////////////////////////////////////////////////
-// HTTPReqParserStateMachine::TransitionTable
-//////////////////////////////////////////////////////////////////////
-
-//Transition table defines state machine transitions as follows:
-//Based on Current State and Next Character (the character where parser stopped reading from stream), a new state and a new HTTP status code are acquired
-const PROGMEM HTTPReqParserStateMachine::TransitionTableEntry HTTPReqParserStateMachineTransitionTableInit[] = {
-  //  Current state                                               Next char                                 New state                                                     New status code
-  { HTTPReqParserStateMachine::ParserState::UNKNOWN,              HTTPReqParserStateMachine::CHAR_OTHER,    HTTPReqParserStateMachine::ParserState::FINISHED,             ParseError::INTERNAL_ERROR},
-  { HTTPReqParserStateMachine::ParserState::BEGIN,                HTTPReqParserStateMachine::CHAR_OTHER,    HTTPReqParserStateMachine::ParserState::METHOD,               ParseError::NONE},
-  { HTTPReqParserStateMachine::ParserState::METHOD,               ' ',                                      HTTPReqParserStateMachine::ParserState::PATH,                 ParseError::NONE},
-  { HTTPReqParserStateMachine::ParserState::METHOD,               HTTPReqParserStateMachine::CHAR_OTHER,    HTTPReqParserStateMachine::ParserState::FINISHED,             ParseError::REQUEST_STRUCTURE},
-  { HTTPReqParserStateMachine::ParserState::PATH,                 ' ',                                      HTTPReqParserStateMachine::ParserState::HTTP_VERSION,         ParseError::NONE},
-  { HTTPReqParserStateMachine::ParserState::PATH,                 '?',                                      HTTPReqParserStateMachine::ParserState::URL_QUERY_NAME,       ParseError::NONE},
-  { HTTPReqParserStateMachine::ParserState::PATH,                 HTTPReqParserStateMachine::CHAR_OTHER,    HTTPReqParserStateMachine::ParserState::FINISHED,             ParseError::REQUEST_STRUCTURE},
-  { HTTPReqParserStateMachine::ParserState::URL_QUERY_NAME,       '=',                                      HTTPReqParserStateMachine::ParserState::URL_QUERY_VALUE,      ParseError::NONE},
-  { HTTPReqParserStateMachine::ParserState::URL_QUERY_NAME,       HTTPReqParserStateMachine::CHAR_OTHER,    HTTPReqParserStateMachine::ParserState::FINISHED,             ParseError::REQUEST_STRUCTURE},
-  { HTTPReqParserStateMachine::ParserState::URL_QUERY_VALUE,      '&',                                      HTTPReqParserStateMachine::ParserState::URL_QUERY_NAME,       ParseError::NONE},
-  { HTTPReqParserStateMachine::ParserState::URL_QUERY_VALUE,      ' ',                                      HTTPReqParserStateMachine::ParserState::HTTP_VERSION,         ParseError::NONE},
-  { HTTPReqParserStateMachine::ParserState::URL_QUERY_VALUE,      HTTPReqParserStateMachine::CHAR_OTHER,    HTTPReqParserStateMachine::ParserState::FINISHED,             ParseError::REQUEST_STRUCTURE},
-  { HTTPReqParserStateMachine::ParserState::HTTP_VERSION,         '\n',                                     HTTPReqParserStateMachine::ParserState::FIELD_OR_HEADER_END,  ParseError::NONE},
-  { HTTPReqParserStateMachine::ParserState::HTTP_VERSION,         HTTPReqParserStateMachine::CHAR_OTHER,    HTTPReqParserStateMachine::ParserState::FINISHED,             ParseError::REQUEST_STRUCTURE},
-  { HTTPReqParserStateMachine::ParserState::FIELD_OR_HEADER_END,  '\n',                                     HTTPReqParserStateMachine::ParserState::HEADER_END,           ParseError::NONE},
-  { HTTPReqParserStateMachine::ParserState::FIELD_OR_HEADER_END,  HTTPReqParserStateMachine::CHAR_OTHER,    HTTPReqParserStateMachine::ParserState::FIELD_NAME,           ParseError::NONE},
-  { HTTPReqParserStateMachine::ParserState::FIELD_NAME,           ':',                                      HTTPReqParserStateMachine::ParserState::FIELD_VALUE,          ParseError::NONE},
-  { HTTPReqParserStateMachine::ParserState::FIELD_NAME,           HTTPReqParserStateMachine::CHAR_OTHER,    HTTPReqParserStateMachine::ParserState::FINISHED,             ParseError::REQUEST_STRUCTURE},
-  { HTTPReqParserStateMachine::ParserState::FIELD_VALUE,          '\n',                                     HTTPReqParserStateMachine::ParserState::FIELD_OR_HEADER_END,  ParseError::NONE},
-  { HTTPReqParserStateMachine::ParserState::FIELD_VALUE,          HTTPReqParserStateMachine::CHAR_UNAVAIL,  HTTPReqParserStateMachine::ParserState::FINISHED,             ParseError::NONE},
-  { HTTPReqParserStateMachine::ParserState::FIELD_VALUE,          HTTPReqParserStateMachine::CHAR_OTHER,    HTTPReqParserStateMachine::ParserState::FINISHED,             ParseError::REQUEST_STRUCTURE},
-  { HTTPReqParserStateMachine::ParserState::HEADER_END,           '\n',                                     HTTPReqParserStateMachine::ParserState::POST_QUERY_OR_END,    ParseError::NONE},
-  { HTTPReqParserStateMachine::ParserState::HEADER_END,           HTTPReqParserStateMachine::CHAR_OTHER,    HTTPReqParserStateMachine::ParserState::FINISHED,             ParseError::REQUEST_STRUCTURE},
-  { HTTPReqParserStateMachine::ParserState::POST_QUERY_OR_END,    HTTPReqParserStateMachine::CHAR_UNAVAIL,  HTTPReqParserStateMachine::ParserState::FINISHED,             ParseError::NONE},
-  { HTTPReqParserStateMachine::ParserState::POST_QUERY_OR_END,    HTTPReqParserStateMachine::CHAR_OTHER,    HTTPReqParserStateMachine::ParserState::POST_QUERY_NAME,      ParseError::NONE},
-  { HTTPReqParserStateMachine::ParserState::POST_QUERY_NAME,      '=',                                      HTTPReqParserStateMachine::ParserState::POST_QUERY_VALUE,     ParseError::NONE},
-  { HTTPReqParserStateMachine::ParserState::POST_QUERY_NAME,      HTTPReqParserStateMachine::CHAR_OTHER,    HTTPReqParserStateMachine::ParserState::FINISHED,             ParseError::REQUEST_STRUCTURE},
-  { HTTPReqParserStateMachine::ParserState::POST_QUERY_VALUE,     '&',                                      HTTPReqParserStateMachine::ParserState::POST_QUERY_NAME,      ParseError::NONE},
-  { HTTPReqParserStateMachine::ParserState::POST_QUERY_VALUE,     '\n',                                     HTTPReqParserStateMachine::ParserState::FINISHED,             ParseError::NONE},
-  { HTTPReqParserStateMachine::ParserState::POST_QUERY_VALUE,     HTTPReqParserStateMachine::CHAR_UNAVAIL,  HTTPReqParserStateMachine::ParserState::FINISHED,             ParseError::NONE},
-  { HTTPReqParserStateMachine::ParserState::POST_QUERY_VALUE,     HTTPReqParserStateMachine::CHAR_OTHER,    HTTPReqParserStateMachine::ParserState::FINISHED,             ParseError::NONE},
-  { HTTPReqParserStateMachine::ParserState::FINISHED,             HTTPReqParserStateMachine::CHAR_OTHER,    HTTPReqParserStateMachine::ParserState::FINISHED,             ParseError::NONE},
-};
-
-HTTPReqParserStateMachine::TransitionTable::TransitionTable() {
-  table = HTTPReqParserStateMachineTransitionTableInit;
-  tableSize = sizeof (HTTPReqParserStateMachineTransitionTableInit) / tableEntrySize;
-  this->isValidated = this->validate();
-}
-
-boolean HTTPReqParserStateMachine::TransitionTable::begin (void) {
-  firstEntry();
-  return (this->isValidated);
-}
-
-boolean HTTPReqParserStateMachine::TransitionTable::validate(void) {
-  for (size_t i = 0; i < tableSize; i++) {
-    //check that all state/char combinations are unique
-    uint32_t * statePointerI = (uint32_t *) &table[i].state;
-    char * nextCharPointerI = (char *) &table[i].nextChar;
-    for (size_t j = i + 1; j < tableSize; j++) {
-      uint32_t * statePointerJ = (uint32_t *) &table[j].state;
-      char * nextCharPointerJ = (char *) &table[j].nextChar;
-      if ((pgm_read_dword(statePointerI) == pgm_read_dword(statePointerJ))
-          && (pgm_read_byte(nextCharPointerI) == pgm_read_byte(nextCharPointerJ))) return (false);
-    }
-    //check that all states have OTHER_CHAR
-    boolean otherCharFound = false;
-    for (size_t j = 0; j < tableSize; j++) {
-      uint32_t * statePointerJ = (uint32_t *) &table[j].state;
-      char * nextCharPointerJ = (char *) &table[j].nextChar;
-      if ((pgm_read_dword(statePointerI) == pgm_read_dword(statePointerJ)) &&
-          (pgm_read_byte(nextCharPointerJ) == HTTPReqParserStateMachine::CHAR_OTHER)) {
-        otherCharFound = true;
-        break;
-      }
-    }
-    if (!otherCharFound) return (false);
+HTTPReqParserStateMachine::ParserState HTTPReqParserStateMachine::ParserTables::getNextState(
+  ParserState currentState,
+  ControlCharacter nextCharacter,
+  ParserState defaultTransition)
+{
+  static const PROGMEM TransitionTableEntry transitionTable[] = {
+    //Current state                     Next control character          New state
+    {ParserState::METHOD,               ControlCharacter::SPACE,        ParserState::PATH},
+    {ParserState::METHOD,               ControlCharacter::OTHER,        ParserState::ERROR_REQUEST_PART_TOO_LONG},
+    {ParserState::PATH,                 ControlCharacter::SPACE,        ParserState::HTTP_VERSION},
+    {ParserState::PATH,                 ControlCharacter::QUESTION,     ParserState::URL_QUERY_NAME},
+    {ParserState::PATH,                 ControlCharacter::OTHER,        ParserState::ERROR_REQUEST_PART_TOO_LONG},
+    {ParserState::URL_QUERY_NAME,       ControlCharacter::EQUAL,        ParserState::URL_QUERY_VALUE},
+    {ParserState::URL_QUERY_NAME,       ControlCharacter::OTHER,        ParserState::ERROR_REQUEST_PART_TOO_LONG},
+    {ParserState::URL_QUERY_VALUE,      ControlCharacter::AMPERSAND,    ParserState::URL_QUERY_NAME},
+    {ParserState::URL_QUERY_VALUE,      ControlCharacter::SPACE,        ParserState::HTTP_VERSION},
+    {ParserState::URL_QUERY_VALUE,      ControlCharacter::OTHER,        ParserState::ERROR_REQUEST_PART_TOO_LONG},
+    {ParserState::HTTP_VERSION,         ControlCharacter::CRLF,         ParserState::FIELD_OR_HEADER_END},
+    {ParserState::HTTP_VERSION,         ControlCharacter::OTHER,        ParserState::ERROR_REQUEST_PART_TOO_LONG},
+    {ParserState::FIELD_OR_HEADER_END,  ControlCharacter::CRLF,         ParserState::POST_QUERY_OR_END},
+    {ParserState::FIELD_OR_HEADER_END,  ControlCharacter::OTHER,        ParserState::FIELD_NAME},
+    {ParserState::FIELD_OR_HEADER_END,  ControlCharacter::COLON,        ParserState::FIELD_VALUE_PART1},
+    {ParserState::FIELD_NAME,           ControlCharacter::COLON,        ParserState::FIELD_VALUE_PART1},
+    {ParserState::FIELD_NAME,           ControlCharacter::OTHER,        ParserState::ERROR_REQUEST_PART_TOO_LONG},
+    {ParserState::FIELD_VALUE_PART1,    ControlCharacter::CRLF,         ParserState::FIELD_OR_HEADER_END},
+    {ParserState::FIELD_VALUE_PART1,    ControlCharacter::EQUAL,        ParserState::FIELD_VALUE_PART2},
+    {ParserState::FIELD_VALUE_PART1,    ControlCharacter::SEMICOLON,    ParserState::FIELD_VALUE_PART1},
+    {ParserState::FIELD_VALUE_PART1,    ControlCharacter::OTHER,        ParserState::FIELD_VALUE_PART1},
+    {ParserState::FIELD_VALUE_PART2,    ControlCharacter::CRLF,         ParserState::FIELD_OR_HEADER_END},
+    {ParserState::FIELD_VALUE_PART2,    ControlCharacter::EQUAL,        ParserState::FIELD_VALUE_PART2},
+    {ParserState::FIELD_VALUE_PART2,    ControlCharacter::SEMICOLON,    ParserState::FIELD_VALUE_PART1},
+    {ParserState::FIELD_VALUE_PART2,    ControlCharacter::OTHER,        ParserState::FIELD_VALUE_PART2},
+    {ParserState::POST_QUERY_OR_END,    ControlCharacter::UNAVAILABLE,  ParserState::FINISHED},
+    {ParserState::POST_QUERY_OR_END,    ControlCharacter::OTHER,        ParserState::POST_QUERY_NAME},
+    {ParserState::POST_QUERY_OR_END,    ControlCharacter::EQUAL,        ParserState::POST_QUERY_VALUE},
+    {ParserState::POST_QUERY_NAME,      ControlCharacter::EQUAL,        ParserState::POST_QUERY_VALUE},
+    {ParserState::POST_QUERY_NAME,      ControlCharacter::OTHER,        ParserState::ERROR_REQUEST_PART_TOO_LONG},
+    {ParserState::POST_QUERY_VALUE,     ControlCharacter::AMPERSAND,    ParserState::POST_QUERY_NAME},
+    {ParserState::POST_QUERY_VALUE,     ControlCharacter::UNAVAILABLE,  ParserState::FINISHED},
+    {ParserState::POST_QUERY_VALUE,     ControlCharacter::CRLF,         ParserState::FINISHED},
+    {ParserState::POST_QUERY_VALUE,     ControlCharacter::OTHER,        ParserState::ERROR_REQUEST_PART_TOO_LONG}
+  };
+  const size_t transitionTableSize = sizeof(transitionTable) / sizeof(TransitionTableEntry);
+  for (size_t i = 0; i < transitionTableSize; i++) {
+    TransitionTableEntry tempEntry;
+    memcpy_P(&tempEntry, &transitionTable[i], sizeof(tempEntry));
+    if ((tempEntry.state == currentState) && (tempEntry.nextCharacter == nextCharacter)) return (tempEntry.newState);
   }
-  return (true);
-  static_assert(sizeof(table[0].state) == 4, "table[].state is expected to be dword");
-  static_assert(sizeof(table[0].nextChar) == 1, "table[].newChar is expected to be byte");
-}
-
-boolean HTTPReqParserStateMachine::TransitionTable::find (ParserState state, char nextChar) {
-  firstEntry();
-  do {
-    if ((getState() == state) && ((getNextChar() == nextChar) || (getNextChar() == CHAR_OTHER))) return (true);
-  } while (nextEntry());
-  return (false);
-}
-
-boolean HTTPReqParserStateMachine::TransitionTable::enumerateNextChars(ParserState state, char * buffer, size_t bufferSize) {
-  size_t currentIndex = getTableIndex();
-  size_t bufferPos = 0;
-  firstEntry();
-  do {
-    if ((getState() == state) && (getNextChar() != CHAR_OTHER)) {
-      if (bufferPos < (bufferSize - 1))
-        buffer[bufferPos++] = getNextChar();
-      else
-        return (false);
-    }
-  } while (nextEntry());
-  buffer[bufferPos] = 0;
-  setTableIndex(currentIndex);
-  return (true);
-}
-
-HTTPReqParserStateMachine::ParserState HTTPReqParserStateMachine::TransitionTable::getNewState(void) {
-  uint32_t * newStatePointer = (uint32_t *)&table[tableIndex].newState;
-  return ((HTTPReqParserStateMachine::ParserState)pgm_read_word(newStatePointer));
-  static_assert (sizeof(table[0].newState) == 4, "table[].newState is expected to be dword");
-}
-
-ParseError HTTPReqParserStateMachine::TransitionTable::getError(void) {
-  uint16_t * errorPointer = (uint16_t *)&table[tableIndex].error;
-  return ((ParseError)pgm_read_word(errorPointer));
-  static_assert (sizeof(table[0].error) == 4, "table[].error is expected to be dword");
-}
-
-HTTPReqParserStateMachine::ParserState HTTPReqParserStateMachine::TransitionTable::getState(void) {
-  uint32_t * statePointer = (uint32_t *)&table[tableIndex].state;
-  return ((HTTPReqParserStateMachine::ParserState)pgm_read_word(statePointer));
-  static_assert (sizeof(table[0].state) == 4, "table[].operation is expected to be dword");
-}
-char HTTPReqParserStateMachine::TransitionTable::getNextChar(void) {
-  char * nextCharPointer = (char *) &table[tableIndex].nextChar;
-  return ((char)pgm_read_byte(nextCharPointer));
-  static_assert (sizeof(table[0].nextChar) == 1, "table[].nextChar is expected to be byte");
+  return (defaultTransition);
 }
 
 //////////////////////////////////////////////////////////////////////
 // HTTPReqParserStateMachine
 //////////////////////////////////////////////////////////////////////
 
-boolean HTTPReqParserStateMachine::begin(Stream & client) {
-  inputStream.begin(client);
-  readBuffer[0] = '\0';
-  parserStatus.requestPart = HTTPRequestPart::NONE;
-  parserStatus.currentState = ParserState::BEGIN;
-  parserStatus.nextCharacter = ParserInputStream::NOT_AVAILABLE;
-  parserStatus.error = ParseError::NONE;
-
-  boolean returnValue = true;
-  if (!processingTable.begin()) {
-    setInternalError(InternalError::PROCESSING_TABLE, __LINE__);
-    returnValue = false;
-  }
-  if (!transitionTable.begin()) {
-    setInternalError(InternalError::TRANSITION_TABLE, __LINE__);
-    returnValue = false;
-  }
-  return (returnValue);
-}
-
-void HTTPReqParserStateMachine::parse(void) {
-  if (!inputStream.validate()) {
-    setInternalError(InternalError::CLIENT_NOT_INITIALISED, __LINE__);
+void HTTPReqParserStateMachine::parse(char * buffer, size_t bufferSize, HTTPRequestPart * part) {
+  if (!inputStream) {
+    setInternalError(__LINE__);
     return;
   }
-  if (!processingTable.find(parserStatus.currentState)) {
-    setInternalError(InternalError::STATE_NOT_FOUND, __LINE__);
+  if (!buffer) {
+    setInternalError(__LINE__);
     return;
   }
-  readBuffer[0] = '\0';
-  int nextCharAsInt = ParserInputStream::NOT_AVAILABLE;
-  const size_t NEXT_CHARS_SIZE = 5; //max 4 characters per parser state + null character
-  char nextChars[NEXT_CHARS_SIZE];
-  ParserInputStream::ReturnStatus inputStreamStatus;
-
-  switch (this->processingTable.getStreamOperation()) {
-    case StreamOperation::DO_NOTHING:
-      break;
-    case StreamOperation::READ:
-      this->transitionTable.enumerateNextChars(this->parserStatus.currentState, nextChars, NEXT_CHARS_SIZE);
-      inputStreamStatus = inputStream.readUntil(nextChars, readBuffer, READ_BUFFER_SIZE);
-      if (inputStreamStatus == ParserInputStream::END_OF_BUFFER) {
-        setError(ParseError::REQUEST_PART_TOO_LONG);
-        return;
-      }
-      if ((inputStreamStatus == ParserInputStream::NO_BUFFER) || (inputStreamStatus == ParserInputStream::NO_CHARS_TO_FIND)) {
-        setInternalError(InternalError::STREAM_READ_PARAMETERS, __LINE__);
-      }
-      nextCharAsInt = inputStream.read();
-      break;
-    case StreamOperation::SKIP:
-      this->transitionTable.enumerateNextChars(this->parserStatus.currentState, nextChars, NEXT_CHARS_SIZE);
-      inputStream.skipUntil(nextChars);
-      nextCharAsInt = inputStream.read();
-      break;
-    case StreamOperation::PEEK:
-      nextCharAsInt = inputStream.peek();
-      break;
-    default:
-      setInternalError(InternalError::STREAM_OPERATION, __LINE__);
+  if (!bufferSize) {
+    setInternalError(__LINE__);
+    return;
+  }
+  HTTPRequestPart reqPart;
+  do {
+    buffer[0] = '\0';
+    StreamOperation streamOp;
+    ParserState defaultTransition;
+    ControlCharacterSet ccSet;
+    if (!ParserTables::getStateProperties(currentState, &streamOp, &reqPart, &defaultTransition, &ccSet)) {
+      setInternalError(__LINE__);
       return;
-  }
-  URL::decode(readBuffer, READ_BUFFER_SIZE);
-  parserStatus.nextCharacter = (char)nextCharAsInt;
-  parserStatus.requestPart = processingTable.getRequestPart();
-  if (!transitionTable.find(parserStatus.currentState, parserStatus.nextCharacter)) {
-    setInternalError(InternalError::STATE_NOT_FOUND, __LINE__);
-    return;
-  }
-  if (transitionTable.getError() != ParseError::NONE) {
-    setError(transitionTable.getError());
-    if (transitionTable.getError() == ParseError::INTERNAL_ERROR) {
-      setInternalError(InternalError::ERROR_BY_STATE, __LINE__);
     }
-  }
-  transition(transitionTable.getNewState());
+    *part = reqPart;
+    ControlCharacter nextCharacter = ControlCharacter::UNAVAILABLE;
+    switch (streamOp) {
+      case StreamOperation::DO_NOTHING:
+        break;
+      case StreamOperation::READ_UNTIL:
+        nextCharacter = InputStreamHelper::readUntilControlCharacter(*inputStream, ccSet, buffer, bufferSize);
+        break;
+      case StreamOperation::SKIP:
+        nextCharacter = InputStreamHelper::skipUntilControlCharacter(*inputStream, ccSet);
+        break;
+      case StreamOperation::READ_SINGLE:
+        nextCharacter = InputStreamHelper::read(*inputStream, ccSet);
+        break;
+      case StreamOperation::READ_IF_CC:
+        nextCharacter = InputStreamHelper::readIfControlCharacter(*inputStream, ccSet);
+        break;
+      default:
+        setInternalError(__LINE__);
+        return;
+    }
+    URL::decode(buffer, bufferSize);
+    transition(ParserTables::getNextState(currentState, nextCharacter, defaultTransition));
+  } while ((reqPart == HTTPRequestPart::NONE || !buffer[0]) && !error() && !finished());
 }
-
-void HTTPReqParserStateMachine::transition(HTTPReqParserStateMachine::ParserState newState) {
-  parserStatus.currentState = newState;
-  if (parserStatus.currentState == ParserState::FINISHED) inputStream.reset();
-}
-
-boolean HTTPReqParserStateMachine::finished(void) const {
-  return (parserStatus.currentState == ParserState::FINISHED);
-}
-
-boolean HTTPReqParserStateMachine::error(void) const {
-  return (parserStatus.error != ParseError::NONE);
-}
-
-const char * HTTPReqParserStateMachine::getReqPartValue(void) const {
-  return (readBuffer);
-}
-
-size_t HTTPReqParserStateMachine::getBufferSize(void) const {
-  return (sizeof(readBuffer));
-}
-
-HTTPRequestPart HTTPReqParserStateMachine::getReqPart(void) const {
-  return (parserStatus.requestPart);
-}
-
-ParseError HTTPReqParserStateMachine::getError(void) const {
-  return (parserStatus.error);
-}
-
-void HTTPReqParserStateMachine::setError(ParseError error) {
-  if (error == ParseError::NONE) return;
-  transition(ParserState::FINISHED);
-  parserStatus.error = error;
-  if (error == ParseError::INTERNAL_ERROR) {
-    setInternalError();
-  }
-}
-
-void HTTPReqParserStateMachine::setInternalError(InternalError error, size_t codeLine) {
-  transition(ParserState::FINISHED);
-  parserStatus.error = ParseError::INTERNAL_ERROR;
-  internalErrorStatus.error = error;
-  internalErrorStatus.state = parserStatus.currentState;
-  internalErrorStatus.nextChar = parserStatus.nextCharacter;
-  internalErrorStatus.codeLine = codeLine;
-}
-
 
 };
