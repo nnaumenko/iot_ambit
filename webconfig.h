@@ -184,8 +184,7 @@ void WebConfig<Diag>::resetCheckBoxParameters(void) {
 
 template <class Diag>
 void WebConfig<Diag>::sendConfigPage(Print &client) {
-  Diag::instance()->timestamp();
-  Diag::instance()->println(FSH(textsUI.sendingConfig));
+  Diag::instance()->log (Diag::Severity::INFORMATIONAL, FSH(textsUI.sendingConfig));
   HTTPResponseHeader::contentHeader(client, HTTPContentType::HTML);
   QuickStringMap parameterNameFinder (stringMapEepromSavedParameterInternalNames);
   webcc::WebccForm form(client);
@@ -255,8 +254,7 @@ void WebConfig<Diag>::sendConfigPage(Print &client) {
                      eepromSavedParametersStorage.startupDelay,
                      textsUI.parameterTooltipStartupDelay);
   form.bodyEnd();
-  Diag::instance()->timestamp();
-  Diag::instance()->println(FSH(textsUI.configSent));
+  Diag::instance()->log(Diag::Severity::DEBUG, FSH(textsUI.configSent));
 }
 
 template <class Diag>

@@ -58,9 +58,9 @@ void saveConfig(void) {
                (void *)&eepromSavedParametersStorage,
                sizeof(eepromSavedParametersStorage));
   EEPROM.end();
-  DiagLog.print(F("["));
-  DiagLog.print(millis());
-  DiagLog.println(F("] Config saved to EEPROM."));
+  DiagLogLegacy.print(F("["));
+  DiagLogLegacy.print(millis());
+  DiagLogLegacy.println(F("] Config saved to EEPROM."));
 }
 
 void loadConfig(void) {
@@ -69,64 +69,64 @@ void loadConfig(void) {
                  (void *)&eepromSavedParametersStorage,
                  sizeof(eepromSavedParametersStorage));
   EEPROM.end();
-  DiagLog.print(F("["));
-  DiagLog.print(millis());
-  DiagLog.println(F("] Config loaded from EEPROM."));
-  DiagLog.print(F("Config saved with firmware version "));
-  DiagLog.print(eepromSavedParametersStorage.versionMajor);
-  DiagLog.print(F("."));
-  DiagLog.println(eepromSavedParametersStorage.versionMinor);
+  DiagLogLegacy.print(F("["));
+  DiagLogLegacy.print(millis());
+  DiagLogLegacy.println(F("] Config loaded from EEPROM."));
+  DiagLogLegacy.print(F("Config saved with firmware version "));
+  DiagLogLegacy.print(eepromSavedParametersStorage.versionMajor);
+  DiagLogLegacy.print(F("."));
+  DiagLogLegacy.println(eepromSavedParametersStorage.versionMinor);
   if ((eepromSavedParametersStorage.versionMajor != FIRMWARE_VERSION_MAJOR) ||
       (eepromSavedParametersStorage.versionMinor != FIRMWARE_VERSION_MINOR))
-    DiagLog.println(F("CONFIG SAVED WITH DIFFERENT FIRMWARE VERSION, PLEASE ACTIVATE CONFIG MODE AND REVIEW DATA"));
-  DiagLog.print(F("Checksum: 0x"));
-  DiagLog.println(eepromSavedParametersStorage.checkSum, HEX);
-  if (calculateCheckSum() != eepromSavedParametersStorage.checkSum) DiagLog.print(F("CONFIG CHECKSUM WRONG, PLEASE ACTIVATE CONFIG MODE AND REVIEW DATA"));
-  DiagLog.print(F("WIFI network: "));
-  DiagLog.println(eepromSavedParametersStorage.wifiSsid);
+    DiagLogLegacy.println(F("CONFIG SAVED WITH DIFFERENT FIRMWARE VERSION, PLEASE ACTIVATE CONFIG MODE AND REVIEW DATA"));
+  DiagLogLegacy.print(F("Checksum: 0x"));
+  DiagLogLegacy.println(eepromSavedParametersStorage.checkSum, HEX);
+  if (calculateCheckSum() != eepromSavedParametersStorage.checkSum) DiagLogLegacy.print(F("CONFIG CHECKSUM WRONG, PLEASE ACTIVATE CONFIG MODE AND REVIEW DATA"));
+  DiagLogLegacy.print(F("WIFI network: "));
+  DiagLogLegacy.println(eepromSavedParametersStorage.wifiSsid);
   if (EEPROM_DEBUG_PRINT_INSECURE) {
-    DiagLog.print(F("WIFI password: "));
-    DiagLog.println(eepromSavedParametersStorage.wifiPassword);
-    DiagLog.print(F("Auth token: "));
-    DiagLog.println(eepromSavedParametersStorage.authToken);
+    DiagLogLegacy.print(F("WIFI password: "));
+    DiagLogLegacy.println(eepromSavedParametersStorage.wifiPassword);
+    DiagLogLegacy.print(F("Auth token: "));
+    DiagLogLegacy.println(eepromSavedParametersStorage.authToken);
   }
-  DiagLog.print(F("MG811 cal points: "));
-  DiagLog.print(F("Raw="));
-  DiagLog.print(eepromSavedParametersStorage.MG811CalPoint0Raw);
-  DiagLog.print(F(" Calibrated="));
-  DiagLog.print(eepromSavedParametersStorage.MG811CalPoint0Calibrated);
-  DiagLog.print(F("ppm / Raw="));
-  DiagLog.print(eepromSavedParametersStorage.MG811CalPoint1Raw);
-  DiagLog.print(F(" Calibrated="));
-  DiagLog.print(eepromSavedParametersStorage.MG811CalPoint1Calibrated);
-  DiagLog.println(F("ppm"));
-  DiagLog.print(F("MG811 filter: "));
+  DiagLogLegacy.print(F("MG811 cal points: "));
+  DiagLogLegacy.print(F("Raw="));
+  DiagLogLegacy.print(eepromSavedParametersStorage.MG811CalPoint0Raw);
+  DiagLogLegacy.print(F(" Calibrated="));
+  DiagLogLegacy.print(eepromSavedParametersStorage.MG811CalPoint0Calibrated);
+  DiagLogLegacy.print(F("ppm / Raw="));
+  DiagLogLegacy.print(eepromSavedParametersStorage.MG811CalPoint1Raw);
+  DiagLogLegacy.print(F(" Calibrated="));
+  DiagLogLegacy.print(eepromSavedParametersStorage.MG811CalPoint1Calibrated);
+  DiagLogLegacy.println(F("ppm"));
+  DiagLogLegacy.print(F("MG811 filter: "));
   switch (eepromSavedParametersStorage.filterMG811) {
     case ADCFilter::OFF:
-      DiagLog.println(F("off"));
+      DiagLogLegacy.println(F("off"));
       break;
     case ADCFilter::AVERAGE:
-      DiagLog.println(F("moving average"));
+      DiagLogLegacy.println(F("moving average"));
       break;
     case ADCFilter::LOWPASS:
-      DiagLog.print(F("low-pass, limit frequency: "));
-      DiagLog.print(eepromSavedParametersStorage.filterMG811LowPassFrequency);
-      DiagLog.println(F(" x 0.01 Hz"));
+      DiagLogLegacy.print(F("low-pass, limit frequency: "));
+      DiagLogLegacy.print(eepromSavedParametersStorage.filterMG811LowPassFrequency);
+      DiagLogLegacy.println(F(" x 0.01 Hz"));
       break;
     default:
-      DiagLog.print(F("unknown ("));
-      DiagLog.print((int)eepromSavedParametersStorage.filterMG811, DEC);
-      DiagLog.println(F(")"));
+      DiagLogLegacy.print(F("unknown ("));
+      DiagLogLegacy.print((int)eepromSavedParametersStorage.filterMG811, DEC);
+      DiagLogLegacy.println(F(")"));
       break;
   }
-  DiagLog.print(F("MG811 calibration mode: "));
+  DiagLogLegacy.print(F("MG811 calibration mode: "));
   if (!eepromSavedParametersStorage.rejectCalibrationMG811)
-    DiagLog.println(F("use calibration data"));
+    DiagLogLegacy.println(F("use calibration data"));
   else
-    DiagLog.println(F("use uncalibrated value"));
-  DiagLog.print(F("Sensor readings' serial output: "));
+    DiagLogLegacy.println(F("use uncalibrated value"));
+  DiagLogLegacy.print(F("Sensor readings' serial output: "));
   if (!eepromSavedParametersStorage.sensorSerialOutput)
-    DiagLog.println(F("off"));
+    DiagLogLegacy.println(F("off"));
   else
-    DiagLog.println(F("on"));
+    DiagLogLegacy.println(F("on"));
 }

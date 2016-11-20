@@ -22,13 +22,14 @@ WiFiServer webServer(WEB_SERVER_PORT);
 #include "webcc.h"
 #include "webconfig.h"
 
-using TempDiagLog = diag::TempDiagLog;
-using WebConfig = webconfig::WebConfig <TempDiagLog>;
-using WebConfigControl = webcc::WebConfigControl <TempDiagLog, webcc::HTTPReqParserStateMachine, webcc::BufferedPrint, webcc::WebccForm,
-      WebConfig, TempDiagLog>;
+using DiagLog = diag::DiagLog<diag::DiagLogStorage>;
+using WebConfig = webconfig::WebConfig <DiagLog>;
+using WebConfigControl = webcc::WebConfigControl <DiagLog, webcc::HTTPReqParserStateMachine, webcc::BufferedPrint, webcc::WebccForm,
+      WebConfig, DiagLog>;
 
 namespace diag {
 const Texts PROGMEM texts;
+const TextsUI PROGMEM textsUI;
 };
 namespace webconfig {
 const Texts PROGMEM texts;
@@ -37,7 +38,7 @@ const TextsUI PROGMEM textsUI;
 
 #include "diag_legacy.h"
 
-#define BLYNK_PRINT DiagLog
+#define BLYNK_PRINT DiagLogLegacy
 
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wunused-parameter"
@@ -157,36 +158,36 @@ void calcCalDataMG811(void) {
   const double Y2 = log((double)eepromSavedParametersStorage.MG811CalPoint1Calibrated);
   const double X1 = (double)eepromSavedParametersStorage.MG811CalPoint0Raw;
   const double X2 = (double)eepromSavedParametersStorage.MG811CalPoint1Raw;
-  DiagLog.println(F("Calculating MG811 calibration data..."));
-  DiagLog.print(F("Reference points: "));
-  DiagLog.print(F("Raw="));
-  DiagLog.print(eepromSavedParametersStorage.MG811CalPoint0Raw);
-  DiagLog.print(F(" Calibrated="));
-  DiagLog.print(eepromSavedParametersStorage.MG811CalPoint0Calibrated);
-  DiagLog.print(F("ppm / Raw="));
-  DiagLog.print(eepromSavedParametersStorage.MG811CalPoint1Raw);
-  DiagLog.print(F(" Calibrated="));
-  DiagLog.print(eepromSavedParametersStorage.MG811CalPoint1Calibrated);
-  DiagLog.println(F("ppm"));
+  DiagLogLegacy.println(F("Calculating MG811 calibration data..."));
+  DiagLogLegacy.print(F("Reference points: "));
+  DiagLogLegacy.print(F("Raw="));
+  DiagLogLegacy.print(eepromSavedParametersStorage.MG811CalPoint0Raw);
+  DiagLogLegacy.print(F(" Calibrated="));
+  DiagLogLegacy.print(eepromSavedParametersStorage.MG811CalPoint0Calibrated);
+  DiagLogLegacy.print(F("ppm / Raw="));
+  DiagLogLegacy.print(eepromSavedParametersStorage.MG811CalPoint1Raw);
+  DiagLogLegacy.print(F(" Calibrated="));
+  DiagLogLegacy.print(eepromSavedParametersStorage.MG811CalPoint1Calibrated);
+  DiagLogLegacy.println(F("ppm"));
   double tempCalDataMG811_a = (Y2 - Y1) / (X2 - X1);
   double tempCalDataMG811_b = Y1 - calDataMG811_a * X1;
-  DiagLog.print("Calibration data: a=");
-  DiagLog.print(calDataMG811_a);
-  DiagLog.print(" b=");
-  DiagLog.println(calDataMG811_b);
+  DiagLogLegacy.print("Calibration data: a=");
+  DiagLogLegacy.print(calDataMG811_a);
+  DiagLogLegacy.print(" b=");
+  DiagLogLegacy.println(calDataMG811_b);
   if (isnan(tempCalDataMG811_a) ||
       isinf(tempCalDataMG811_a) ||
       isnan(tempCalDataMG811_b) ||
       isinf(tempCalDataMG811_b)) {
-    DiagLog.println(F("Calibration data error: calibration data rejected"));
+    DiagLogLegacy.println(F("Calibration data error: calibration data rejected"));
   }
   else {
     calDataMG811_a = tempCalDataMG811_a;
     calDataMG811_b = tempCalDataMG811_b;
-    DiagLog.println(F("Calibration data accepted"));
+    DiagLogLegacy.println(F("Calibration data accepted"));
   }
   if (eepromSavedParametersStorage.rejectCalibrationMG811) {
-    DiagLog.println(F("Uncalibrated mode selected, no ppm value will be calculated, the output value is 1024 - ADC_value."));
+    DiagLogLegacy.println(F("Uncalibrated mode selected, no ppm value will be calculated, the output value is 1024 - ADC_value."));
   }
 }
 
@@ -336,27 +337,27 @@ void updateStatusVirtualPins(void) {
 void printSensorDebugInfo(void) {
   if (!eepromSavedParametersStorage.sensorSerialOutput) return;
 
-  DiagLog.print(F("["));
-  DiagLog.print(millis());
-  DiagLog.print(F("] sensor values:"));
+  DiagLogLegacy.print(F("["));
+  DiagLogLegacy.print(millis());
+  DiagLogLegacy.print(F("] sensor values:"));
 
-  DiagLog.print(F(" DHT T = "));
-  DiagLog.print(valueTemperatureDHT);
-  DiagLog.print(F(" RH = "));
-  DiagLog.print(valueHumidityDHT);
+  DiagLogLegacy.print(F(" DHT T = "));
+  DiagLogLegacy.print(valueTemperatureDHT);
+  DiagLogLegacy.print(F(" RH = "));
+  DiagLogLegacy.print(valueHumidityDHT);
 
-  DiagLog.print(F(" OneWire(0) T = "));
-  DiagLog.print(valueTemperatureOneWire);
+  DiagLogLegacy.print(F(" OneWire(0) T = "));
+  DiagLogLegacy.print(valueTemperatureOneWire);
 
   if (!eepromSavedParametersStorage.rejectCalibrationMG811)
-    DiagLog.print(F(" MG811 ppm = "));
+    DiagLogLegacy.print(F(" MG811 ppm = "));
   else
-    DiagLog.print(F(" MG811 value = "));
-  DiagLog.print(valueMG811);
-  DiagLog.print(F(" raw = "));
-  DiagLog.print(valueMG811uncal);
+    DiagLogLegacy.print(F(" MG811 value = "));
+  DiagLogLegacy.print(valueMG811);
+  DiagLogLegacy.print(F(" raw = "));
+  DiagLogLegacy.print(valueMG811uncal);
 
-  DiagLog.println();
+  DiagLogLegacy.println();
 }
 
 boolean checkTimedEvent (const unsigned long period, unsigned long * tempTimeValue) {
@@ -371,16 +372,17 @@ void setup() {
   Serial.begin(9600);
   webServer.begin();
 
-  TempDiagLog::instance()->begin();
+  DiagLog::instance()->begin();
+  DiagLog::instance()->setPrintOutput(Serial);
   WebConfigControl::instance()->setServer(webServer);
   WebConfigControl::instance()->begin();
   WebConfig::instance()->begin();
 
-  DiagLog.println(F("\nInit started."));
-  DiagLog.print(F("Firmware version "));
-  DiagLog.print(FIRMWARE_VERSION_MAJOR);
-  DiagLog.print(F("."));
-  DiagLog.println(FIRMWARE_VERSION_MINOR);
+  DiagLogLegacy.println(F("\nInit started."));
+  DiagLogLegacy.print(F("Firmware version "));
+  DiagLogLegacy.print(FIRMWARE_VERSION_MAJOR);
+  DiagLogLegacy.print(F("."));
+  DiagLogLegacy.println(FIRMWARE_VERSION_MINOR);
 
 
 
@@ -393,21 +395,21 @@ void setup() {
   ltoa(ESP.getChipId(), chipId, RADIX_DECIMAL);
   char flashId[16];
   ltoa(ESP.getFlashChipId(), flashId, RADIX_DECIMAL);
-  DiagLog.print(F("Chip ID: "));
-  DiagLog.println(chipId);
-  DiagLog.print(F("Flash chip ID:"));
-  DiagLog.println(flashId);
+  DiagLogLegacy.print(F("Chip ID: "));
+  DiagLogLegacy.println(chipId);
+  DiagLogLegacy.print(F("Flash chip ID:"));
+  DiagLogLegacy.println(flashId);
 
   loadConfig();
 
   calcCalDataMG811();
 
   isConfigMode = !digitalRead(PIN_SWITCH_CONFIG);
-  
+
   if (isConfigMode) WebConfigControl::instance()->setRootRedirect((const char *)F("webconfig"));
 
   if (isConfigMode) {
-    DiagLog.println(F("Config Mode enabled."));
+    DiagLogLegacy.println(F("Config Mode enabled."));
     const size_t TEXT_SIZE = 32;
     char ssid[TEXT_SIZE + 1] = {0};
     strncpy_P(ssid, ssidConfigModePrefix, sizeof(ssid));
@@ -420,44 +422,44 @@ void setup() {
       WiFi.softAP(ssid);
     else
       WiFi.softAP(ssid, password);
-    DiagLog.println(F("Access point created: "));
-    DiagLog.print(F("SSID: "));
-    DiagLog.println(ssid);
+    DiagLogLegacy.println(F("Access point created: "));
+    DiagLogLegacy.print(F("SSID: "));
+    DiagLogLegacy.println(ssid);
     if (CONFIG_MODE_WIFI_OPEN)
-      DiagLog.println(F("Open WiFi network"));
+      DiagLogLegacy.println(F("Open WiFi network"));
     else {
-      DiagLog.print(F("Password: "));
-      DiagLog.println(password);
+      DiagLogLegacy.print(F("Password: "));
+      DiagLogLegacy.println(password);
     }
-    DiagLog.print(F("IP address: "));
-    DiagLog.println(WiFi.softAPIP());
+    DiagLogLegacy.print(F("IP address: "));
+    DiagLogLegacy.println(WiFi.softAPIP());
   }
   else {
-    DiagLog.println(F("Config Mode not enabled."));
+    DiagLogLegacy.println(F("Config Mode not enabled."));
     if (eepromSavedParametersStorage.startupDelay) {
-      DiagLog.print(F("["));
-      DiagLog.print(millis());
-      DiagLog.print(F("] startup delay: "));
+      DiagLogLegacy.print(F("["));
+      DiagLogLegacy.print(millis());
+      DiagLogLegacy.print(F("] startup delay: "));
       float delaySeconds = eepromSavedParametersStorage.startupDelay / 10.0;
-      DiagLog.println(delaySeconds);
-      DiagLog.print(F(" seconds"));
-      DiagLog.print(F("["));
-      DiagLog.print(millis());
-      DiagLog.print(F("] Waiting"));
+      DiagLogLegacy.println(delaySeconds);
+      DiagLogLegacy.print(F(" seconds"));
+      DiagLogLegacy.print(F("["));
+      DiagLogLegacy.print(millis());
+      DiagLogLegacy.print(F("] Waiting"));
       for (int i = 0; i < (int)eepromSavedParametersStorage.startupDelay; i++) {
         delay(100);
-        if (!(i % 10)) DiagLog.print(F("."));
+        if (!(i % 10)) DiagLogLegacy.print(F("."));
         yield();
       }
-      DiagLog.println();
-      DiagLog.print(F("["));
-      DiagLog.print(millis());
-      DiagLog.print(F("] Startup delay finished\n"));
+      DiagLogLegacy.println();
+      DiagLogLegacy.print(F("["));
+      DiagLogLegacy.print(millis());
+      DiagLogLegacy.print(F("] Startup delay finished\n"));
     };
-    DiagLog.print(F("["));
-    DiagLog.print(millis());
-    DiagLog.print(F("] connecting to "));
-    DiagLog.print(eepromSavedParametersStorage.wifiSsid);
+    DiagLogLegacy.print(F("["));
+    DiagLogLegacy.print(millis());
+    DiagLogLegacy.print(F("] connecting to "));
+    DiagLogLegacy.print(eepromSavedParametersStorage.wifiSsid);
     WiFi.mode(WIFI_STA);
     if (strlen(eepromSavedParametersStorage.wifiPassword))
       WiFi.begin(eepromSavedParametersStorage.wifiSsid, eepromSavedParametersStorage.wifiPassword);
@@ -470,33 +472,33 @@ void setup() {
       delay(connectWiFiDelay);
       connectWiFiCount++;
       yield();
-      DiagLog.print(F("."));
+      DiagLogLegacy.print(F("."));
       if (((long)connectWiFiCount * (long)connectWiFiDelay) > connectWiFiTimeout) {
-        DiagLog.println();
-        DiagLog.print(F("["));
-        DiagLog.print(millis());
-        DiagLog.println(F("] Unable to connect, resetting..."));
+        DiagLogLegacy.println();
+        DiagLogLegacy.print(F("["));
+        DiagLogLegacy.print(millis());
+        DiagLogLegacy.println(F("] Unable to connect, resetting..."));
         system_restart();
       }
     }
-    DiagLog.println();
-    DiagLog.print(F("["));
-    DiagLog.print(millis());
-    DiagLog.println(F("] connected."));
+    DiagLogLegacy.println();
+    DiagLogLegacy.print(F("["));
+    DiagLogLegacy.print(millis());
+    DiagLogLegacy.println(F("] connected."));
 
     Blynk.config(eepromSavedParametersStorage.authToken,
                  eepromSavedParametersStorage.blynkServer,
                  eepromSavedParametersStorage.blynkServerPort);
-    DiagLog.println(F("Blynk init completed."));
+    DiagLogLegacy.println(F("Blynk init completed."));
   }
   dht.begin();
   sensorsDS18B20.begin();
-  DiagLog.println(F("Init completed."));
+  DiagLogLegacy.println(F("Init completed."));
 }
 
 void loop() {
 
-  TempDiagLog::instance()->run();
+  DiagLog::instance()->run();
   WebConfig::instance()->run();
   WebConfigControl::instance()->run();
 

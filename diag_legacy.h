@@ -11,7 +11,6 @@
 #include <Arduino.h>
 
 //TODO:remove after migrating to new architecture
-//TODO:remove
-#define DiagLog Serial
+#define DiagLogLegacy Serial
 
 #endif

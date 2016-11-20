@@ -4,6 +4,7 @@ Copy here all necessary files from main project directory.
 
 The files to be copied are as follows:
 
+* diag.h
 * http.cpp
 * http.h
 * module.h

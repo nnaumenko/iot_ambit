@@ -46,7 +46,7 @@ class TextsUI {
     MODULE_TEXT(parseErrorRequestStructure, "Bad request");
     MODULE_TEXT(parseErrorRequestSemantics, "Request contains conflicting information");
 
-    MODULE_TEXT(webClientConnected, "Web client connected");
+    MODULE_TEXT(webClientConnected, "Web client connected: ");
     MODULE_TEXT(beginParsing, "Begin parsing request");
     MODULE_TEXT(endParsing, "End parsing request");
     MODULE_TEXT(printMethod, "Method: ");
@@ -69,7 +69,7 @@ extern const TextsUI PROGMEM textsUI;
 
 #undef MODULE_TEXT
 
-const size_t HTTP_REQUEST_PART_MAX_SIZE = 32;
+const size_t HTTP_REQUEST_PART_MAX_SIZE = 33;
 
 //////////////////////////////////////////////////////////////////////
 // HTTPRequestPart
@@ -179,8 +179,7 @@ template <class Diag, class Parser, class OutputStream, class WebForm, class... 
 void WebConfigControl<Diag, Parser, OutputStream, WebForm, WebModules...>::onBegin(void) {
   if (!server)
   {
-    Diag::instance()->setMessageClass(Diag::CLASS_ERROR);
-    Diag::instance()->print(getErrorMessage(WebccError::SERVER_NOT_INITIALISED));
+    Diag::instance()->log(Diag::Severity::CRITICAL, getErrorMessage(WebccError::SERVER_NOT_INITIALISED));
   }
 }
 
@@ -190,9 +189,7 @@ void WebConfigControl<Diag, Parser, OutputStream, WebForm, WebModules...>::onRun
   if (!server) return;
   WiFiClient client = this->server->available();
   if (!client) return;
-  diagLog->setMessageClass(Diag::CLASS_DEBUG);
-  diagLog->timestamp();
-  diagLog->println(FSH(textsUI.webClientConnected));
+  diagLog->log(Diag::Severity::INFORMATIONAL, FSH(textsUI.webClientConnected), client.remoteIP(), ':', client.remotePort());
   while (!client.available()) {
     delay(1);
     yield();
@@ -200,9 +197,7 @@ void WebConfigControl<Diag, Parser, OutputStream, WebForm, WebModules...>::onRun
   OutputStream outputClient(client);
   Parser parser;
   parser.begin(client);
-  diagLog->setMessageClass(Diag::CLASS_DEBUG);
-  diagLog->timestamp();
-  diagLog->println(FSH(textsUI.beginParsing));
+  diagLog->log(Diag::Severity::DEBUG, FSH(textsUI.beginParsing));
   char tempBuffer[HTTP_REQUEST_PART_MAX_SIZE + 1];//+1 char for \0
   tempBuffer[0] = '\0';
   int indexModuleAccepted = WEBMODULES_CALL_NONE_ACCEPTED;
@@ -220,16 +215,12 @@ void WebConfigControl<Diag, Parser, OutputStream, WebForm, WebModules...>::onRun
     }
     switch (reqPart) {
       case HTTPRequestPart::METHOD:
-        diagLog->setMessageClass(Diag::CLASS_DEBUG);
-        diagLog->print(FSH(textsUI.printMethod));
-        diagLog->println(readBuffer);
+        diagLog->log(Diag::Severity::INFORMATIONAL, FSH(textsUI.printMethod), readBuffer);
         strncpy(tempBuffer, readBuffer, sizeof(tempBuffer));
         break;
       case HTTPRequestPart::PATH:
-        //In case of empty path control will not be passed here, thus path check is needed in subsequent parts
-        diagLog->setMessageClass(Diag::CLASS_DEBUG);
-        diagLog->print(FSH(textsUI.printPath));
-        diagLog->println(readBuffer);
+        //In case of empty path control will not be passed here, thus path check is needed in subsequent HTTP request parts
+        diagLog->log(Diag::Severity::INFORMATIONAL, FSH(textsUI.printPath), readBuffer);
         indexModuleAccepted = callWebModulesOnPath(readBuffer);
         if (indexModuleAccepted == WEBMODULES_CALL_NONE_ACCEPTED) {
           error = WebccError::PATH_NOT_ACCEPTED;
@@ -237,10 +228,7 @@ void WebConfigControl<Diag, Parser, OutputStream, WebForm, WebModules...>::onRun
         }
         if (indexModuleAccepted == WEBMODULES_CALL_MULTIPLE_ACCEPTED) {
           error = WebccError::PATH_CONFLICT;
-          diagLog->setMessageClass(Diag::CLASS_ERROR);
-          diagLog->print(getErrorMessage(error));
-          diagLog->print(' ');
-          diagLog->println(readBuffer);
+          diagLog->log(Diag::Severity::CRITICAL, getErrorMessage(error), ' ', readBuffer);
           //TODO: print list of the modules which accepted the same path
           break;
         }
@@ -281,14 +269,12 @@ void WebConfigControl<Diag, Parser, OutputStream, WebForm, WebModules...>::onRun
         break;
     }
   } while (!parser.finished());
-  diagLog->setMessageClass(Diag::CLASS_DEBUG);
-  diagLog->timestamp();
-  diagLog->println(FSH(textsUI.endParsing));
+  diagLog->log(Diag::Severity::DEBUG, FSH(textsUI.endParsing));
   if (error == WebccError::NONE) {
     callWebModulesOnRespond(indexModuleAccepted, outputClient);
   }
   else {
-    diagLog->println(FSH(textsUI.parsingError));
+    diagLog->log(Diag::Severity::NOTICE, FSH(textsUI.parsingError));
     handleErrors(outputClient, error, parser);
   }
   callWebModulesOnEnd(indexModuleAccepted, parser.error());
@@ -400,13 +386,10 @@ boolean WebConfigControl<Diag, Parser, OutputStream, WebForm, WebModules...>::on
   Diag * diagLog = Diag::instance();
   if (rootRedirect) {
     HTTPResponseHeader::redirect(client, (__FlashStringHelper *)rootRedirect);
-    diagLog->print(FSH(textsUI.redirectTo));
-    diagLog->println((__FlashStringHelper *)rootRedirect);
+    diagLog->log(Diag::Severity::INFORMATIONAL, FSH(textsUI.redirectTo), (__FlashStringHelper *)rootRedirect);
     return (true);
   }
-  diagLog->setMessageClass(Diag::CLASS_DEBUG);
-  diagLog->timestamp();
-  diagLog->println(FSH(textsUI.sendModuleIndexBegin));
+  diagLog->log(Diag::Severity::INFORMATIONAL, FSH(textsUI.sendModuleIndexBegin));
   const char * paths[] = { (WebModules::instance()->getMainPath())... };
   const char * names[] = { (WebModules::instance()->moduleName())... };
   int moduleCount = sizeof...(WebModules);
@@ -421,23 +404,19 @@ boolean WebConfigControl<Diag, Parser, OutputStream, WebForm, WebModules...>::on
     index.link(names[i], paths[i], paths[i]);
   }
   index.bodyEnd();
-  diagLog->setMessageClass(Diag::CLASS_DEBUG);
-  diagLog->timestamp();
-  diagLog->print(FSH(textsUI.sendModuleIndexEnd));
+  diagLog->log(Diag::Severity::DEBUG, FSH(textsUI.sendModuleIndexEnd));
   return (true);
 }
 
 template <class Diag, class Parser, class OutputStream, class WebForm, class... WebModules>
 void WebConfigControl<Diag, Parser, OutputStream, WebForm, WebModules...>::handleErrors(OutputStream &output, WebccError error, const Parser &parser) {
   Diag * diagLog = Diag::instance();
-  diagLog->println(FSH(textsUI.httpStatusCode));
-  diagLog->println((int)getHTTPStatusCode(error, parser.getError()));
-  diagLog->println(getErrorMessage(error));
-  if (error == WebccError::PARSER_ERROR) {
-    diagLog->println(getParseErrorMessage(parser.getError()));
+  if (error != WebccError::NONE) {
+    diagLog->log(Diag::Severity::NOTICE, FSH(textsUI.httpStatusCode), (int)getHTTPStatusCode(error, parser.getError()), ' ', getErrorMessage(error));
   }
-  diagLog->println();
-
+  if (error == WebccError::PARSER_ERROR) {
+    diagLog->log(Diag::Severity::NOTICE, getParseErrorMessage(parser.getError()));
+  }
   HTTPResponseHeader::statusLine(output, getHTTPStatusCode(error, parser.getError()));
   output.print(FSH(texts.crlf));
   output.print(getErrorMessage(error));
@@ -887,7 +866,7 @@ class WebccForm {
                            boolean value,
                            const char * tooltipText = NULL,
                            boolean progmemStrings = true);
-    template <class... Options>
+    template <typename... Options>
     void selectParameter(const char * displayName,
                          const char * internalName,
                          long value,
@@ -897,7 +876,7 @@ class WebccForm {
   private:
     inline void print(const char * string, boolean progmemString, const __FlashStringHelper * defaultString = NULL);
   private:
-    template <class OptionValue, class OptionName, class... MoreOptions>
+    template <typename OptionValue, typename OptionName, typename... MoreOptions>
     inline void selectParameterExpand(long value, boolean progmemStrings, OptionValue optionValue, OptionName optionName, MoreOptions... moreOptions);
     inline void selectParameterExpand(long value, boolean progmemStrings);
   private:
