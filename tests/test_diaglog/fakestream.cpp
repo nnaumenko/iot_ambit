@@ -38,8 +38,8 @@ void TestFakeStream::readIn_inputRead_expectCorrectCharsRead(void) {
   FakeStreamIn testStream;
   char testInBuffer[] = "123";
   testStream.begin(testInBuffer);
-  int available[3];
-  int read[4];
+  int available[4];
+  int read[3];
   //act
   available[0] = testStream.available();
   read[0] = testStream.read();
@@ -65,8 +65,8 @@ void TestFakeStream::readInOut_inputRead_expectCorrectCharsRead(void) {
   FakeStreamInOut testStream;
   char testInBuffer[] = "123";
   testStream.begin(testInBuffer);
-  int available[3];
-  int read[4];
+  int available[4];
+  int read[3];
   //act
   available[0] = testStream.available();
   read[0] = testStream.read();

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Nick Naumenko (https://github.com/nnaumenko)
+ * Copyright (C) 2016-2017 Nick Naumenko (https://github.com/nnaumenko)
  * All rights reserved
  * This software may be modified and distributed under the terms
  * of the MIT license. See the LICENSE file for details.
@@ -12,16 +12,21 @@
 // HTTPRequestHelper
 //////////////////////////////////////////////////////////////////////
 
-const char PROGMEM methodOptions[] = "OPTIONS";
-const char PROGMEM methodGet[] = "GET";
-const char PROGMEM methodHead[] = "HEAD";
-const char PROGMEM methodPost[] = "POST";
-const char PROGMEM methodPut[] = "PUT";
-const char PROGMEM methodDelete[] = "DELETE";
-const char PROGMEM methodTrace[] = "TRACE";
-const char PROGMEM methodConnect[] = "CONNECT";
-
+/// Converts method c-string from HTTP request into enum HTTPRequestMethod
+/// @param method C-string which contains method extracted from HTTP
+/// request header
+/// @return Corresponding value of enum HTTPRequestMethod
+/// or HTTPRequestMethod::UNKNOWN if the method is other than specified in
+/// HTTPRequestMethod
 HTTPRequestMethod HTTPRequestHelper::getMethod(const char * method) {
+  static const char PROGMEM methodOptions[] = "OPTIONS";
+  static const char PROGMEM methodGet[] = "GET";
+  static const char PROGMEM methodHead[] = "HEAD";
+  static const char PROGMEM methodPost[] = "POST";
+  static const char PROGMEM methodPut[] = "PUT";
+  static const char PROGMEM methodDelete[] = "DELETE";
+  static const char PROGMEM methodTrace[] = "TRACE";
+  static const char PROGMEM methodConnect[] = "CONNECT";
   if (!strcmp_P(method, methodOptions)) return (HTTPRequestMethod::OPTIONS);
   if (!strcmp_P(method, methodGet)) return (HTTPRequestMethod::GET);
   if (!strcmp_P(method, methodHead)) return (HTTPRequestMethod::HEAD);
@@ -37,9 +42,14 @@ HTTPRequestMethod HTTPRequestHelper::getMethod(const char * method) {
 // HTTPPercentCode
 //////////////////////////////////////////////////////////////////////
 
-int HTTPPercentCode::decodeHex(const char buffer[]) {
+/// Converts 2 digit hexadecimal number into integer
+/// @param buffer ASCII representation of hex code, minimum length 2 
+/// characters
+/// @return Converted value in range 0..255 or decodeError if conversion
+/// error occured
+int HTTPHexCode::decodeHex(const char buffer[]) {
   if (!buffer) return (decodeError);
-  const int RADIX_HEXADECIMAL = 16;
+  static const int RADIX_HEXADECIMAL = 16;
   int mostSignificant = decodeDigit(buffer[0]);
   if (mostSignificant == decodeError) return (decodeError);
   int leastSignificant = decodeDigit(buffer[1]);
@@ -47,7 +57,12 @@ int HTTPPercentCode::decodeHex(const char buffer[]) {
   return (mostSignificant * RADIX_HEXADECIMAL + leastSignificant);
 }
 
-int HTTPPercentCode::decodeDigit(char hexDigit) {
+/// Converts single hexadecimal ASCII digit into integer
+/// @param hexDigit character representing hexadecimal digit in 
+/// ASCII format
+/// @return Converted value in range 0..15 or decodeError if conversion
+/// error occured
+int HTTPHexCode::decodeDigit(char hexDigit) {
   if ((hexDigit >= '0') && (hexDigit <= '9')) return (hexDigit - '0');
   if ((hexDigit >= 'A') && (hexDigit <= 'F')) return (hexDigit - 'A' + 10);
   if ((hexDigit >= 'a') && (hexDigit <= 'f')) return (hexDigit - 'a' + 10);
@@ -58,17 +73,29 @@ int HTTPPercentCode::decodeDigit(char hexDigit) {
 // URL
 //////////////////////////////////////////////////////////////////////
 
+/// @brief Converts URL-encoded string into plain text
+/// @details The following operations are performed with the input string:
+/// * All '+' characters are substituted with spaces (' ')
+/// * All percent-codes are substituted with the corresponding charaters
+/// @details If input string contains percent codes, it is possible for 
+/// string to become shorter after conversion
+/// @warning This method modifies input string
+/// @warning Only 2-digit percent codes are supported
+/// @param buffer Contains input cstring to be decoded (this string will be 
+/// modified by conversion)
+/// @param bufferSize maximum length of the string to be processed
+
 void URL::decode(char buffer[], size_t bufferSize) {
   if (!buffer || !bufferSize) return;
   size_t readPosition = 0;
   size_t writePosition = 0;
-  while (buffer[readPosition] && (readPosition < (bufferSize - 1))) {
+  while ((readPosition < (bufferSize - 1)) && buffer[readPosition]) {
     char c = buffer[readPosition];
-    if (c == '%') { //following 2 characters are percent hex code
-      int hexValueDecoded = HTTPPercentCode::decodeHex(&buffer[readPosition + 1]);
-      if (hexValueDecoded != HTTPPercentCode::decodeError) {
+    if (c == '%') { //following characters are percent hex code
+      int hexValueDecoded = HTTPHexCode::decodeHex(&buffer[readPosition + 1]);
+      if (hexValueDecoded != HTTPHexCode::decodeError) {
         buffer[writePosition++] = (char)hexValueDecoded;
-        readPosition += HTTPPercentCode::size;
+        readPosition += (HTTPHexCode::size + 1); //+1 character for a '%' char
       }
       else {
         writePosition++;
@@ -88,6 +115,12 @@ void URL::decode(char buffer[], size_t bufferSize) {
 // HTTPResponseHeader
 //////////////////////////////////////////////////////////////////////
 
+/// @brief Generates HTTP Response header with given Content-type and Charset
+/// @details Also adds status line with HTTP Status Code "200 OK" to the 
+/// beginning of the response header
+/// @param client Client to send response header to 
+/// @param type Content-Type to include in the response header
+/// @param charset Charset to include in response header
 void HTTPResponseHeader::contentHeader(Print &client, HTTPContentType type, HTTPContentCharset charset) {
   statusLine(client, HTTPStatusCode::OK);
   client.print(F("Cache-control: no-cache\r\nConnection: close\r\n"));
@@ -99,15 +132,23 @@ void HTTPResponseHeader::contentHeader(Print &client, HTTPContentType type, HTTP
   client.print(F("\r\n\r\n"));
 }
 
+/// @brief Generates HTTP Response with redirect to other URL 
+/// (HTTP status code "303 See Other")
+/// @param client Client to send generated response to 
+/// @param path Redirect destination
 void HTTPResponseHeader::redirect(Print &client, const __FlashStringHelper * path) {
   statusLine(client, HTTPStatusCode::SEE_OTHER);
   client.print(F("Location: http://"));
-  client.print(WiFi.softAPIP());//TODO
+  client.print(WiFi.softAPIP()); ///@todo remove ESP8266 dependency
   if (pgm_read_byte(path) != '/') client.print('/');
   client.print(path);
-  client.print(F("\r\n\r\n"));  
+  client.print(F("\r\n\r\n"));
 }
 
+/// @brief Generates HTTP Response Status Line based on HTTP Status Code
+/// @details HTTP version in the response is always "HTTP/1.1"
+/// @param client Client to send generated Status Line to
+/// @param statusCode HTTP Status Code to include in the Status Line
 void HTTPResponseHeader::statusLine(Print &client, HTTPStatusCode statusCode) {
   client.print(F("HTTP/1.1 "));
   client.print((int)statusCode);
@@ -116,6 +157,10 @@ void HTTPResponseHeader::statusLine(Print &client, HTTPStatusCode statusCode) {
   client.print(F("\r\n"));
 }
 
+/// @brief Provides human-readable description of HTTP Status Code (e.g. 
+/// "OK" for HTTP Status Code 200)
+/// @param statusCode HTTP Status Code
+/// @return Cstring in progmem with details of HTTP Status Code
 const __FlashStringHelper * HTTPResponseHeader::statusCodeText(HTTPStatusCode statusCode) {
   switch (statusCode) {
     case HTTPStatusCode::CONTINUE:
@@ -228,6 +273,9 @@ const __FlashStringHelper * HTTPResponseHeader::statusCodeText(HTTPStatusCode st
   }
 }
 
+/// @brief Provides text of the Content-Type (e.g. "text/html")
+/// @param type HTTP Content-type
+/// @return Cstring in progmem with text of the Content-type
 const __FlashStringHelper * HTTPResponseHeader::contentTypeText(HTTPContentType type) {
   switch (type) {
     case HTTPContentType::HTML:
@@ -245,6 +293,9 @@ const __FlashStringHelper * HTTPResponseHeader::contentTypeText(HTTPContentType 
   }
 }
 
+/// @brief Provides text of the Charset-encoding (e.g. "utf-8")
+/// @param type HTTP Charset-encoding
+/// @return Cstring in progmem with text of the Charset-encoding
 const __FlashStringHelper * HTTPResponseHeader::contentCharsetText(HTTPContentCharset charset) {
   switch (charset) {
     case HTTPContentCharset::UTF8:
@@ -253,5 +304,3 @@ const __FlashStringHelper * HTTPResponseHeader::contentCharsetText(HTTPContentCh
       return (F(""));
   }
 }
-
-

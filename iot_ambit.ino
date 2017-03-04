@@ -1,8 +1,13 @@
 /*
-* Copyright (C) 2016 Nick Naumenko (https://github.com/nnaumenko)
+* Copyright (C) 2016-2017 Nick Naumenko (https://github.com/nnaumenko)
 * All rights reserved
 * This software may be modified and distributed under the terms
 * of the MIT license. See the LICENSE file for details.
+*/
+
+/**
+*@file
+*@brief Main program
 */
 
 #include <Arduino.h>
@@ -26,15 +31,6 @@ using DiagLog = diag::DiagLog<diag::DiagLogStorage>;
 using WebConfig = webconfig::WebConfig <DiagLog>;
 using WebConfigControl = webcc::WebConfigControl <DiagLog, webcc::HTTPReqParserStateMachine, webcc::BufferedPrint, webcc::WebccForm,
       WebConfig, DiagLog>;
-
-namespace diag {
-const Texts PROGMEM texts;
-const TextsUI PROGMEM textsUI;
-};
-namespace webconfig {
-const Texts PROGMEM texts;
-const TextsUI PROGMEM textsUI;
-};
 
 #include "diag_legacy.h"
 
@@ -405,10 +401,11 @@ void setup() {
   calcCalDataMG811();
 
   isConfigMode = !digitalRead(PIN_SWITCH_CONFIG);
-
-  if (isConfigMode) WebConfigControl::instance()->setRootRedirect((const char *)F("webconfig"));
+  isConfigMode = true;
 
   if (isConfigMode) {
+    WebConfigControl::instance()->setRootRedirect((const char *)F("webconfig"));
+    WebConfig::instance()->enable();
     DiagLogLegacy.println(F("Config Mode enabled."));
     const size_t TEXT_SIZE = 32;
     char ssid[TEXT_SIZE + 1] = {0};
@@ -436,6 +433,8 @@ void setup() {
   }
   else {
     DiagLogLegacy.println(F("Config Mode not enabled."));
+    WebConfig::instance()->disable();
+
     if (eepromSavedParametersStorage.startupDelay) {
       DiagLogLegacy.print(F("["));
       DiagLogLegacy.print(millis());

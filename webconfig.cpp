@@ -5,17 +5,11 @@
  * of the MIT license. See the LICENSE file for details.
  */
 
-/**
- * @file
- * @brief Actual firmware version.
- */
+#include "webconfig.h"
 
-#ifndef VERSION_H
-#define VERSION_H
+namespace webconfig {
 
-#include <Arduino.h>
+const Texts PROGMEM texts;
+const TextsUI PROGMEM textsUI;
 
-#define FIRMWARE_VERSION_MAJOR     0
-#define FIRMWARE_VERSION_MINOR     12
-
-#endif
+};

@@ -690,12 +690,13 @@ class TestHTTPReqParserStateMachine {
       //assert
       TEST_ASSERT(testPerformed);
       TEST_ASSERT(testResult.beginResult);
-      TEST_ASSERT(testResult.parseResultPart[0] == webcc::HTTPRequestPart::METHOD);
-      TEST_ASSERT(!strcmp(testResult.parseResultValue[0], "GET"));
-      TEST_ASSERT(testResult.parseResultPart[1] == webcc::HTTPRequestPart::PATH);
-      TEST_ASSERT(!strcmp(testResult.parseResultValue[1], "index.htm"));
-      TEST_ASSERT(testResult.parseResultPart[2] == webcc::HTTPRequestPart::HTTP_VERSION);
-      TEST_ASSERT(!strcmp(testResult.parseResultValue[2], "HTTP/1.1"));
+      int i = 0;
+      TEST_ASSERT(testResult.parseResultPart[i] == webcc::HTTPRequestPart::METHOD);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[i++], "GET"));
+      TEST_ASSERT(testResult.parseResultPart[i] == webcc::HTTPRequestPart::PATH);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[i++], "index.htm"));
+      TEST_ASSERT(testResult.parseResultPart[i] == webcc::HTTPRequestPart::HTTP_VERSION);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[i++], "HTTP/1.1"));
       TEST_ASSERT(!testResult.error);
       TEST_FUNC_END();
     }
@@ -709,12 +710,13 @@ class TestHTTPReqParserStateMachine {
       //assert
       TEST_ASSERT(testPerformed);
       TEST_ASSERT(testResult.beginResult);
-      TEST_ASSERT(testResult.parseResultPart[0] == webcc::HTTPRequestPart::METHOD);
-      TEST_ASSERT(!strcmp(testResult.parseResultValue[0], "GET"));
-      TEST_ASSERT(testResult.parseResultPart[1] == webcc::HTTPRequestPart::PATH);
-      TEST_ASSERT(!strcmp(testResult.parseResultValue[1], "in dex.htm"));
-      TEST_ASSERT(testResult.parseResultPart[2] == webcc::HTTPRequestPart::HTTP_VERSION);
-      TEST_ASSERT(!strcmp(testResult.parseResultValue[2], "HTTP/1.1"));
+      int i = 0;
+      TEST_ASSERT(testResult.parseResultPart[i] == webcc::HTTPRequestPart::METHOD);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[i++], "GET"));
+      TEST_ASSERT(testResult.parseResultPart[i] == webcc::HTTPRequestPart::PATH);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[i++], "in dex.htm"));
+      TEST_ASSERT(testResult.parseResultPart[i] == webcc::HTTPRequestPart::HTTP_VERSION);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[i++], "HTTP/1.1"));
       TEST_ASSERT(!testResult.error);
       TEST_FUNC_END();
     }
@@ -728,24 +730,25 @@ class TestHTTPReqParserStateMachine {
       //assert
       TEST_ASSERT(testPerformed);
       TEST_ASSERT(testResult.beginResult);
-      TEST_ASSERT(testResult.parseResultPart[0] == webcc::HTTPRequestPart::METHOD);
-      TEST_ASSERT(!strcmp(testResult.parseResultValue[0], "GET"));
-      TEST_ASSERT(testResult.parseResultPart[1] == webcc::HTTPRequestPart::PATH);
-      TEST_ASSERT(!strcmp(testResult.parseResultValue[1], "index.htm"));
-      TEST_ASSERT(testResult.parseResultPart[2] == webcc::HTTPRequestPart::URL_QUERY_NAME);
-      TEST_ASSERT(!strcmp(testResult.parseResultValue[2], "a"));
-      TEST_ASSERT(testResult.parseResultPart[3] == webcc::HTTPRequestPart::URL_QUERY_VALUE);
-      TEST_ASSERT(!strcmp(testResult.parseResultValue[3], "b"));
-      TEST_ASSERT(testResult.parseResultPart[4] == webcc::HTTPRequestPart::URL_QUERY_NAME);
-      TEST_ASSERT(!strcmp(testResult.parseResultValue[4], "c"));
-      TEST_ASSERT(testResult.parseResultPart[5] == webcc::HTTPRequestPart::URL_QUERY_VALUE);
-      TEST_ASSERT(!strcmp(testResult.parseResultValue[5], "d"));
-      TEST_ASSERT(testResult.parseResultPart[6] == webcc::HTTPRequestPart::HTTP_VERSION);
-      TEST_ASSERT(!strcmp(testResult.parseResultValue[6], "HTTP/1.1"));
-      TEST_ASSERT(testResult.parseResultPart[7] == webcc::HTTPRequestPart::FIELD_NAME);
-      TEST_ASSERT(!strcmp(testResult.parseResultValue[7], "User-agent"));
-      TEST_ASSERT(testResult.parseResultPart[8] == webcc::HTTPRequestPart::FIELD_VALUE_PART1);
-      TEST_ASSERT(!strcmp(testResult.parseResultValue[8], " parser-test"));
+      int i = 0;
+      TEST_ASSERT(testResult.parseResultPart[i] == webcc::HTTPRequestPart::METHOD);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[i++], "GET"));
+      TEST_ASSERT(testResult.parseResultPart[i] == webcc::HTTPRequestPart::PATH);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[i++], "index.htm"));
+      TEST_ASSERT(testResult.parseResultPart[i] == webcc::HTTPRequestPart::URL_QUERY_NAME);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[i++], "a"));
+      TEST_ASSERT(testResult.parseResultPart[i] == webcc::HTTPRequestPart::URL_QUERY_VALUE);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[i++], "b"));
+      TEST_ASSERT(testResult.parseResultPart[i] == webcc::HTTPRequestPart::URL_QUERY_NAME);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[i++], "c"));
+      TEST_ASSERT(testResult.parseResultPart[i] == webcc::HTTPRequestPart::URL_QUERY_VALUE);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[i++], "d"));
+      TEST_ASSERT(testResult.parseResultPart[i] == webcc::HTTPRequestPart::HTTP_VERSION);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[i++], "HTTP/1.1"));
+      TEST_ASSERT(testResult.parseResultPart[i] == webcc::HTTPRequestPart::FIELD_NAME);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[i++], "User-agent"));
+      TEST_ASSERT(testResult.parseResultPart[i] == webcc::HTTPRequestPart::FIELD_VALUE_PART1);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[i++], " parser-test"));
       TEST_ASSERT(!testResult.error);
       TEST_FUNC_END();
     }
@@ -759,24 +762,25 @@ class TestHTTPReqParserStateMachine {
       //assert
       TEST_ASSERT(testPerformed);
       TEST_ASSERT(testResult.beginResult);
-      TEST_ASSERT(testResult.parseResultPart[0] == webcc::HTTPRequestPart::METHOD);
-      TEST_ASSERT(!strcmp(testResult.parseResultValue[0], "POST"));
-      TEST_ASSERT(testResult.parseResultPart[1] == webcc::HTTPRequestPart::PATH);
-      TEST_ASSERT(!strcmp(testResult.parseResultValue[1], "index.htm"));
-      TEST_ASSERT(testResult.parseResultPart[2] == webcc::HTTPRequestPart::HTTP_VERSION);
-      TEST_ASSERT(!strcmp(testResult.parseResultValue[2], "HTTP/1.1"));
-      TEST_ASSERT(testResult.parseResultPart[3] == webcc::HTTPRequestPart::FIELD_NAME);
-      TEST_ASSERT(!strcmp(testResult.parseResultValue[3], "User-agent"));
-      TEST_ASSERT(testResult.parseResultPart[4] == webcc::HTTPRequestPart::FIELD_VALUE_PART1);
-      TEST_ASSERT(!strcmp(testResult.parseResultValue[4], " parser-test"));
-      TEST_ASSERT(testResult.parseResultPart[5] == webcc::HTTPRequestPart::POST_QUERY_NAME);
-      TEST_ASSERT(!strcmp(testResult.parseResultValue[5], "a"));
-      TEST_ASSERT(testResult.parseResultPart[6] == webcc::HTTPRequestPart::POST_QUERY_VALUE);
-      TEST_ASSERT(!strcmp(testResult.parseResultValue[6], "b"));
-      TEST_ASSERT(testResult.parseResultPart[7] == webcc::HTTPRequestPart::POST_QUERY_NAME);
-      TEST_ASSERT(!strcmp(testResult.parseResultValue[7], "c"));
-      TEST_ASSERT(testResult.parseResultPart[8] == webcc::HTTPRequestPart::POST_QUERY_VALUE);
-      TEST_ASSERT(!strcmp(testResult.parseResultValue[8], "d"));
+      int i = 0;
+      TEST_ASSERT(testResult.parseResultPart[i] == webcc::HTTPRequestPart::METHOD);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[i++], "POST"));
+      TEST_ASSERT(testResult.parseResultPart[i] == webcc::HTTPRequestPart::PATH);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[i++], "index.htm"));
+      TEST_ASSERT(testResult.parseResultPart[i] == webcc::HTTPRequestPart::HTTP_VERSION);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[i++], "HTTP/1.1"));
+      TEST_ASSERT(testResult.parseResultPart[i] == webcc::HTTPRequestPart::FIELD_NAME);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[i++], "User-agent"));
+      TEST_ASSERT(testResult.parseResultPart[i] == webcc::HTTPRequestPart::FIELD_VALUE_PART1);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[i++], " parser-test"));
+      TEST_ASSERT(testResult.parseResultPart[i] == webcc::HTTPRequestPart::POST_QUERY_NAME);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[i++], "a"));
+      TEST_ASSERT(testResult.parseResultPart[i] == webcc::HTTPRequestPart::POST_QUERY_VALUE);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[i++], "b"));
+      TEST_ASSERT(testResult.parseResultPart[i] == webcc::HTTPRequestPart::POST_QUERY_NAME);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[i++], "c"));
+      TEST_ASSERT(testResult.parseResultPart[i] == webcc::HTTPRequestPart::POST_QUERY_VALUE);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[i++], "d"));
       TEST_ASSERT(!testResult.error);
       TEST_FUNC_END();
     }
@@ -790,40 +794,41 @@ class TestHTTPReqParserStateMachine {
       //assert
       TEST_ASSERT(testPerformed);
       TEST_ASSERT(testResult.beginResult);
-      TEST_ASSERT(testResult.parseResultPart[0] == webcc::HTTPRequestPart::METHOD);
-      TEST_ASSERT(!strcmp(testResult.parseResultValue[0], "POST"));
-      TEST_ASSERT(testResult.parseResultPart[1] == webcc::HTTPRequestPart::PATH);
-      TEST_ASSERT(!strcmp(testResult.parseResultValue[1], "index.htm"));
-      TEST_ASSERT(testResult.parseResultPart[2] == webcc::HTTPRequestPart::URL_QUERY_NAME);
-      TEST_ASSERT(!strcmp(testResult.parseResultValue[2], "a"));
-      TEST_ASSERT(testResult.parseResultPart[3] == webcc::HTTPRequestPart::URL_QUERY_VALUE);
-      TEST_ASSERT(!strcmp(testResult.parseResultValue[3], "b"));
-      TEST_ASSERT(testResult.parseResultPart[4] == webcc::HTTPRequestPart::URL_QUERY_NAME);
-      TEST_ASSERT(!strcmp(testResult.parseResultValue[4], "c"));
-      TEST_ASSERT(testResult.parseResultPart[5] == webcc::HTTPRequestPart::URL_QUERY_VALUE);
-      TEST_ASSERT(!strcmp(testResult.parseResultValue[5], "d"));
-      TEST_ASSERT(testResult.parseResultPart[6] == webcc::HTTPRequestPart::HTTP_VERSION);
-      TEST_ASSERT(!strcmp(testResult.parseResultValue[6], "HTTP/1.1"));
-      TEST_ASSERT(testResult.parseResultPart[7] == webcc::HTTPRequestPart::FIELD_NAME);
-      TEST_ASSERT(!strcmp(testResult.parseResultValue[7], "User-agent"));
-      TEST_ASSERT(testResult.parseResultPart[8] == webcc::HTTPRequestPart::FIELD_VALUE_PART1);
-      TEST_ASSERT(!strcmp(testResult.parseResultValue[8], " parser-test"));
-      TEST_ASSERT(testResult.parseResultPart[9] == webcc::HTTPRequestPart::FIELD_NAME);
-      TEST_ASSERT(!strcmp(testResult.parseResultValue[9], "Host"));
-      TEST_ASSERT(testResult.parseResultPart[10] == webcc::HTTPRequestPart::FIELD_VALUE_PART1);
-      TEST_ASSERT(!strcmp(testResult.parseResultValue[10], " 192.168.4.1"));
-      TEST_ASSERT(testResult.parseResultPart[11] == webcc::HTTPRequestPart::FIELD_NAME);
-      TEST_ASSERT(!strcmp(testResult.parseResultValue[11], "Accept-Encoding"));
-      TEST_ASSERT(testResult.parseResultPart[12] == webcc::HTTPRequestPart::FIELD_VALUE_PART1);
-      TEST_ASSERT(!strcmp(testResult.parseResultValue[12], " gzip, deflate"));
-      TEST_ASSERT(testResult.parseResultPart[13] == webcc::HTTPRequestPart::POST_QUERY_NAME);
-      TEST_ASSERT(!strcmp(testResult.parseResultValue[13], "e"));
-      TEST_ASSERT(testResult.parseResultPart[14] == webcc::HTTPRequestPart::POST_QUERY_VALUE);
-      TEST_ASSERT(!strcmp(testResult.parseResultValue[14], "f g"));
-      TEST_ASSERT(testResult.parseResultPart[15] == webcc::HTTPRequestPart::POST_QUERY_NAME);
-      TEST_ASSERT(!strcmp(testResult.parseResultValue[15], "h"));
-      TEST_ASSERT(testResult.parseResultPart[16] == webcc::HTTPRequestPart::POST_QUERY_VALUE);
-      TEST_ASSERT(!strcmp(testResult.parseResultValue[16], "i"));
+      int i = 0;
+      TEST_ASSERT(testResult.parseResultPart[i] == webcc::HTTPRequestPart::METHOD);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[i++], "POST"));
+      TEST_ASSERT(testResult.parseResultPart[i] == webcc::HTTPRequestPart::PATH);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[i++], "index.htm"));
+      TEST_ASSERT(testResult.parseResultPart[i] == webcc::HTTPRequestPart::URL_QUERY_NAME);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[i++], "a"));
+      TEST_ASSERT(testResult.parseResultPart[i] == webcc::HTTPRequestPart::URL_QUERY_VALUE);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[i++], "b"));
+      TEST_ASSERT(testResult.parseResultPart[i] == webcc::HTTPRequestPart::URL_QUERY_NAME);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[i++], "c"));
+      TEST_ASSERT(testResult.parseResultPart[i] == webcc::HTTPRequestPart::URL_QUERY_VALUE);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[i++], "d"));
+      TEST_ASSERT(testResult.parseResultPart[i] == webcc::HTTPRequestPart::HTTP_VERSION);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[i++], "HTTP/1.1"));
+      TEST_ASSERT(testResult.parseResultPart[i] == webcc::HTTPRequestPart::FIELD_NAME);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[i++], "User-agent"));
+      TEST_ASSERT(testResult.parseResultPart[i] == webcc::HTTPRequestPart::FIELD_VALUE_PART1);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[i++], " parser-test"));
+      TEST_ASSERT(testResult.parseResultPart[i] == webcc::HTTPRequestPart::FIELD_NAME);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[i++], "Host"));
+      TEST_ASSERT(testResult.parseResultPart[i] == webcc::HTTPRequestPart::FIELD_VALUE_PART1);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[i++], " 192.168.4.1"));
+      TEST_ASSERT(testResult.parseResultPart[i] == webcc::HTTPRequestPart::FIELD_NAME);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[i++], "Accept-Encoding"));
+      TEST_ASSERT(testResult.parseResultPart[i] == webcc::HTTPRequestPart::FIELD_VALUE_PART1);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[i++], " gzip, deflate"));
+      TEST_ASSERT(testResult.parseResultPart[i] == webcc::HTTPRequestPart::POST_QUERY_NAME);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[i++], "e"));
+      TEST_ASSERT(testResult.parseResultPart[i] == webcc::HTTPRequestPart::POST_QUERY_VALUE);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[i++], "f g"));
+      TEST_ASSERT(testResult.parseResultPart[i] == webcc::HTTPRequestPart::POST_QUERY_NAME);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[i++], "h"));
+      TEST_ASSERT(testResult.parseResultPart[i] == webcc::HTTPRequestPart::POST_QUERY_VALUE);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[i++], "i"));
       TEST_ASSERT(!testResult.error);
       TEST_FUNC_END();
     }
@@ -888,8 +893,9 @@ class TestHTTPReqParserStateMachine {
       //assert
       TEST_ASSERT(testPerformed);
       TEST_ASSERT(testResult.beginResult);
-      TEST_ASSERT(testResult.parseResultPart[0] == webcc::HTTPRequestPart::METHOD);
-      TEST_ASSERT(!strcmp(testResult.parseResultValue[0], "GET"));
+      int i = 0;
+      TEST_ASSERT(testResult.parseResultPart[i] == webcc::HTTPRequestPart::METHOD);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[i++], "GET"));
       TEST_ASSERT(testResult.error);
       TEST_ASSERT(testResult.errorCode == webcc::ParseError::REQUEST_STRUCTURE);
       TEST_FUNC_END();
@@ -932,8 +938,9 @@ class TestHTTPReqParserStateMachine {
       //assert
       TEST_ASSERT(testPerformed);
       TEST_ASSERT(testResult.beginResult);
-      TEST_ASSERT(testResult.parseResultPart[0] == webcc::HTTPRequestPart::PATH);
-      TEST_ASSERT(!strcmp(testResult.parseResultValue[0], "index.htm"));
+      int i = 0;
+      TEST_ASSERT(testResult.parseResultPart[i] == webcc::HTTPRequestPart::PATH);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[i++], "index.htm"));
       TEST_ASSERT(!testResult.error);
       TEST_FUNC_END();
     }
@@ -1014,10 +1021,11 @@ class TestHTTPReqParserStateMachine {
       //assert
       TEST_ASSERT(testPerformed);
       TEST_ASSERT(testResult.beginResult);
-      TEST_ASSERT(testResult.parseResultPart[0] == webcc::HTTPRequestPart::METHOD);
-      TEST_ASSERT(!strcmp(testResult.parseResultValue[0], "GET"));
-      TEST_ASSERT(testResult.parseResultPart[1] == webcc::HTTPRequestPart::URL_QUERY_NAME);
-      TEST_ASSERT(!strcmp(testResult.parseResultValue[1], "a"));
+      int i = 0;
+      TEST_ASSERT(testResult.parseResultPart[i] == webcc::HTTPRequestPart::METHOD);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[i++], "GET"));
+      TEST_ASSERT(testResult.parseResultPart[i] == webcc::HTTPRequestPart::URL_QUERY_NAME);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[i++], "a"));
       TEST_ASSERT(!testResult.error);
       TEST_FUNC_END();
     }
@@ -1031,10 +1039,11 @@ class TestHTTPReqParserStateMachine {
       //assert
       TEST_ASSERT(testPerformed);
       TEST_ASSERT(testResult.beginResult);
-      TEST_ASSERT(testResult.parseResultPart[0] == webcc::HTTPRequestPart::METHOD);
-      TEST_ASSERT(!strcmp(testResult.parseResultValue[0], "GET"));
-      TEST_ASSERT(testResult.parseResultPart[1] == webcc::HTTPRequestPart::HTTP_VERSION);
-      TEST_ASSERT(!strcmp(testResult.parseResultValue[1], "HTTP/1.1"));
+      int i = 0;
+      TEST_ASSERT(testResult.parseResultPart[i] == webcc::HTTPRequestPart::METHOD);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[i++], "GET"));
+      TEST_ASSERT(testResult.parseResultPart[i] == webcc::HTTPRequestPart::HTTP_VERSION);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[i++], "HTTP/1.1"));
       TEST_ASSERT(!testResult.error);
       TEST_FUNC_END();
     }
@@ -1391,12 +1400,13 @@ class TestHTTPReqParserStateMachine {
       //assert
       TEST_ASSERT(testPerformed);
       TEST_ASSERT(testResult.beginResult);
-      TEST_ASSERT(testResult.parseResultPart[0] == webcc::HTTPRequestPart::METHOD);
-      TEST_ASSERT(!strcmp(testResult.parseResultValue[0], "GET"));
-      TEST_ASSERT(testResult.parseResultPart[1] == webcc::HTTPRequestPart::PATH);
-      TEST_ASSERT(!strcmp(testResult.parseResultValue[1], "index.htm"));
-      TEST_ASSERT(testResult.parseResultPart[2] == webcc::HTTPRequestPart::URL_QUERY_VALUE);
-      TEST_ASSERT(!strcmp(testResult.parseResultValue[2], "b"));
+      int i = 0;
+      TEST_ASSERT(testResult.parseResultPart[i] == webcc::HTTPRequestPart::METHOD);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[i++], "GET"));
+      TEST_ASSERT(testResult.parseResultPart[i] == webcc::HTTPRequestPart::PATH);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[i++], "index.htm"));
+      TEST_ASSERT(testResult.parseResultPart[i] == webcc::HTTPRequestPart::URL_QUERY_VALUE);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[i++], "b"));
       TEST_ASSERT(!testResult.error);
       TEST_FUNC_END();
     }
@@ -1430,14 +1440,15 @@ class TestHTTPReqParserStateMachine {
       //assert
       TEST_ASSERT(testPerformed);
       TEST_ASSERT(testResult.beginResult);
-      TEST_ASSERT(testResult.parseResultPart[0] == webcc::HTTPRequestPart::METHOD);
-      TEST_ASSERT(!strcmp(testResult.parseResultValue[0], "GET"));
-      TEST_ASSERT(testResult.parseResultPart[1] == webcc::HTTPRequestPart::PATH);
-      TEST_ASSERT(!strcmp(testResult.parseResultValue[1], "index.htm"));
-      TEST_ASSERT(testResult.parseResultPart[2] == webcc::HTTPRequestPart::URL_QUERY_NAME);
-      TEST_ASSERT(!strcmp(testResult.parseResultValue[2], "a"));
-      TEST_ASSERT(testResult.parseResultPart[3] == webcc::HTTPRequestPart::URL_QUERY_NAME);
-      TEST_ASSERT(!strcmp(testResult.parseResultValue[3], "c"));
+      int i = 0;
+      TEST_ASSERT(testResult.parseResultPart[i] == webcc::HTTPRequestPart::METHOD);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[i++], "GET"));
+      TEST_ASSERT(testResult.parseResultPart[i] == webcc::HTTPRequestPart::PATH);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[i++], "index.htm"));
+      TEST_ASSERT(testResult.parseResultPart[i] == webcc::HTTPRequestPart::URL_QUERY_NAME);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[i++], "a"));
+      TEST_ASSERT(testResult.parseResultPart[i] == webcc::HTTPRequestPart::URL_QUERY_NAME);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[i++], "c"));
       TEST_ASSERT(!testResult.error);
       TEST_FUNC_END();
     }
@@ -1485,20 +1496,21 @@ class TestHTTPReqParserStateMachine {
       //assert
       TEST_ASSERT(testPerformed);
       TEST_ASSERT(testResult.beginResult);
-      TEST_ASSERT(testResult.parseResultPart[0] == webcc::HTTPRequestPart::METHOD);
-      TEST_ASSERT(!strcmp(testResult.parseResultValue[0], "GET"));
-      TEST_ASSERT(testResult.parseResultPart[1] == webcc::HTTPRequestPart::PATH);
-      TEST_ASSERT(!strcmp(testResult.parseResultValue[1], "index.htm"));
-      TEST_ASSERT(testResult.parseResultPart[2] == webcc::HTTPRequestPart::URL_QUERY_NAME);
-      TEST_ASSERT(!strcmp(testResult.parseResultValue[2], "a"));
-      TEST_ASSERT(testResult.parseResultPart[3] == webcc::HTTPRequestPart::URL_QUERY_VALUE);
-      TEST_ASSERT(!strcmp(testResult.parseResultValue[3], "b"));
-      TEST_ASSERT(testResult.parseResultPart[4] == webcc::HTTPRequestPart::URL_QUERY_NAME);
-      TEST_ASSERT(!strcmp(testResult.parseResultValue[4], "c"));
-      TEST_ASSERT(testResult.parseResultPart[5] == webcc::HTTPRequestPart::URL_QUERY_VALUE);
-      TEST_ASSERT(!strcmp(testResult.parseResultValue[5], "d"));
-      TEST_ASSERT(testResult.parseResultPart[6] == webcc::HTTPRequestPart::FIELD_NAME);
-      TEST_ASSERT(!strcmp(testResult.parseResultValue[6], "User-agent"));
+      int i = 0;
+      TEST_ASSERT(testResult.parseResultPart[i] == webcc::HTTPRequestPart::METHOD);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[i++], "GET"));
+      TEST_ASSERT(testResult.parseResultPart[i] == webcc::HTTPRequestPart::PATH);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[i++], "index.htm"));
+      TEST_ASSERT(testResult.parseResultPart[i] == webcc::HTTPRequestPart::URL_QUERY_NAME);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[i++], "a"));
+      TEST_ASSERT(testResult.parseResultPart[i] == webcc::HTTPRequestPart::URL_QUERY_VALUE);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[i++], "b"));
+      TEST_ASSERT(testResult.parseResultPart[i] == webcc::HTTPRequestPart::URL_QUERY_NAME);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[i++], "c"));
+      TEST_ASSERT(testResult.parseResultPart[i] == webcc::HTTPRequestPart::URL_QUERY_VALUE);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[i++], "d"));
+      TEST_ASSERT(testResult.parseResultPart[i] == webcc::HTTPRequestPart::FIELD_NAME);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[i++], "User-agent"));
       TEST_ASSERT(!testResult.error);
       TEST_FUNC_END();
     }
@@ -1581,14 +1593,15 @@ class TestHTTPReqParserStateMachine {
       //assert
       TEST_ASSERT(testPerformed);
       TEST_ASSERT(testResult.beginResult);
-      TEST_ASSERT(testResult.parseResultPart[0] == webcc::HTTPRequestPart::METHOD);
-      TEST_ASSERT(!strcmp(testResult.parseResultValue[0], "GET"));
-      TEST_ASSERT(testResult.parseResultPart[1] == webcc::HTTPRequestPart::PATH);
-      TEST_ASSERT(!strcmp(testResult.parseResultValue[1], "index.htm"));
-      TEST_ASSERT(testResult.parseResultPart[2] == webcc::HTTPRequestPart::HTTP_VERSION);
-      TEST_ASSERT(!strcmp(testResult.parseResultValue[2], "HTTP/1.1"));
-      TEST_ASSERT(testResult.parseResultPart[3] == webcc::HTTPRequestPart::FIELD_VALUE_PART1);
-      TEST_ASSERT(!strcmp(testResult.parseResultValue[3], " parser-test"));
+      int i = 0;
+      TEST_ASSERT(testResult.parseResultPart[i] == webcc::HTTPRequestPart::METHOD);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[i++], "GET"));
+      TEST_ASSERT(testResult.parseResultPart[i] == webcc::HTTPRequestPart::PATH);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[i++], "index.htm"));
+      TEST_ASSERT(testResult.parseResultPart[i] == webcc::HTTPRequestPart::HTTP_VERSION);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[i++], "HTTP/1.1"));
+      TEST_ASSERT(testResult.parseResultPart[i] == webcc::HTTPRequestPart::FIELD_VALUE_PART1);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[i++], " parser-test"));
       TEST_ASSERT(!testResult.error);
       TEST_FUNC_END();
     }
@@ -1644,16 +1657,17 @@ class TestHTTPReqParserStateMachine {
       //assert
       TEST_ASSERT(testPerformed);
       TEST_ASSERT(testResult.beginResult);
-      TEST_ASSERT(testResult.parseResultPart[0] == webcc::HTTPRequestPart::METHOD);
-      TEST_ASSERT(!strcmp(testResult.parseResultValue[0], "GET"));
-      TEST_ASSERT(testResult.parseResultPart[1] == webcc::HTTPRequestPart::PATH);
-      TEST_ASSERT(!strcmp(testResult.parseResultValue[1], "index.htm"));
-      TEST_ASSERT(testResult.parseResultPart[2] == webcc::HTTPRequestPart::HTTP_VERSION);
-      TEST_ASSERT(!strcmp(testResult.parseResultValue[2], "HTTP/1.1"));
-      TEST_ASSERT(testResult.parseResultPart[3] == webcc::HTTPRequestPart::FIELD_NAME);
-      TEST_ASSERT(!strcmp(testResult.parseResultValue[3], "User-agent"));
-      TEST_ASSERT(testResult.parseResultPart[4] == webcc::HTTPRequestPart::FIELD_NAME);
-      TEST_ASSERT(!strcmp(testResult.parseResultValue[4], "Host"));
+      int i = 0;
+      TEST_ASSERT(testResult.parseResultPart[i] == webcc::HTTPRequestPart::METHOD);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[i++], "GET"));
+      TEST_ASSERT(testResult.parseResultPart[i] == webcc::HTTPRequestPart::PATH);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[i++], "index.htm"));
+      TEST_ASSERT(testResult.parseResultPart[i] == webcc::HTTPRequestPart::HTTP_VERSION);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[i++], "HTTP/1.1"));
+      TEST_ASSERT(testResult.parseResultPart[i] == webcc::HTTPRequestPart::FIELD_NAME);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[i++], "User-agent"));
+      TEST_ASSERT(testResult.parseResultPart[i] == webcc::HTTPRequestPart::FIELD_NAME);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[i++], "Host"));
       TEST_ASSERT(!testResult.error);
       TEST_FUNC_END();
     }
@@ -1875,18 +1889,19 @@ class TestHTTPReqParserStateMachine {
       //assert
       TEST_ASSERT(testPerformed);
       TEST_ASSERT(testResult.beginResult);
-      TEST_ASSERT(testResult.parseResultPart[0] == webcc::HTTPRequestPart::METHOD);
-      TEST_ASSERT(!strcmp(testResult.parseResultValue[0], "POST"));
-      TEST_ASSERT(testResult.parseResultPart[1] == webcc::HTTPRequestPart::PATH);
-      TEST_ASSERT(!strcmp(testResult.parseResultValue[1], "index.htm"));
-      TEST_ASSERT(testResult.parseResultPart[2] == webcc::HTTPRequestPart::HTTP_VERSION);
-      TEST_ASSERT(!strcmp(testResult.parseResultValue[2], "HTTP/1.1"));
-      TEST_ASSERT(testResult.parseResultPart[3] == webcc::HTTPRequestPart::FIELD_NAME);
-      TEST_ASSERT(!strcmp(testResult.parseResultValue[3], "User-agent"));
-      TEST_ASSERT(testResult.parseResultPart[4] == webcc::HTTPRequestPart::FIELD_VALUE_PART1);
-      TEST_ASSERT(!strcmp(testResult.parseResultValue[4], " parser-test"));
-      TEST_ASSERT(testResult.parseResultPart[5] == webcc::HTTPRequestPart::POST_QUERY_VALUE);
-      TEST_ASSERT(!strcmp(testResult.parseResultValue[5], "b"));
+      int i = 0;
+      TEST_ASSERT(testResult.parseResultPart[i] == webcc::HTTPRequestPart::METHOD);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[i++], "POST"));
+      TEST_ASSERT(testResult.parseResultPart[i] == webcc::HTTPRequestPart::PATH);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[i++], "index.htm"));
+      TEST_ASSERT(testResult.parseResultPart[i] == webcc::HTTPRequestPart::HTTP_VERSION);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[i++], "HTTP/1.1"));
+      TEST_ASSERT(testResult.parseResultPart[i] == webcc::HTTPRequestPart::FIELD_NAME);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[i++], "User-agent"));
+      TEST_ASSERT(testResult.parseResultPart[i] == webcc::HTTPRequestPart::FIELD_VALUE_PART1);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[i++], " parser-test"));
+      TEST_ASSERT(testResult.parseResultPart[i] == webcc::HTTPRequestPart::POST_QUERY_VALUE);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[i++], "b"));
       TEST_ASSERT(!testResult.error);
       TEST_FUNC_END();
     }
@@ -1920,20 +1935,21 @@ class TestHTTPReqParserStateMachine {
       //assert
       TEST_ASSERT(testPerformed);
       TEST_ASSERT(testResult.beginResult);
-      TEST_ASSERT(testResult.parseResultPart[0] == webcc::HTTPRequestPart::METHOD);
-      TEST_ASSERT(!strcmp(testResult.parseResultValue[0], "POST"));
-      TEST_ASSERT(testResult.parseResultPart[1] == webcc::HTTPRequestPart::PATH);
-      TEST_ASSERT(!strcmp(testResult.parseResultValue[1], "index.htm"));
-      TEST_ASSERT(testResult.parseResultPart[2] == webcc::HTTPRequestPart::HTTP_VERSION);
-      TEST_ASSERT(!strcmp(testResult.parseResultValue[2], "HTTP/1.1"));
-      TEST_ASSERT(testResult.parseResultPart[3] == webcc::HTTPRequestPart::FIELD_NAME);
-      TEST_ASSERT(!strcmp(testResult.parseResultValue[3], "User-agent"));
-      TEST_ASSERT(testResult.parseResultPart[4] == webcc::HTTPRequestPart::FIELD_VALUE_PART1);
-      TEST_ASSERT(!strcmp(testResult.parseResultValue[4], " parser-test"));
-      TEST_ASSERT(testResult.parseResultPart[5] == webcc::HTTPRequestPart::POST_QUERY_NAME);
-      TEST_ASSERT(!strcmp(testResult.parseResultValue[5], "a"));
-      TEST_ASSERT(testResult.parseResultPart[6] == webcc::HTTPRequestPart::POST_QUERY_NAME);
-      TEST_ASSERT(!strcmp(testResult.parseResultValue[6], "c"));
+      int i = 0;
+      TEST_ASSERT(testResult.parseResultPart[i] == webcc::HTTPRequestPart::METHOD);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[i++], "POST"));
+      TEST_ASSERT(testResult.parseResultPart[i] == webcc::HTTPRequestPart::PATH);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[i++], "index.htm"));
+      TEST_ASSERT(testResult.parseResultPart[i] == webcc::HTTPRequestPart::HTTP_VERSION);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[i++], "HTTP/1.1"));
+      TEST_ASSERT(testResult.parseResultPart[i] == webcc::HTTPRequestPart::FIELD_NAME);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[i++], "User-agent"));
+      TEST_ASSERT(testResult.parseResultPart[i] == webcc::HTTPRequestPart::FIELD_VALUE_PART1);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[i++], " parser-test"));
+      TEST_ASSERT(testResult.parseResultPart[i] == webcc::HTTPRequestPart::POST_QUERY_NAME);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[i++], "a"));
+      TEST_ASSERT(testResult.parseResultPart[i] == webcc::HTTPRequestPart::POST_QUERY_NAME);
+      TEST_ASSERT(!strcmp(testResult.parseResultValue[i++], "c"));
       TEST_ASSERT(!testResult.error);
       TEST_FUNC_END();
     }
