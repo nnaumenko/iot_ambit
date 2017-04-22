@@ -92,8 +92,6 @@ class ModuleTimings {
     uint32_t lastTimeRun = 0; ///< Last time in milliseconds when the onRun method was called
 };
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-parameter"
 /// @brief Interface for the software module which integrates with webserver
 /// @details The methods belonging to this interface are called as follows:
 /// @details
@@ -144,6 +142,7 @@ class ModuleWebServer {
       /// @return If the module accepts specified path and is able to produce a response,
       /// this method returns true. If module does not accept specified path and is
       /// unable to produce a response, this method returns false.
+      static_cast<void>(path);
       return (false);
     }
     boolean onHTTPReqMethod(const char * method) {
@@ -157,6 +156,7 @@ class ModuleWebServer {
       /// @return If the module accepts specified method in combination with previously
       /// specified path and is able to produce a response, this method returns true.
       /// Otherwise this method returns false.
+      static_cast<void>(method);
       return (false);
     }
     boolean onHTTPReqURLQuery(const char * name, const char * value) {
@@ -170,6 +170,8 @@ class ModuleWebServer {
       /// @param value Value of the Query String item.
       /// @return In current implementation return value is ignored. To maintain
       /// compatibility with future versions this method should always return true.
+      static_cast<void>(name);
+      static_cast<void>(value);
       return (true);
     }
     boolean onHTTPReqPOSTQuery(const char * name, const char * value) {
@@ -183,6 +185,8 @@ class ModuleWebServer {
       /// @param value Value of the POST Query String item.
       /// @return In current implementation return value is ignored. To maintain
       /// compatibility with future versions this method should always return true.
+      static_cast<void>(name);
+      static_cast<void>(value);
       return (true);
     }
     boolean onRespond(Print &client) {
@@ -216,6 +220,7 @@ class ModuleWebServer {
       /// @param error Set to true if there was an error parsing HTTP request.
       /// @return In current implementation return value is ignored. To maintain
       /// compatibility with future versions this method should always return true.
+      static_cast<void>(error);
       return (true);
     }
     const char * PROGMEM getMainPath(void) {
@@ -227,8 +232,6 @@ class ModuleWebServer {
       return (NULL);
     }
 };
-#pragma GCC diagnostic pop
-
 
 /// @brief Base class for a software module, combines all module interfaces.
 /// Software modules are inherited from this class.

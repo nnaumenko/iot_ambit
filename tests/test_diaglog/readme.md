@@ -1,11 +1,19 @@
 # Running the tests
 
-Copy here all necessary files from main project directory.
-
-The files to be copied are as follows:
+Copy here all necessary files from main project directory. The files to be copied are as follows:
 
 * diag.h
+* diag.cpp
 * module.h
+* util.h
+* util.cpp
+
+Copy here all necessary files from test/common directory. The files to be copied are as follows:
+
+* test.h
+* fakestream.h
+* fakestream.cpp
+
 
 Open .ino file in IDE, compile, upload and open serial monitor to observe test results
 
@@ -31,7 +39,7 @@ The following is expected in serial monitor window:
     PASSED
     Test function started: static void TestFakeStream::writeInOut_printString_expectTheSameStringInTheOutBuffer(), file fakestream.cpp
     PASSED
-    Test function started: static void TestDiagLog::log_resetPrintOutput_expectNoCrash(), file test_diaglog.ino
+    Test function started: static void TestDiagLog::log_disablePrintOutput_expectNoCrash(), file test_diaglog.ino
     PASSED
     Test function started: static void TestDiagLog::log_messageSinglePart_expectTheSameString(), file test_diaglog.ino
     PASSED
@@ -41,8 +49,16 @@ The following is expected in serial monitor window:
     PASSED
     Test function started: static void TestDiagLog::log_twoSequentialMessages_expectMessageNumberIncreases(), file test_diaglog.ino
     PASSED
+    Test function started: static void TestDiagLog::log_severityFilter_expectNoFilteredMessages(), file test_diaglog.ino
+    PASSED
+    Test function started: static void TestDiagLog::setSeverityFilter_severityEmergencyAlertCritical_expectCritical(), file test_diaglog.ino
+    PASSED
+    Test function started: static void TestDiagLog::setSeverityFilter_severityErrorWarningNoticeInformationalDebug_expectSameSeverity(), file test_diaglog.ino
+    PASSED
     
     ---------------- TESTING FINISHED ---------------
+    Test functions passed: 16
+    Test functions failed: 0 
 
 # Failed tests
 

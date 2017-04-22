@@ -1,8 +1,6 @@
 # Running the tests
 
-Copy here all necessary files from main project directory.
-
-The files to be copied are as follows:
+Copy here all necessary files from main project directory. The files to be copied are as follows:
 
 * diag.h
 * http.cpp
@@ -11,11 +9,18 @@ The files to be copied are as follows:
 * webcc.cpp
 * webcc.h
 
+Copy here all necessary files from test/common directory. The files to be copied are as follows:
+
+* test.h
+* fakestream.h
+* fakestream.cpp
+
 Open .ino file in IDE, compile, upload and open serial monitor to observe test results
 
 # Expected test results
 
 The following is expected in serial monitor window:
+
 
     ---------------- TESTING STARTED ----------------
     
@@ -39,59 +44,59 @@ The following is expected in serial monitor window:
     PASSED
     Test function started: static void TestHTTPRequestHelper::getMethod_CaseSensitive_expectHTTPRequestMethodUNKNOWN(), file test_http_webcc.ino
     PASSED
-    Test function started: static void TestHTTPPercentCode::decodeDigit_0_expect0(), file test_http_webcc.ino
+    Test function started: static void TestHTTPHexCode::decodeDigit_0_expect0(), file test_http_webcc.ino
     PASSED
-    Test function started: static void TestHTTPPercentCode::decodeDigit_9_expect9(), file test_http_webcc.ino
+    Test function started: static void TestHTTPHexCode::decodeDigit_9_expect9(), file test_http_webcc.ino
     PASSED
-    Test function started: static void TestHTTPPercentCode::decodeDigit_a_expecta(), file test_http_webcc.ino
+    Test function started: static void TestHTTPHexCode::decodeDigit_a_expecta(), file test_http_webcc.ino
     PASSED
-    Test function started: static void TestHTTPPercentCode::decodeDigit_f_expectf(), file test_http_webcc.ino
+    Test function started: static void TestHTTPHexCode::decodeDigit_f_expectf(), file test_http_webcc.ino
     PASSED
-    Test function started: static void TestHTTPPercentCode::decodeDigit_A_expectA(), file test_http_webcc.ino
+    Test function started: static void TestHTTPHexCode::decodeDigit_A_expectA(), file test_http_webcc.ino
     PASSED
-    Test function started: static void TestHTTPPercentCode::decodeDigit_F_expectF(), file test_http_webcc.ino
+    Test function started: static void TestHTTPHexCode::decodeDigit_F_expectF(), file test_http_webcc.ino
     PASSED
-    Test function started: static void TestHTTPPercentCode::decodeDigit_NullChar_expectError(), file test_http_webcc.ino
+    Test function started: static void TestHTTPHexCode::decodeDigit_NullChar_expectError(), file test_http_webcc.ino
     PASSED
-    Test function started: static void TestHTTPPercentCode::decodeDigit_Space_expectError(), file test_http_webcc.ino
+    Test function started: static void TestHTTPHexCode::decodeDigit_Space_expectError(), file test_http_webcc.ino
     PASSED
-    Test function started: static void TestHTTPPercentCode::decodeDigit_Percent_expectError(), file test_http_webcc.ino
+    Test function started: static void TestHTTPHexCode::decodeDigit_Percent_expectError(), file test_http_webcc.ino
     PASSED
-    Test function started: static void TestHTTPPercentCode::decodeHex_00_expect00(), file test_http_webcc.ino
+    Test function started: static void TestHTTPHexCode::decodeHex_00_expect00(), file test_http_webcc.ino
     PASSED
-    Test function started: static void TestHTTPPercentCode::decodeHex_0A_expect0A(), file test_http_webcc.ino
+    Test function started: static void TestHTTPHexCode::decodeHex_0A_expect0A(), file test_http_webcc.ino
     PASSED
-    Test function started: static void TestHTTPPercentCode::decodeHex_A0_expectA0(), file test_http_webcc.ino
+    Test function started: static void TestHTTPHexCode::decodeHex_A0_expectA0(), file test_http_webcc.ino
     PASSED
-    Test function started: static void TestHTTPPercentCode::decodeHex_FF_expectFF(), file test_http_webcc.ino
+    Test function started: static void TestHTTPHexCode::decodeHex_FF_expectFF(), file test_http_webcc.ino
     PASSED
-    Test function started: static void TestHTTPPercentCode::decodeHex_0Space_expectError(), file test_http_webcc.ino
+    Test function started: static void TestHTTPHexCode::decodeHex_0Space_expectError(), file test_http_webcc.ino
     PASSED
-    Test function started: static void TestHTTPPercentCode::decodeHex_0Percent_expectError(), file test_http_webcc.ino
+    Test function started: static void TestHTTPHexCode::decodeHex_0Percent_expectError(), file test_http_webcc.ino
     PASSED
-    Test function started: static void TestHTTPPercentCode::decodeHex_0Minus_expectError(), file test_http_webcc.ino
+    Test function started: static void TestHTTPHexCode::decodeHex_0Minus_expectError(), file test_http_webcc.ino
     PASSED
-    Test function started: static void TestHTTPPercentCode::decodeHex_0h_expectError(), file test_http_webcc.ino
+    Test function started: static void TestHTTPHexCode::decodeHex_0h_expectError(), file test_http_webcc.ino
     PASSED
-    Test function started: static void TestHTTPPercentCode::decodeHex_0x_expectError(), file test_http_webcc.ino
+    Test function started: static void TestHTTPHexCode::decodeHex_0x_expectError(), file test_http_webcc.ino
     PASSED
-    Test function started: static void TestHTTPPercentCode::decodeHex_Space0_expectError(), file test_http_webcc.ino
+    Test function started: static void TestHTTPHexCode::decodeHex_Space0_expectError(), file test_http_webcc.ino
     PASSED
-    Test function started: static void TestHTTPPercentCode::decodeHex_Percent0_expectError(), file test_http_webcc.ino
+    Test function started: static void TestHTTPHexCode::decodeHex_Percent0_expectError(), file test_http_webcc.ino
     PASSED
-    Test function started: static void TestHTTPPercentCode::decodeHex_Minus0_expectError(), file test_http_webcc.ino
+    Test function started: static void TestHTTPHexCode::decodeHex_Minus0_expectError(), file test_http_webcc.ino
     PASSED
-    Test function started: static void TestHTTPPercentCode::decodeHex_h0_expectError(), file test_http_webcc.ino
+    Test function started: static void TestHTTPHexCode::decodeHex_h0_expectError(), file test_http_webcc.ino
     PASSED
-    Test function started: static void TestHTTPPercentCode::decodeHex_x0_expectError(), file test_http_webcc.ino
+    Test function started: static void TestHTTPHexCode::decodeHex_x0_expectError(), file test_http_webcc.ino
     PASSED
-    Test function started: static void TestHTTPPercentCode::decodeHex_23Space_expect23(), file test_http_webcc.ino
+    Test function started: static void TestHTTPHexCode::decodeHex_23Space_expect23(), file test_http_webcc.ino
     PASSED
-    Test function started: static void TestHTTPPercentCode::decodeHex_EmptyString_expectError(), file test_http_webcc.ino
+    Test function started: static void TestHTTPHexCode::decodeHex_EmptyString_expectError(), file test_http_webcc.ino
     PASSED
-    Test function started: static void TestHTTPPercentCode::decodeHex_SingleCharString_expectError(), file test_http_webcc.ino
+    Test function started: static void TestHTTPHexCode::decodeHex_SingleCharString_expectError(), file test_http_webcc.ino
     PASSED
-    Test function started: static void TestHTTPPercentCode::decodeHex_NullString_expectError(), file test_http_webcc.ino
+    Test function started: static void TestHTTPHexCode::decodeHex_NullString_expectError(), file test_http_webcc.ino
     PASSED
     Test function started: static void TestURL::decode_plainURL_expectUnmodifiedURL(), file test_http_webcc.ino
     PASSED
@@ -279,8 +284,19 @@ The following is expected in serial monitor window:
     PASSED
     Test function started: static void TestHTTPReqParserStateMachine::parse_EmptyPOSTQueryValue_expectNoError(), file test_http_webcc.ino
     PASSED
+    Test function started: static void TestFakeDiag::log_variousParameters_expectCorrectParametersStored(), file fakediag.cpp
+    PASSED
+    Test function started: static void TestFakeDiag::log_multipleEntries_expectCorrectEntriesStored(), file fakediag.cpp
+    PASSED
+    Test function started: static void TestFakeDiag::log_inputStringExceedsMaxLength_expectStoredStringTruncated(), file fakediag.cpp
+    PASSED
+    Test function started: static void TestFakeDiag::log_inputTooManyStrings_expectMaxStringsPerLimit(), file fakediag.cpp
+    PASSED
     
     ---------------- TESTING FINISHED ---------------
+    Test functions passed: 134
+    Test functions failed: 0 
+    
 
 # Failed tests
 

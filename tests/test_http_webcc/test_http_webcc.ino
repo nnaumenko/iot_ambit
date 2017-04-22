@@ -1,6 +1,7 @@
 #include <ESP8266WiFi.h>
 #include "test.h"
 #include "fakestream.h"
+#include "fakediag.h"
 
 #include "http.h"
 #include "webcc.h"
@@ -130,13 +131,13 @@ class TestHTTPRequestHelper {
     }
 };
 
-class TestHTTPPercentCode {
+class TestHTTPHexCode {
   public:
     static void decodeDigit_0_expect0(void) {
       TEST_FUNC_START();
       //arrange
       //act
-      int result = HTTPPercentCode::decodeDigit('0');
+      int result = HTTPHexCode::decodeDigit('0');
       //assert
       TEST_ASSERT(result == 0);
       TEST_FUNC_END();
@@ -145,7 +146,7 @@ class TestHTTPPercentCode {
       TEST_FUNC_START();
       //arrange
       //act
-      int result = HTTPPercentCode::decodeDigit('9');
+      int result = HTTPHexCode::decodeDigit('9');
       //assert
       TEST_ASSERT(result == 9);
       TEST_FUNC_END();
@@ -154,7 +155,7 @@ class TestHTTPPercentCode {
       TEST_FUNC_START();
       //arrange
       //act
-      int result = HTTPPercentCode::decodeDigit('a');
+      int result = HTTPHexCode::decodeDigit('a');
       //assert
       TEST_ASSERT(result == 10);
       TEST_FUNC_END();
@@ -163,7 +164,7 @@ class TestHTTPPercentCode {
       TEST_FUNC_START();
       //arrange
       //act
-      int result = HTTPPercentCode::decodeDigit('f');
+      int result = HTTPHexCode::decodeDigit('f');
       //assert
       TEST_ASSERT(result == 15);
       TEST_FUNC_END();
@@ -172,7 +173,7 @@ class TestHTTPPercentCode {
       TEST_FUNC_START();
       //arrange
       //act
-      int result = HTTPPercentCode::decodeDigit('A');
+      int result = HTTPHexCode::decodeDigit('A');
       //assert
       TEST_ASSERT(result == 10);
       TEST_FUNC_END();
@@ -181,7 +182,7 @@ class TestHTTPPercentCode {
       TEST_FUNC_START();
       //arrange
       //act
-      int result = HTTPPercentCode::decodeDigit('F');
+      int result = HTTPHexCode::decodeDigit('F');
       //assert
       TEST_ASSERT(result == 15);
       TEST_FUNC_END();
@@ -190,45 +191,45 @@ class TestHTTPPercentCode {
       TEST_FUNC_START();
       //arrange
       //act
-      int result = HTTPPercentCode::decodeDigit('\0');
+      int result = HTTPHexCode::decodeDigit('\0');
       //assert
-      TEST_ASSERT(result == HTTPPercentCode::decodeError);
+      TEST_ASSERT(result == HTTPHexCode::decodeError);
       TEST_FUNC_END();
     }
     static void decodeDigit_Space_expectError(void) {
       TEST_FUNC_START();
       //arrange
       //act
-      int result = HTTPPercentCode::decodeDigit('\0');
+      int result = HTTPHexCode::decodeDigit('\0');
       //assert
-      TEST_ASSERT(result == HTTPPercentCode::decodeError);
+      TEST_ASSERT(result == HTTPHexCode::decodeError);
       TEST_FUNC_END();
     }
     static void decodeDigit_Percent_expectError(void) {
       TEST_FUNC_START();
       //arrange
       //act
-      int result = HTTPPercentCode::decodeDigit('\0');
+      int result = HTTPHexCode::decodeDigit('\0');
       //assert
-      TEST_ASSERT(result == HTTPPercentCode::decodeError);
+      TEST_ASSERT(result == HTTPHexCode::decodeError);
       TEST_FUNC_END();
     }
     static void decodeDigit_Minus_expectError(void) {
       TEST_FUNC_START();
       //arrange
       //act
-      int result = HTTPPercentCode::decodeDigit('-');
+      int result = HTTPHexCode::decodeDigit('-');
       //assert
-      TEST_ASSERT(result == HTTPPercentCode::decodeError);
+      TEST_ASSERT(result == HTTPHexCode::decodeError);
       TEST_FUNC_END();
     }
     static void decodeDigit_h_expectError(void) {
       TEST_FUNC_START();
       //arrange
       //act
-      int result = HTTPPercentCode::decodeDigit('h');
+      int result = HTTPHexCode::decodeDigit('h');
       //assert
-      TEST_ASSERT(result == HTTPPercentCode::decodeError);
+      TEST_ASSERT(result == HTTPHexCode::decodeError);
       TEST_FUNC_END();
     }
   public:
@@ -248,7 +249,7 @@ class TestHTTPPercentCode {
       TEST_FUNC_START();
       //arrange
       //act
-      int result = HTTPPercentCode::decodeHex("00");
+      int result = HTTPHexCode::decodeHex("00");
       //assert
       TEST_ASSERT(result == 0x00);
       TEST_FUNC_END();
@@ -257,7 +258,7 @@ class TestHTTPPercentCode {
       TEST_FUNC_START();
       //arrange
       //act
-      int result = HTTPPercentCode::decodeHex("0A");
+      int result = HTTPHexCode::decodeHex("0A");
       //assert
       TEST_ASSERT(result == 0x0A);
       TEST_FUNC_END();
@@ -266,7 +267,7 @@ class TestHTTPPercentCode {
       TEST_FUNC_START();
       //arrange
       //act
-      int result = HTTPPercentCode::decodeHex("A0");
+      int result = HTTPHexCode::decodeHex("A0");
       //assert
       TEST_ASSERT(result == 0xA0);
       TEST_FUNC_END();
@@ -275,7 +276,7 @@ class TestHTTPPercentCode {
       TEST_FUNC_START();
       //arrange
       //act
-      int result = HTTPPercentCode::decodeHex("FF");
+      int result = HTTPHexCode::decodeHex("FF");
       //assert
       TEST_ASSERT(result == 0xFF);
       TEST_FUNC_END();
@@ -284,97 +285,97 @@ class TestHTTPPercentCode {
       TEST_FUNC_START();
       //arrange
       //act
-      int result = HTTPPercentCode::decodeHex("0 ");
+      int result = HTTPHexCode::decodeHex("0 ");
       //assert
-      TEST_ASSERT(result == HTTPPercentCode::decodeError);
+      TEST_ASSERT(result == HTTPHexCode::decodeError);
       TEST_FUNC_END();
     }
     static void decodeHex_0Percent_expectError(void) {
       TEST_FUNC_START();
       //arrange
       //act
-      int result = HTTPPercentCode::decodeHex("0%");
+      int result = HTTPHexCode::decodeHex("0%");
       //assert
-      TEST_ASSERT(result == HTTPPercentCode::decodeError);
+      TEST_ASSERT(result == HTTPHexCode::decodeError);
       TEST_FUNC_END();
     }
     static void decodeHex_0Minus_expectError(void) {
       TEST_FUNC_START();
       //arrange
       //act
-      int result = HTTPPercentCode::decodeHex("0-");
+      int result = HTTPHexCode::decodeHex("0-");
       //assert
-      TEST_ASSERT(result == HTTPPercentCode::decodeError);
+      TEST_ASSERT(result == HTTPHexCode::decodeError);
       TEST_FUNC_END();
     }
     static void decodeHex_0h_expectError(void) {
       TEST_FUNC_START();
       //arrange
       //act
-      int result = HTTPPercentCode::decodeHex("0h");
+      int result = HTTPHexCode::decodeHex("0h");
       //assert
-      TEST_ASSERT(result == HTTPPercentCode::decodeError);
+      TEST_ASSERT(result == HTTPHexCode::decodeError);
       TEST_FUNC_END();
     }
     static void decodeHex_0x_expectError(void) {
       TEST_FUNC_START();
       //arrange
       //act
-      int result = HTTPPercentCode::decodeHex("0x");
+      int result = HTTPHexCode::decodeHex("0x");
       //assert
-      TEST_ASSERT(result == HTTPPercentCode::decodeError);
+      TEST_ASSERT(result == HTTPHexCode::decodeError);
       TEST_FUNC_END();
     }
     static void decodeHex_Space0_expectError(void) {
       TEST_FUNC_START();
       //arrange
       //act
-      int result = HTTPPercentCode::decodeHex(" 0");
+      int result = HTTPHexCode::decodeHex(" 0");
       //assert
-      TEST_ASSERT(result == HTTPPercentCode::decodeError);
+      TEST_ASSERT(result == HTTPHexCode::decodeError);
       TEST_FUNC_END();
     }
     static void decodeHex_Percent0_expectError(void) {
       TEST_FUNC_START();
       //arrange
       //act
-      int result = HTTPPercentCode::decodeHex("%0");
+      int result = HTTPHexCode::decodeHex("%0");
       //assert
-      TEST_ASSERT(result == HTTPPercentCode::decodeError);
+      TEST_ASSERT(result == HTTPHexCode::decodeError);
       TEST_FUNC_END();
     }
     static void decodeHex_Minus0_expectError(void) {
       TEST_FUNC_START();
       //arrange
       //act
-      int result = HTTPPercentCode::decodeHex("-0");
+      int result = HTTPHexCode::decodeHex("-0");
       //assert
-      TEST_ASSERT(result == HTTPPercentCode::decodeError);
+      TEST_ASSERT(result == HTTPHexCode::decodeError);
       TEST_FUNC_END();
     }
     static void decodeHex_h0_expectError(void) {
       TEST_FUNC_START();
       //arrange
       //act
-      int result = HTTPPercentCode::decodeHex("h0");
+      int result = HTTPHexCode::decodeHex("h0");
       //assert
-      TEST_ASSERT(result == HTTPPercentCode::decodeError);
+      TEST_ASSERT(result == HTTPHexCode::decodeError);
       TEST_FUNC_END();
     }
     static void decodeHex_x0_expectError(void) {
       TEST_FUNC_START();
       //arrange
       //act
-      int result = HTTPPercentCode::decodeHex("x0");
+      int result = HTTPHexCode::decodeHex("x0");
       //assert
-      TEST_ASSERT(result == HTTPPercentCode::decodeError);
+      TEST_ASSERT(result == HTTPHexCode::decodeError);
       TEST_FUNC_END();
     }
     static void decodeHex_23Space_expect23(void) {
       TEST_FUNC_START();
       //arrange
       //act
-      int resultOnlyTwoFirstDigitsConverted = HTTPPercentCode::decodeHex("23 ");
+      int resultOnlyTwoFirstDigitsConverted = HTTPHexCode::decodeHex("23 ");
       //assert
       TEST_ASSERT(resultOnlyTwoFirstDigitsConverted == 0x23);
       TEST_FUNC_END();
@@ -383,27 +384,27 @@ class TestHTTPPercentCode {
       TEST_FUNC_START();
       //arrange
       //act
-      int result = HTTPPercentCode::decodeHex("");
+      int result = HTTPHexCode::decodeHex("");
       //assert
-      TEST_ASSERT(result == HTTPPercentCode::decodeError);
+      TEST_ASSERT(result == HTTPHexCode::decodeError);
       TEST_FUNC_END();
     }
     static void decodeHex_SingleCharString_expectError(void) {
       TEST_FUNC_START();
       //arrange
       //act
-      int result = HTTPPercentCode::decodeHex("0");
+      int result = HTTPHexCode::decodeHex("0");
       //assert
-      TEST_ASSERT(result == HTTPPercentCode::decodeError);
+      TEST_ASSERT(result == HTTPHexCode::decodeError);
       TEST_FUNC_END();
     }
     static void decodeHex_NullString_expectError(void) {
       TEST_FUNC_START();
       //arrange
       //act
-      int result = HTTPPercentCode::decodeHex(NULL);
+      int result = HTTPHexCode::decodeHex(NULL);
       //assert
-      TEST_ASSERT(result == HTTPPercentCode::decodeError);
+      TEST_ASSERT(result == HTTPHexCode::decodeError);
       TEST_FUNC_END();
     }
   public:
@@ -1976,15 +1977,18 @@ class TestHTTPReqParserStateMachine {
     }
 };
 
+TEST_GLOBALS();
+
 void setup() {
   TEST_SETUP();
   TEST_BEGIN();
   TestHTTPRequestHelper::runTests();
-  TestHTTPPercentCode::runTests();
+  TestHTTPHexCode::runTests();
   TestURL::runTests();
   TestFakeStream::runTests();
   TestBufferedPrint::runTests();
   TestHTTPReqParserStateMachine::runTests();
+  TestFakeDiag::runTests();
   TEST_END();
 }
 

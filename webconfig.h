@@ -98,7 +98,7 @@ extern const TextsUI PROGMEM textsUI;
 /// webconfig. When webconfig is disabled, it will return HTTP status code
 /// 403 FORBIDEN in response to both GET and POST requests. Webconfig is
 /// disabled by default.
-/// @tparam Diag: diagnostic output Policy to direct messages to. Required
+/// @tparam Diag diagnostic output Policy to direct messages to. Required
 /// to contain Severity enum member (see diag::DiagLog::Severity for details)
 /// and log() method which accepts Severity and then variable number of
 /// parameters (see diag::DiagLog::log() for details). If these requirements
@@ -395,6 +395,6 @@ void WebConfig<Diag>::setParameter(EepromSavedParameter parameterId, const char 
   }
 }
 
-};
+}; //namespace webconfig;
 
 #endif

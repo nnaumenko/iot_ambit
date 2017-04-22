@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016 Nick Naumenko (https://github.com/nnaumenko)
+ * Copyright (C) 2016-2017 Nick Naumenko (https://github.com/nnaumenko)
  * All rights reserved
  * This software may be modified and distributed under the terms
  * of the MIT license. See the LICENSE file for details.
@@ -17,11 +17,11 @@
 
 #include <Arduino.h>
 #include "module.h"
+#include "util.h"
 
 namespace diag {
 
 #define MODULE_TEXT(name,value) public: const char name [sizeof(value)] = value
-#define FSH(name) reinterpret_cast<const __FlashStringHelper *>(name)
 
 typedef uint32_t MessageNumber;
 typedef uint32_t MessageTimestamp;
@@ -41,7 +41,7 @@ class TextsUI {
     MODULE_TEXT(messageSeverityDebug,         "Debug");
     MODULE_TEXT(messageSeverityUndefined,     "Undefined Message Severity");
 
-    MODULE_TEXT(messageNumberRollover, "Message number rollover");
+    MODULE_TEXT(messageNumberRollover,        "Message number rollover");
 } __attribute__((packed));
 
 extern const Texts PROGMEM texts;
@@ -50,9 +50,9 @@ extern const TextsUI PROGMEM textsUI;
 
 #undef MODULE_TEXT
 
-class DiagLogStorageDummy;
+template <size_t StorageBufferSize = 3200> class DiagLogStorage;
 
-template <class Storage = DiagLogStorageDummy>
+template <class Storage = DiagLogStorage<>, char LogSeparatorChar = '|'>
 class DiagLog : public Module<DiagLog<Storage>> {
   public:
     ///Message severity
@@ -82,189 +82,183 @@ class DiagLog : public Module<DiagLog<Storage>> {
   private:
     Print * output = NULL;
     MessageNumber messageNumber = 0;
-    template <typename CurrentPart> inline void printMessagePart(const CurrentPart currentPart);
-    template <typename CurrentPart, typename... MessageParts> inline void printMessagePart(const CurrentPart currentPart, const MessageParts... messageParts);
+    template <typename CurrentPart> inline void printMessagePart(Print &destination, const CurrentPart currentPart);
+    template <typename CurrentPart, typename... MessageParts> inline void printMessagePart(Print &destination, const CurrentPart currentPart, const MessageParts... messageParts);
   private:
     static const Severity minAllowedSeverityFilter = Severity::CRITICAL;
     Severity severityFilter = Severity::DEBUG;
   private:
-    const __FlashStringHelper * severityString(Severity severity);
+    inline const __FlashStringHelper * severityString(Severity severity);
+  private:
+    Storage storage;
+  private:
+    static const size_t maxMessageSize = 256;
+    char messageBuffer[maxMessageSize];
 };
 
-template <class Storage>
-template <typename... MessageParts> uint32_t DiagLog<Storage>::log(Severity severity, const MessageParts... messageParts) {
-  /// @brief Logs the message.
-  ///
-  /// This method is used by other modules to send messages to Diagnostic Log.
-  ///
-  /// Usage example:
-  ///
-  ///     diag::DiagLog::instance()->log(diag::DiagLog::Severity::DEBUG, "My message");
-  ///
-  /// Message may also consist of multiple parts:
-  ///
+template <class Storage, char LogSeparatorChar>
+template <typename... MessageParts> uint32_t DiagLog<Storage, LogSeparatorChar>::log(Severity severity, const MessageParts... messageParts) {
+  /// @brief Logs the message
+  /// @details This method is used by other modules to send messages to Diagnostic Log
+  /// @details Usage example:
+  /// @details     diag::DiagLog<>::instance()->log(diag::DiagLog<>::Severity::DEBUG, "My message");
+  /// @details Message may also consist of multiple parts:
+  /// @details
   ///     int myValue = 0;
-  ///     diag::DiagLog::instance()->log(diag::DiagLog::Severity::DEBUG, "Int value: ", myValue, F(" float value:"), 1.55);
-  ///
-  /// Message is checked against severity filter setting and discarded if its
+  ///     diag::DiagLog<>::instance()->log(diag::DiagLog<>::Severity::DEBUG, "Int value: ", myValue, F(" float value:"), 1.55);
+  /// @details Message is checked against severity filter setting and discarded if its
   /// severity exceeds (less severe than) severity filter setting.
-  ///
-  /// Message number and timestamp (current millis() value) are automatically
+  /// @details Message number and timestamp (current millis() value) are automatically
   /// appended to the message.
-  ///
-  /// Then message is printed to the output and sent to storage.
-  ///
-  /// If the message number is about to roll over (i.e. incremented from 0xFFFFFFFF
+  /// @details Then message is printed to the output and sent to storage.
+  /// @details If the message number is about to roll over (i.e. incremented from 0xFFFFFFFF
   /// to 0x00000000), this is automatically noted in a message with severity CRITICAL.
-  ///
-  /// @param[in] severity Message severity.
-  /// @param[in] messageParts Parameter pack which consists of all message parts.
+  /// @param severity Message severity.
+  /// @param messageParts Parameter pack which consists of all message parts.
   if (static_cast<uint8_t>(severity) > static_cast<uint8_t>(severityFilter)) return (messageNumber);
   MessageTimestamp timestamp = millis();
+  util::arrays::PrintToBuffer message(messageBuffer, maxMessageSize);
+  message.print(messageNumber);
+  message.print(LogSeparatorChar);
+  message.print(timestamp);
+  message.print(LogSeparatorChar);
+  message.print(severityString(severity));
+  message.print(LogSeparatorChar);
+  //TODO: print/render message to buffer, then print whole message from buffer and send buffer contents to storage
+  printMessagePart(message, messageParts...);
   if (output) {
-    output->print('[');
-    output->print(messageNumber);
-    output->print(']');
-    output->print('[');
-    output->print(timestamp);
-    output->print(']');
-    output->print('[');
-    output->print(severityString(severity));
-    output->print(']');
+    output->print(messageBuffer);
   }
-  printMessagePart(messageParts...);
+  storage.store(messageBuffer);
   if (messageNumber == 0xFFFFFFFF) {
     messageNumber++;
-    return (log(Severity::CRITICAL, FSH(textsUI.messageNumberRollover)));
+    return (log(Severity::CRITICAL, FPSTR(textsUI.messageNumberRollover)));
   }
   return (messageNumber++);
 }
 
 /// @brief Sets message forwarding output.
-/// @param[in] newOutput Print instance where messages will be forwarded.
-template <class Storage>
-void DiagLog<Storage>::setPrintOutput(Print &newOutput) {
+/// @param newOutput Print instance where messages will be forwarded.
+template <class Storage, char LogSeparatorChar>
+void DiagLog<Storage, LogSeparatorChar>::setPrintOutput(Print &newOutput) {
   output = &newOutput;
 }
 
 /// @brief Disables message forwarding to Print output.
-template <class Storage>
-void DiagLog<Storage>::disablePrintOutput(void) {
+template <class Storage, char LogSeparatorChar>
+void DiagLog<Storage, LogSeparatorChar>::disablePrintOutput(void) {
   output = NULL;
 }
 
 /// @brief Get current setting of the message severity filter.
-///
-/// Messages with the severity exceeding (less severe than) severity
-/// filter setting will be ignored. They will not be stored or forwarded
-/// to the output.
-///
-/// Messages with severity exactly as specified by severity filter will be
-/// stored and forwarded to the output.
+/// @details Messages with the severity exceeding (less severe than)
+/// severity filter setting will be ignored. They will not be stored
+/// or forwarded to the output.
+/// @details Messages with severity exactly as specified by severity
+/// filter will be stored and forwarded to the output.
 /// @return Current setting of severity filter.
-template <class Storage>
-typename DiagLog<Storage>::Severity DiagLog<Storage>::getSeverityFilter(void) const {
+template <class Storage, char LogSeparatorChar>
+typename DiagLog<Storage, LogSeparatorChar>::Severity DiagLog<Storage, LogSeparatorChar>::getSeverityFilter(void) const {
   return (severityFilter);
 }
 
 /// @brief Set message severity filter.
-///
-/// Messages with the severity exceeding (less severe than) severity
-/// filter setting will be ignored. They will not be stored or forwarded
-/// to the output.
-///
-/// Messages with severity exactly as specified by severity filter will be
-/// stored and forwarded to the output.
-/// @param[in] leastSeverityAllowed Messages with severity exceeding this
+/// @details Messages with the severity exceeding (less severe than)
+/// severity filter setting will be ignored. They will not be stored
+/// or forwarded to the output.
+/// @details Messages with severity exactly as specified by severity
+/// filter will be stored and forwarded to the output.
+/// @param leastSeverityAllowed Messages with severity exceeding this
 /// value (less severe) will be ignored.
-template <class Storage>
-void DiagLog<Storage>::setSeverityFilter(DiagLog<Storage>::Severity leastSeverityAllowed) {
+template <class Storage, char LogSeparatorChar>
+void DiagLog<Storage, LogSeparatorChar>::setSeverityFilter(DiagLog<Storage, LogSeparatorChar>::Severity leastSeverityAllowed) {
   severityFilter = leastSeverityAllowed;
   if (static_cast<uint8_t>(leastSeverityAllowed) < static_cast<uint8_t>(minAllowedSeverityFilter)) severityFilter = minAllowedSeverityFilter;
 }
 
 /// @brief Prints last part of message from variadic template
 /// parameter pack.
-///
-/// Terminates the parameter pack expansion and prints last
+/// @details Terminates the parameter pack expansion and prints last
 /// part of the message from parameter pack.
-/// @param[in] currentPart Part of the message to print.
-template <class Storage>
-template <typename CurrentPart> void DiagLog<Storage>::printMessagePart(const CurrentPart currentPart) {
-  if (output) output->println(currentPart);
+/// @param currentPart Part of the message to print.
+template <class Storage, char LogSeparatorChar>
+template <typename CurrentPart>
+void DiagLog<Storage, LogSeparatorChar>::printMessagePart(Print &destination, const CurrentPart currentPart) {
+  destination.println(currentPart);
 }
 
 /// @brief Prints non-last part of message from variadic template parameter
 /// pack.
-///
-/// Recursively expands the variadic template parameter pack and prints
+/// @details Recursively expands the variadic template parameter pack and prints
 /// the message parts one at a time.
-/// @param[in] currentPart Current part of the message to be printed.
-/// @param[in] messageParts... Rest of the message parts in a parameter pack.
-template <class Storage>
-template <typename CurrentPart, typename... MessageParts> void DiagLog<Storage>::printMessagePart(const CurrentPart currentPart, const MessageParts... messageParts) {
-  if (output) output->print(currentPart);
-  printMessagePart(messageParts...);
+/// @param currentPart Current part of the message to be printed.
+/// @param messageParts... Rest of the message parts in a parameter pack.
+template <class Storage, char LogSeparatorChar>
+template <typename CurrentPart, typename... MessageParts>
+void DiagLog<Storage, LogSeparatorChar>::printMessagePart(Print &destination, const CurrentPart currentPart, const MessageParts... messageParts) {
+  destination.print(currentPart);
+  printMessagePart(destination, messageParts...);
 }
 
 /// @brief Returns human-readable string for the specified message severity.
-/// @param[in] severity Message severity.
+/// @param severity Message severity.
 /// @return C-string in PROGMEM message severity designation.
-template <class Storage>
-const __FlashStringHelper * DiagLog<Storage>::severityString(Severity severity) {
+template <class Storage, char LogSeparatorChar>
+const __FlashStringHelper * DiagLog<Storage, LogSeparatorChar>::severityString(Severity severity) {
   switch (severity) {
     case Severity::EMERGENCY:
-      return (FSH(textsUI.messageSeverityEmergency));
+      return (FPSTR(textsUI.messageSeverityEmergency));
     case Severity::ALERT:
-      return (FSH(textsUI.messageSeverityAlert));
+      return (FPSTR(textsUI.messageSeverityAlert));
     case Severity::CRITICAL:
-      return (FSH(textsUI.messageSeverityCritical));
+      return (FPSTR(textsUI.messageSeverityCritical));
     case Severity::ERROR:
-      return (FSH(textsUI.messageSeverityError));
+      return (FPSTR(textsUI.messageSeverityError));
     case Severity::WARNING:
-      return (FSH(textsUI.messageSeverityWarning));
+      return (FPSTR(textsUI.messageSeverityWarning));
     case Severity::NOTICE:
-      return (FSH(textsUI.messageSeverityNotice));
+      return (FPSTR(textsUI.messageSeverityNotice));
     case Severity::INFORMATIONAL:
-      return (FSH(textsUI.messageSeverityInformational));
+      return (FPSTR(textsUI.messageSeverityInformational));
     case Severity::DEBUG:
-      return (FSH(textsUI.messageSeverityDebug));
+      return (FPSTR(textsUI.messageSeverityDebug));
     default:
-      return (FSH(textsUI.messageSeverityUndefined));
+      return (FPSTR(textsUI.messageSeverityUndefined));
   }
 }
 
-template <size_t bufferSize = 4096>
+template <size_t StorageBufferSize>
 class DiagLogStorage {
   public:
-    DiagLogStorage();
-    ~DiagLogStorage();
-    boolean validate(void) const;
+    inline DiagLogStorage();
   public:
-    Print * messageBegin(uint32_t number, uint32_t timestamp, uint8_t severity);
-    void messageEnd(void);
+    inline boolean store(char * message);
+    inline size_t count(void);
+    inline size_t recall(size_t index, char *buffer, size_t bufferSize);
   private:
-    char * buffer = NULL;
-  private:
+    char storageBuffer[StorageBufferSize];
+    util::arrays::CStrRingBuffer storageRingBuffer;
 };
 
-template <size_t bufferSize>
-DiagLogStorage<bufferSize>::DiagLogStorage() {
-  buffer = malloc(bufferSize);
+template <size_t StorageBufferSize>
+DiagLogStorage<StorageBufferSize>::DiagLogStorage() : storageRingBuffer(storageBuffer, StorageBufferSize) {
 }
 
-template <size_t bufferSize>
-DiagLogStorage<bufferSize>::~DiagLogStorage() {
-  free(bufferSize);
+template <size_t StorageBufferSize>
+boolean DiagLogStorage<StorageBufferSize>::store(char * message) {
+  return (storageRingBuffer.push(message));
 }
 
-template <size_t bufferSize>
-boolean DiagLogStorage<bufferSize>::validate(void) const {
-  return (buffer != NULL);
+template <size_t StorageBufferSize>
+size_t DiagLogStorage<StorageBufferSize>::count(void) {
+  return (storageRingBuffer.count());
 }
 
-#undef FSH
+template <size_t StorageBufferSize>
+size_t DiagLogStorage<StorageBufferSize>::recall(size_t index, char *buffer, size_t bufferSize) {
+  return (storageRingBuffer.get(index, buffer, bufferSize));
+}
 
-};
-
+}; //namespace diag;
 #endif
+

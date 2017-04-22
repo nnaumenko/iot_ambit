@@ -1,17 +1,20 @@
 # Running the tests
 
-Copy here all necessary files from main project directory.
-
-The files to be copied are as follows:
+Copy here all necessary files from main project directory. The files to be copied are as follows:
 
 * stringmap.cpp
 * stringmap.h 
+
+Copy here all necessary files from test/common directory. The files to be copied are as follows:
+
+* test.h
 
 Open .ino file in IDE, compile, upload and open serial monitor to observe test results
 
 # Expected test results
 
 The following is expected in serial monitor window:
+
 
     ---------------- TESTING STARTED ----------------
     
@@ -132,7 +135,10 @@ The following is expected in serial monitor window:
     Test function started: static void TestStringMapLite::findInt_NULLStrings_ExpectNULL(), file test_stringmap.ino
     PASSED
     
-    ---------------- TESTING FINISHED ---------------
+    ---------------- TESTING FINISHED ---------------
+    Test functions passed: 58
+    Test functions failed: 0 
+    
 # Failed tests
 
 The following example illustrates failed tests reporting:

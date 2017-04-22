@@ -5,7 +5,7 @@
 
 #include "diag.h"
 
-using DiagLog = diag::DiagLog<diag::DiagLogStorage<>>;
+using DiagLog = diag::DiagLog<>;
 
 const char PROGMEM testFlashString[] = "testFlashString_";
 
@@ -23,7 +23,7 @@ class TestDiagLog {
     };
     static boolean parseDiagLogOutput(const char * output, DiagLogPrintOutputContent * result) {
       result->messageCount = 0;
-      const char delimiters[] = "[]\r\n";
+      const char delimiters[] = "|\r\n";
       const size_t tokenisedOutputSize = 512;
       char tokenisedOutput[tokenisedOutputSize] = {};
       if (tokenisedOutputSize < strlen(output) + 1) return (false);
@@ -244,6 +244,8 @@ class TestDiagLog {
       test_severityFilter();
     }
 };
+
+TEST_GLOBALS();
 
 void setup() {
   TEST_SETUP();

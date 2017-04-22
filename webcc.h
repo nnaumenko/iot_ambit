@@ -75,8 +75,6 @@ extern const TextsUI PROGMEM textsUI;
 
 #undef MODULE_TEXT
 
-const size_t HTTP_REQUEST_PART_MAX_SIZE = 33;
-
 //////////////////////////////////////////////////////////////////////
 // HTTPRequestPart
 //////////////////////////////////////////////////////////////////////
@@ -119,16 +117,16 @@ enum class ParseError {
 /// @details WebConfigControl processes HTTP requests and calls corresponding
 /// methods of the software modules listed under parameter pack WebModules.
 /// See ModuleWebServer for details.
-/// @tparam Diag: diagnostic output Policy to direct messages to. Required
+/// @tparam Diag diagnostic output Policy to direct messages to. Required
 /// to contain Severity enum member (see diag::DiagLog::Severity for details)
 /// and log() method which accepts Severity and then variable number of
 /// parameters (see diag::DiagLog::log() for details). If these requirements
 /// are not met, compilation will fail.
-/// @tparam Parser: HTTP request parser Policy. Required to contain methods 
+/// @tparam Parser HTTP request parser Policy. Required to contain methods 
 /// begin(), parse(), finished(), error() and getError() (see 
 /// HTTPReqParserStateMachine for details). If these requirements are not met, 
 /// compilation will fail.
-/// @tparam OutputStream: Policy for data output. Output Stream is integrated
+/// @tparam OutputStream Policy for data output. Output Stream is integrated
 /// between the software modules and web-client. All caching, buffering, 
 /// post-processing before data is sent to web-client is performed by 
 /// OutputStream. OutputStream must be derived from Print class. If these 
@@ -178,9 +176,10 @@ class WebConfigControl : public Module<WebConfigControl<Diag, Parser, OutputStre
     HTTPStatusCode getHTTPStatusCode(WebccError error, ParseError parseError);
     void handleErrors(OutputStream &output, WebccError error, const Parser &parser);
   private:
-    static const int WEBMODULES_CALL_THIS_ACCEPTED = -1;
-    static const int WEBMODULES_CALL_NONE_ACCEPTED = -2;
-    static const int WEBMODULES_CALL_MULTIPLE_ACCEPTED = -3;
+    static const int webModulesCallThisAccepted = -1;
+    static const int webModulesCallNoneAccepted = -2;
+    static const int webModulesCallMultipleAccepted = -3;
+    const size_t httpRequestPartMaxSize = 33;
   private:
     const char * rootRedirect = NULL;
 };
@@ -234,13 +233,13 @@ void WebConfigControl<Diag, Parser, OutputStream, WebForm, WebModules...>::onRun
   Parser parser;
   parser.begin(client);
   diagLog->log(Diag::Severity::DEBUG, FPSTR(textsUI.beginParsing));
-  char tempBuffer[HTTP_REQUEST_PART_MAX_SIZE + 1];//+1 char for \0
+  char tempBuffer[httpRequestPartMaxSize + 1];//+1 char for \0
   tempBuffer[0] = '\0';
-  int indexModuleAccepted = WEBMODULES_CALL_NONE_ACCEPTED;
+  int indexModuleAccepted = webModulesCallNoneAccepted;
   WebccError error = WebccError::NONE;
   callWebModulesOnStart();
   do {
-    char readBuffer[HTTP_REQUEST_PART_MAX_SIZE + 1];//+1 char for \0
+    char readBuffer[httpRequestPartMaxSize + 1];//+1 char for \0
     readBuffer[0] = '\0';
     HTTPRequestPart reqPart = HTTPRequestPart::NONE;
     parser.parse(readBuffer, sizeof(readBuffer), &reqPart);
@@ -259,11 +258,11 @@ void WebConfigControl<Diag, Parser, OutputStream, WebForm, WebModules...>::onRun
         //In case of empty path control will not be passed here, thus path check is needed in subsequent HTTP request parts
         diagLog->log(Diag::Severity::INFORMATIONAL, FPSTR(textsUI.printPath), readBuffer);
         indexModuleAccepted = callWebModulesOnPath(readBuffer);
-        if (indexModuleAccepted == WEBMODULES_CALL_NONE_ACCEPTED) {
+        if (indexModuleAccepted == webModulesCallNoneAccepted) {
           error = WebccError::PATH_NOT_ACCEPTED;
           break;
         }
-        if (indexModuleAccepted == WEBMODULES_CALL_MULTIPLE_ACCEPTED) {
+        if (indexModuleAccepted == webModulesCallMultipleAccepted) {
           error = WebccError::PATH_CONFLICT;
           diagLog->log(Diag::Severity::CRITICAL, getErrorMessage(error), ' ', readBuffer);
           //TODO: print list of the modules which accepted the same path
@@ -275,7 +274,7 @@ void WebConfigControl<Diag, Parser, OutputStream, WebForm, WebModules...>::onRun
         }
         tempBuffer[0] = '\0';
       case HTTPRequestPart::URL_QUERY_NAME:
-        if (indexModuleAccepted == WEBMODULES_CALL_NONE_ACCEPTED) {
+        if (indexModuleAccepted == webModulesCallNoneAccepted) {
           error = WebccError::PATH_NOT_ACCEPTED;
           break;
         }
@@ -283,14 +282,14 @@ void WebConfigControl<Diag, Parser, OutputStream, WebForm, WebModules...>::onRun
         tempBuffer[sizeof(tempBuffer) - 1] = '\0';
         break;
       case HTTPRequestPart::URL_QUERY_VALUE:
-        if (indexModuleAccepted == WEBMODULES_CALL_NONE_ACCEPTED) {
+        if (indexModuleAccepted == webModulesCallNoneAccepted) {
           error = WebccError::PATH_NOT_ACCEPTED;
           break;
         }
         callWebModulesOnURLQuery(indexModuleAccepted, tempBuffer, readBuffer);
         break;
       case HTTPRequestPart::POST_QUERY_NAME:
-        if (indexModuleAccepted == WEBMODULES_CALL_NONE_ACCEPTED) {
+        if (indexModuleAccepted == webModulesCallNoneAccepted) {
           error = WebccError::PATH_NOT_ACCEPTED;
           break;
         }
@@ -298,7 +297,7 @@ void WebConfigControl<Diag, Parser, OutputStream, WebForm, WebModules...>::onRun
         tempBuffer[sizeof(tempBuffer) - 1] = '\0';
         break;
       case HTTPRequestPart::POST_QUERY_VALUE:
-        if (indexModuleAccepted == WEBMODULES_CALL_NONE_ACCEPTED) {
+        if (indexModuleAccepted == webModulesCallNoneAccepted) {
           error = WebccError::PATH_NOT_ACCEPTED;
           break;
         }
@@ -325,7 +324,7 @@ void WebConfigControl<Diag, Parser, OutputStream, WebForm, WebModules...>::callW
   /// @brief Calls onHttpReqPath method of all modules in WebModules parameter pack
   this->onHTTPReqStart();
   boolean callResult[] = { WebModules::instance()->onHTTPReqStart()... };
-  (void)callResult;
+  static_cast<void>(callResult);
 }
 
 template <class Diag, class Parser, class OutputStream, class WebForm, class... WebModules>
@@ -334,31 +333,31 @@ int WebConfigControl<Diag, Parser, OutputStream, WebForm, WebModules...>::callWe
   /// WebModules did accept the paramteter pack
   /// @param path Path from HTTP request
   /// @return Index in WebModules parameter pack of the module which accepted parameter pack. If no module accepted
-  /// the current path, this method returns WebCC::WEBMODULES_CALL_NONE_ACCEPTED. If more than one module accepted
-  /// the current path, this method returns WebCC::WEBMODULES_CALL_MULTIPLE_ACCEPTED. If this module (WebCC) did '
-  /// accept the current path, this method returns WebCC::WEBMODULES_CALL_THIS_ACCEPTED;
+  /// the current path, this method returns WebCC::webModulesCallNoneAccepted. If more than one module accepted
+  /// the current path, this method returns WebCC::webModulesCallMultipleAccepted. If this module (WebCC) did '
+  /// accept the current path, this method returns WebCC::webModulesCallThisAccepted;
   boolean thisModuleAccepted = this->onHTTPReqPath(path);
   boolean callResult[] = { WebModules::instance()->onHTTPReqPath(path)... };
-  int acceptCount = static_cast<int>(thisModuleAccepted), acceptedModuleIndex = WEBMODULES_CALL_NONE_ACCEPTED;
+  int acceptCount = static_cast<int>(thisModuleAccepted), acceptedModuleIndex = webModulesCallNoneAccepted;
   for (size_t i = 0; i < sizeof(callResult); i++) {
     if (callResult[i]) {
       acceptCount++;
       acceptedModuleIndex = i;
     }
   }
-  if (acceptCount > 1) return (WEBMODULES_CALL_MULTIPLE_ACCEPTED);
-  if (thisModuleAccepted) return (WEBMODULES_CALL_THIS_ACCEPTED);
+  if (acceptCount > 1) return (webModulesCallMultipleAccepted);
+  if (thisModuleAccepted) return (webModulesCallThisAccepted);
   return (acceptedModuleIndex);
 }
 
 template <class Diag, class Parser, class OutputStream, class WebForm, class... WebModules>
 boolean WebConfigControl<Diag, Parser, OutputStream, WebForm, WebModules...>::callWebModulesOnMethod(size_t index, const char *method) {
   /// @brief Calls onHttpReqMethod method of one module from WebModules parameter pack.
-  /// @param index Index of the module in the parameter pack or WebCC::WEBMODULES_CALL_THIS_ACCEPTED if this module
+  /// @param index Index of the module in the parameter pack or WebCC::webModulesCallThisAccepted if this module
   /// previously accepted the path from HTTP request
   /// @param Dethod HTTP Method from the HTTP request
   /// @return Value returned by onHTTPReqMethod of the corresponding module
-  if (index == WEBMODULES_CALL_THIS_ACCEPTED) {
+  if (index == webModulesCallThisAccepted) {
     return (this->onHTTPReqMethod(method));
   }
   if (index < 0) return (false);
@@ -370,12 +369,12 @@ boolean WebConfigControl<Diag, Parser, OutputStream, WebForm, WebModules...>::ca
 template <class Diag, class Parser, class OutputStream, class WebForm, class... WebModules>
 boolean WebConfigControl<Diag, Parser, OutputStream, WebForm, WebModules...>::callWebModulesOnURLQuery(size_t index, const char * name, const char * value) {
   /// @brief Calls onHttpReqURLQuery method of one module from WebModules parameter pack.
-  /// @param index Index of the module in the parameter pack or WEBMODULES_CALL_THIS_ACCEPTED
+  /// @param index Index of the module in the parameter pack or webModulesCallThisAccepted
   /// if this module previously accepted the path from HTTP request
   /// @param name Name of URL Query String Item from the HTTP request
   /// @param name Value of URL Query String Item from the HTTP request
   /// @return Value returned by onHttpReqURLQuery of the corresponding module
-  if (index == WEBMODULES_CALL_THIS_ACCEPTED) {
+  if (index == webModulesCallThisAccepted) {
     return (this->onHTTPReqURLQuery(name, value));
   }
   if (index < 0) return (false);
@@ -387,12 +386,12 @@ boolean WebConfigControl<Diag, Parser, OutputStream, WebForm, WebModules...>::ca
 template <class Diag, class Parser, class OutputStream, class WebForm, class... WebModules>
 boolean WebConfigControl<Diag, Parser, OutputStream, WebForm, WebModules...>::callWebModulesOnPOSTQuery(size_t index, const char * name, const char * value) {
   /// @brief Calls onHttpReqPOSTQuery method of one module from WebModules parameter pack.
-  /// @param index Index of the module in the parameter pack or WebCC::WEBMODULES_CALL_THIS_ACCEPTED if this module
+  /// @param index Index of the module in the parameter pack or WebCC::webModulesCallThisAccepted if this module
   /// previously accepted the path from HTTP request
   /// @param name Name of POST Query String Item from the HTTP request
   /// @param name Value of POST Query String Item from the HTTP request
   /// @return Value returned by onHttpReqPOSTQuery of the corresponding module
-  if (index == WEBMODULES_CALL_THIS_ACCEPTED) {
+  if (index == webModulesCallThisAccepted) {
     return (this->onHTTPReqPOSTQuery(name, value));
   }
   if (index < 0) return (false);
@@ -404,11 +403,11 @@ boolean WebConfigControl<Diag, Parser, OutputStream, WebForm, WebModules...>::ca
 template <class Diag, class Parser, class OutputStream, class WebForm, class... WebModules>
 boolean WebConfigControl<Diag, Parser, OutputStream, WebForm, WebModules...>::callWebModulesOnRespond(size_t index, Print &client) {
   /// @brief Calls onRespond method of one module from WebModules parameter pack.
-  /// @param index Index of the module in the parameter pack or WebCC::WEBMODULES_CALL_THIS_ACCEPTED if this module
+  /// @param index Index of the module in the parameter pack or WebCC::webModulesCallThisAccepted if this module
   /// previously accepted the path from HTTP request
   /// @param client Destination for the response to send to
   /// @return Value returned by onRespond method of the corresponding module
-  if (index == WEBMODULES_CALL_THIS_ACCEPTED) {
+  if (index == webModulesCallThisAccepted) {
     return (this->onRespond(client));
   }
   if (index < 0) return (false);
@@ -420,16 +419,16 @@ boolean WebConfigControl<Diag, Parser, OutputStream, WebForm, WebModules...>::ca
 template <class Diag, class Parser, class OutputStream, class WebForm, class... WebModules>
 boolean WebConfigControl<Diag, Parser, OutputStream, WebForm, WebModules...>::callWebModulesOnEnd(size_t index, boolean error) {
   /// @brief Calls onHTTPReqEnd method of all modules in WebModules parameter pack
-  /// @param index Index of the module in the parameter pack or WebCC::WEBMODULES_CALL_THIS_ACCEPTED if this module
+  /// @param index Index of the module in the parameter pack or WebCC::webModulesCallThisAccepted if this module
   /// previously accepted the path from HTTP request
   /// @param error True if an error occured during HTTP request processing, false if request was processed with
   /// no errors
   /// @return Value returned by onHTTPReqEnd of the module
   boolean thisModuleReturnValue = this->onHTTPReqEnd(error);
-  //  if (index == WEBMODULES_CALL_THIS_ACCEPTED) {
+  //  if (index == webModulesCallThisAccepted) {
   //    return (this->onHTTPReqEnd(error));
   //  }
-  if (index == WEBMODULES_CALL_THIS_ACCEPTED) return (thisModuleReturnValue);
+  if (index == webModulesCallThisAccepted) return (thisModuleReturnValue);
   if (index < 0) return (false);
   //int i = 0;
   //int callResult[] = { ((i++ == index) ? WebModules::instance()->onHTTPReqEnd(error) : false)... };
@@ -509,7 +508,7 @@ void WebConfigControl<Diag, Parser, OutputStream, WebForm, WebModules...>::handl
   /// @param parser HTTP Request Parser to provide information on parsing errors
   Diag * diagLog = Diag::instance();
   if (error != WebccError::NONE) {
-    diagLog->log(Diag::Severity::NOTICE, FPSTR(textsUI.httpStatusCode), (int)getHTTPStatusCode(error, parser.getError()), ' ', getErrorMessage(error));
+    diagLog->log(Diag::Severity::NOTICE, FPSTR(textsUI.httpStatusCode), static_cast<int>(getHTTPStatusCode(error, parser.getError())), ' ', getErrorMessage(error));
   }
   if (error == WebccError::PARSER_ERROR) {
     diagLog->log(Diag::Severity::NOTICE, getParseErrorMessage(parser.getError()));
@@ -1098,17 +1097,16 @@ void WebccForm::selectParameterExpand(long value, boolean progmemStrings, Option
   selectParameterExpand(value, progmemStrings, moreOptions...);
 }
 
-#pragma GCC diagnostic push
-#pragma GCC diagnostic ignored "-Wunused-parameter"
 /// @brief Finalises recursive expansion of parameter pack of drop-down list items
 /// @details Used when no more arguments are present in argument pack
-/// @warning Will produce "unused parameter" warning
 /// @param value Drop-down list parameter's current value
 /// @param progmemStrings If true cstring arguments optionName and optionValue
 /// are assumed to be located in PROGMEM, if false these cstring arguments are
 /// assumed to be located in RAM
-void WebccForm::selectParameterExpand(long value, boolean progmemStrings) {}
-#pragma GCC diagnostic pop
+void WebccForm::selectParameterExpand(long value, boolean progmemStrings) {
+  (void)value;
+  (void)progmemStrings;
+  }
 
 /// @brief Generates text parameter
 /// @param displayName CString which contains parameter's name visible for user in
@@ -1265,6 +1263,12 @@ inline size_t BufferedPrint::getBufferSize(void) {
 // HTTPReqParserStateMachine
 //////////////////////////////////////////////////////////////////////
 
+/// @brief Parses HTTP requests and decomposes them into HTTP Request Parts
+/// @details Call parse() method repeatedly to parse a HTTP Request. 
+/// Use finished() and error() method to determine whether parsing is 
+/// completed with or without error.
+/// @details This implementation is based on the state machine and does
+/// not have a state machine stack.
 class HTTPReqParserStateMachine {
   public:
     inline boolean begin(Stream &client);
@@ -1273,48 +1277,48 @@ class HTTPReqParserStateMachine {
     inline boolean error(void) const;
     inline ParseError getError(void) const;
   private:
-    enum class ParserState {
-      UNKNOWN,
-      BEGIN,
-      METHOD,
-      PATH,
-      URL_QUERY_NAME,
-      URL_QUERY_VALUE,
-      HTTP_VERSION,
-      FIELD_OR_HEADER_END,
-      FIELD_NAME,
-      FIELD_VALUE_PART1,
-      FIELD_VALUE_PART2,
-      POST_QUERY_OR_END,
-      POST_QUERY_NAME,
-      POST_QUERY_VALUE,
-      FINISHED,
-      ERROR_INTERNAL,
-      ERROR_REQUEST_PART_TOO_LONG,
-      ERROR_REQUEST_STRUCTURE,
-      ERROR_REQUEST_SEMANTICS,
+    enum class ParserState {        ///<Parser (state machine) internal state
+      UNKNOWN,                      ///<Parser state unknown (internal error)
+      BEGIN,                        ///<Begin parsing
+      METHOD,                       ///<Expecting HTTP request method
+      PATH,                         ///<Expecting HTTP request path
+      URL_QUERY_NAME,               ///<Expecting URL query item name (before '=')
+      URL_QUERY_VALUE,              ///<Expecting URL query item value (after '=')
+      HTTP_VERSION,                 ///<Expecting HTTP version
+      FIELD_OR_HEADER_END,          ///<Expecting header field or empty line (request header's end)
+      FIELD_NAME,                   ///<Expecting header field name
+      FIELD_VALUE_PART1,            ///<Expecting header field value part before '='
+      FIELD_VALUE_PART2,            ///<Expecting header field value part after '=' and before ';' or end of line
+      POST_QUERY_OR_END,            ///<Expecting POST query or end of the request
+      POST_QUERY_NAME,              ///<Expecting URL query item name (before '=')
+      POST_QUERY_VALUE,             ///<Expecting URL query item value (after '=')
+      FINISHED,                     ///<Request parsing completed successfully
+      ERROR_INTERNAL,               ///<Internal error occured
+      ERROR_REQUEST_PART_TOO_LONG,  ///<Request part is too long to process
+      ERROR_REQUEST_STRUCTURE,      ///<Malformed request
+      ERROR_REQUEST_SEMANTICS,      ///<Request is correctly structured but is inconsistent or contradictory
     };
     enum class ControlCharacter {
-      OTHER,       //Character other than listed below
-      SPACE,       //Space (0x20)
-      QUESTION,    //Question mark (0x3F)
-      AMPERSAND,   //Ampersand (0x26)
-      EQUAL,       //Equal sign (0x3D)
-      COLON,       //Colon (0x3A)
-      CRLF,        //\r\n (0x10 & 0x13)
-      SEMICOLON,   //Semicolon (0x3B)
-      UNAVAILABLE, //see STREAM_UNAVAILABLE (-1)
+      OTHER,       ///< Character other than listed below
+      SPACE,       ///< Space (0x20)
+      QUESTION,    ///< Question mark (0x3F)
+      AMPERSAND,   ///< Ampersand (0x26)
+      EQUAL,       ///< Equal sign (0x3D)
+      COLON,       ///< Colon (0x3A)
+      CRLF,        ///< \r\n (0x10 & 0x13)
+      SEMICOLON,   ///< Semicolon (0x3B)
+      UNAVAILABLE, ///< see STREAM_UNAVAILABLE (-1)
     };
     enum class ControlCharacterSet {
-      ALL,        //All control characters used
-      FIELD_VALUE //Only UNAVAILABLE, SEMICOLON, EQUAL and CRLF characters are used
+      ALL,        ///< All control characters used
+      FIELD_VALUE ///< Only UNAVAILABLE, SEMICOLON, EQUAL and CRLF characters are used
     };
     enum class StreamOperation {
-      DO_NOTHING,         //Do not read anything from stream
-      READ_UNTIL,         //Read from stream to buffer until one of control characters is found or buffer is full
-      SKIP,               //Read from stream until control character are found
-      READ_SINGLE,        //Read single character
-      READ_IF_CC          //Do not read anything from stream and peek (rather than read) next character
+      DO_NOTHING,         ///< Do not read anything from stream
+      READ_UNTIL,         ///< Read from stream to buffer until one of control characters is found or buffer is full
+      SKIP,               ///< Read from stream until control character are found
+      READ_SINGLE,        ///< Read single character
+      READ_IF_CC          ///< Do not read anything from stream and peek (rather than read) next character
     };
   private:
     inline void transition(ParserState newState);
@@ -1462,6 +1466,6 @@ boolean HTTPReqParserStateMachine::InputStreamHelper::isControlCharacterInSet(Co
   return (false);
 }
 
-};
+}; //namespace webcc;
 
 #endif

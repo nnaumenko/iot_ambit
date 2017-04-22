@@ -833,6 +833,8 @@ class TestStringMapLite {
     }
 };
 
+TEST_GLOBALS();
+
 void setup() {
   TEST_SETUP();
   TEST_BEGIN();
