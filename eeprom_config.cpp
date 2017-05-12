@@ -5,11 +5,13 @@
  * of the MIT license. See the LICENSE file for details.
  */
 
-#include "diag_legacy.h"
+#include "diag.h"
 #include "version.h"
 #include "eeprom_config.h"
 
 #include <EEPROM.h>
+
+using DiagLog = diag::DiagLog<>;
 
 EepromSavedParametersStorage eepromSavedParametersStorage;
 
@@ -58,9 +60,7 @@ void saveConfig(void) {
                (void *)&eepromSavedParametersStorage,
                sizeof(eepromSavedParametersStorage));
   EEPROM.end();
-  DiagLogLegacy.print(F("["));
-  DiagLogLegacy.print(millis());
-  DiagLogLegacy.println(F("] Config saved to EEPROM."));
+  DiagLog::instance()->log(DiagLog::Severity::INFORMATIONAL, F("Config saved to EEPROM"));
 }
 
 void loadConfig(void) {
@@ -69,64 +69,50 @@ void loadConfig(void) {
                  (void *)&eepromSavedParametersStorage,
                  sizeof(eepromSavedParametersStorage));
   EEPROM.end();
-  DiagLogLegacy.print(F("["));
-  DiagLogLegacy.print(millis());
-  DiagLogLegacy.println(F("] Config loaded from EEPROM."));
-  DiagLogLegacy.print(F("Config saved with firmware version "));
-  DiagLogLegacy.print(eepromSavedParametersStorage.versionMajor);
-  DiagLogLegacy.print(F("."));
-  DiagLogLegacy.println(eepromSavedParametersStorage.versionMinor);
+
+  DiagLog::instance()->log(DiagLog::Severity::INFORMATIONAL, F("Config loaded from EEPROM"));
+  DiagLog::instance()->log(DiagLog::Severity::DEBUG,
+                           F("Config was saved with firmware version "),
+                           eepromSavedParametersStorage.versionMajor,
+                           '.',
+                           eepromSavedParametersStorage.versionMinor);
   if ((eepromSavedParametersStorage.versionMajor != FIRMWARE_VERSION_MAJOR) ||
       (eepromSavedParametersStorage.versionMinor != FIRMWARE_VERSION_MINOR))
-    DiagLogLegacy.println(F("CONFIG SAVED WITH DIFFERENT FIRMWARE VERSION, PLEASE ACTIVATE CONFIG MODE AND REVIEW DATA"));
-  DiagLogLegacy.print(F("Checksum: 0x"));
-  DiagLogLegacy.println(eepromSavedParametersStorage.checkSum, HEX);
-  if (calculateCheckSum() != eepromSavedParametersStorage.checkSum) DiagLogLegacy.print(F("CONFIG CHECKSUM WRONG, PLEASE ACTIVATE CONFIG MODE AND REVIEW DATA"));
-  DiagLogLegacy.print(F("WIFI network: "));
-  DiagLogLegacy.println(eepromSavedParametersStorage.wifiSsid);
+    DiagLog::instance()->log(DiagLog::Severity::WARNING, F("CONFIG SAVED WITH DIFFERENT FIRMWARE VERSION, PLEASE ACTIVATE CONFIG MODE AND REVIEW DATA"));
+  DiagLog::instance()->log(DiagLog::Severity::NOTICE, F("Checksum: 0x"), eepromSavedParametersStorage.checkSum);
+  if (calculateCheckSum() != eepromSavedParametersStorage.checkSum) DiagLog::instance()->log(DiagLog::Severity::WARNING, F("CONFIG CHECKSUM MISMATCH, PLEASE ACTIVATE CONFIG MODE AND REVIEW DATA"));
+  DiagLog::instance()->log(DiagLog::Severity::DEBUG, F("WIFI network: "), eepromSavedParametersStorage.wifiSsid);
   if (EEPROM_DEBUG_PRINT_INSECURE) {
-    DiagLogLegacy.print(F("WIFI password: "));
-    DiagLogLegacy.println(eepromSavedParametersStorage.wifiPassword);
-    DiagLogLegacy.print(F("Auth token: "));
-    DiagLogLegacy.println(eepromSavedParametersStorage.authToken);
+    DiagLog::instance()->log(DiagLog::Severity::DEBUG, F("WIFI password: "), eepromSavedParametersStorage.wifiPassword);
+    DiagLog::instance()->log(DiagLog::Severity::DEBUG, F("Auth token: "), eepromSavedParametersStorage.authToken);
   }
-  DiagLogLegacy.print(F("MG811 cal points: "));
-  DiagLogLegacy.print(F("Raw="));
-  DiagLogLegacy.print(eepromSavedParametersStorage.MG811CalPoint0Raw);
-  DiagLogLegacy.print(F(" Calibrated="));
-  DiagLogLegacy.print(eepromSavedParametersStorage.MG811CalPoint0Calibrated);
-  DiagLogLegacy.print(F("ppm / Raw="));
-  DiagLogLegacy.print(eepromSavedParametersStorage.MG811CalPoint1Raw);
-  DiagLogLegacy.print(F(" Calibrated="));
-  DiagLogLegacy.print(eepromSavedParametersStorage.MG811CalPoint1Calibrated);
-  DiagLogLegacy.println(F("ppm"));
-  DiagLogLegacy.print(F("MG811 filter: "));
+  DiagLog::instance()->log(DiagLog::Severity::DEBUG, F("MG811 cal points: "),
+                           F("Raw="), eepromSavedParametersStorage.MG811CalPoint0Raw,
+                           F(" Calibrated="), eepromSavedParametersStorage.MG811CalPoint0Calibrated,
+                           F("ppm / Raw="), eepromSavedParametersStorage.MG811CalPoint1Raw,
+                           F(" Calibrated="), eepromSavedParametersStorage.MG811CalPoint1Calibrated,
+                           F("ppm"));
+
   switch (eepromSavedParametersStorage.filterMG811) {
     case ADCFilter::OFF:
-      DiagLogLegacy.println(F("off"));
+      DiagLog::instance()->log(DiagLog::Severity::DEBUG, F("MG811 filter: off"));
       break;
     case ADCFilter::AVERAGE:
-      DiagLogLegacy.println(F("moving average"));
+      DiagLog::instance()->log(DiagLog::Severity::DEBUG, F("MG811 filter: moving average"));
       break;
     case ADCFilter::LOWPASS:
-      DiagLogLegacy.print(F("low-pass, limit frequency: "));
-      DiagLogLegacy.print(eepromSavedParametersStorage.filterMG811LowPassFrequency);
-      DiagLogLegacy.println(F(" x 0.01 Hz"));
+      DiagLog::instance()->log(DiagLog::Severity::DEBUG, F("MG811 filter: low-pass, limit frequency: "), eepromSavedParametersStorage.filterMG811LowPassFrequency, F(" x 0.01 Hz"));
       break;
     default:
-      DiagLogLegacy.print(F("unknown ("));
-      DiagLogLegacy.print((int)eepromSavedParametersStorage.filterMG811, DEC);
-      DiagLogLegacy.println(F(")"));
+      DiagLog::instance()->log(DiagLog::Severity::DEBUG, F("MG811 filter: unknown ("), (int)eepromSavedParametersStorage.filterMG811, ')');
       break;
   }
-  DiagLogLegacy.print(F("MG811 calibration mode: "));
   if (!eepromSavedParametersStorage.rejectCalibrationMG811)
-    DiagLogLegacy.println(F("use calibration data"));
+    DiagLog::instance()->log(DiagLog::Severity::DEBUG, F("MG811 calibration mode: use calibration data"));
   else
-    DiagLogLegacy.println(F("use uncalibrated value"));
-  DiagLogLegacy.print(F("Sensor readings' serial output: "));
+    DiagLog::instance()->log(DiagLog::Severity::DEBUG, F("MG811 calibration mode: use uncalibrated value"));
   if (!eepromSavedParametersStorage.sensorSerialOutput)
-    DiagLogLegacy.println(F("off"));
+    DiagLog::instance()->log(DiagLog::Severity::DEBUG, F("Sensor readings' serial output: off"));
   else
-    DiagLogLegacy.println(F("on"));
+    DiagLog::instance()->log(DiagLog::Severity::DEBUG, F("Sensor readings' serial output: on"));
 }

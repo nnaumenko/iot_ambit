@@ -516,9 +516,9 @@ void HTTPReqParserStateMachine::parse(char * buffer, size_t bufferSize, HTTPRequ
         setInternalError(__LINE__);
         return;
     }
-    URL::decode(buffer, bufferSize);
+    util::http::URL::decode(buffer, bufferSize);
     transition(ParserTables::getNextState(currentState, nextCharacter, defaultTransition));
   } while ((reqPart == HTTPRequestPart::NONE || !buffer[0]) && !error() && !finished());
 }
 
-};
+}; //namespace webcc

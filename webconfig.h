@@ -149,9 +149,9 @@ boolean WebConfig<Diag>::onHTTPReqPath(const char * path) {
 /// @brief Interface to integrate into webserver, implements interface method ModuleWebServer::onHTTPReqMethod()
 template <class Diag>
 boolean WebConfig<Diag>::onHTTPReqMethod(const char * method) {
-  HTTPRequestMethod m = HTTPRequestHelper::getMethod(method);
-  if (pathForm && (m == HTTPRequestMethod::GET)) return (true);
-  if (pathPOST && (m == HTTPRequestMethod::POST))
+  util::http::HTTPRequestMethod m = util::http::HTTPRequestHelper::getMethod(method);
+  if (pathForm && (m == util::http::HTTPRequestMethod::GET)) return (true);
+  if (pathPOST && (m == util::http::HTTPRequestMethod::POST))
   {
     resetCheckBoxParameters();
     return (true);
@@ -173,7 +173,7 @@ boolean WebConfig<Diag>::onHTTPReqPOSTQuery(const char * name, const char * valu
 template <class Diag>
 boolean WebConfig<Diag>::onRespond(Print &client) {
   if (!enabled) {
-    HTTPResponseHeader::statusLine(client, HTTPStatusCode::FORBIDDEN);
+    util::http::HTTPResponseHeader::statusLine(client, util::http::HTTPStatusCode::FORBIDDEN);
     client.print(FPSTR(texts.crlf));
     client.print(FPSTR(textsUI.webconfigDisabled));
     Diag::instance()->log(Diag::Severity::NOTICE, FPSTR(textsUI.webconfigDisabledLog));
@@ -184,7 +184,7 @@ boolean WebConfig<Diag>::onRespond(Print &client) {
     return (true);
   }
   if (pathPOST) {
-    HTTPResponseHeader::redirect(client, FPSTR(texts.pathForm));
+    util::http::HTTPResponseHeader::redirect(client, FPSTR(texts.pathForm));
     return (true);
   }
   return (false);
@@ -253,7 +253,7 @@ void WebConfig<Diag>::resetCheckBoxParameters(void) {
 template <class Diag>
 void WebConfig<Diag>::sendConfigPage(Print &client) {
   Diag::instance()->log (Diag::Severity::INFORMATIONAL, FPSTR(textsUI.sendingConfig));
-  HTTPResponseHeader::contentHeader(client, HTTPContentType::HTML);
+  util::http::HTTPResponseHeader::contentHeader(client, util::http::HTTPContentType::HTML);
   QuickStringMap parameterNameFinder (stringMapEepromSavedParameterInternalNames);
   webcc::WebccForm form(client);
   form.bodyBegin(texts.pathPOST, textsUI.formCaption, textsUI.submitButton, texts.formMethod);
@@ -395,6 +395,6 @@ void WebConfig<Diag>::setParameter(EepromSavedParameter parameterId, const char 
   }
 }
 
-}; //namespace webconfig;
+}; //namespace webconfig
 
 #endif

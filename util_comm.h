@@ -7,13 +7,17 @@
 
 /**
  * @file
- * @brief Data structures and functions related to HTTP protocol
+ * @brief Communication protocols and formats (e.g. HTTP, JSON, etc.)
  */
 
-#ifndef HTTP_H
-#define HTTP_H
+#ifndef UTIL_COMM_H
+#define UTIL_COMM_H
 
 #include <arduino.h>
+
+namespace util {
+
+namespace http {
 
 /// HTTP status codes for HTTP Response
 enum class HTTPStatusCode {
@@ -133,5 +137,132 @@ class HTTPResponseHeader {
     static const __FlashStringHelper * contentTypeText(HTTPContentType contentType);
     static const __FlashStringHelper * contentCharsetText(HTTPContentCharset contentCharset);
 };
+
+}; //namespace http
+
+namespace json {
+
+class JSONOutput {
+  public:
+    JSONOutput(Print & client);
+    ~JSONOutput();
+    void beginArray(const char * name = NULL);
+    void beginArray(const __FlashStringHelper * name);
+    void beginObject(const char * name = NULL);
+    void beginObject(const __FlashStringHelper * name);
+    void finish(void);
+    void value(const char * name, const char * value = NULL);
+    void value(const char * name, const __FlashStringHelper * value);
+    void value(const char * name, long value);
+    void value(const char * name, unsigned long value);
+    void value(const char * name, boolean value);
+    void value(const __FlashStringHelper * name, const char * value = NULL);
+    void value(const __FlashStringHelper * name, const __FlashStringHelper * value);
+    void value(const __FlashStringHelper * name, long value);
+    void value(const __FlashStringHelper * name, unsigned long value);
+    void value(const __FlashStringHelper * name, boolean value);
+  private:
+    Print * client = NULL;
+  private:
+    static const char charLbrace = '{';
+    static const char charRbrace = '}';
+    static const char charQuote = '"';
+    static const char charLbracket = '[';
+    static const char charRbracket = ']';
+    static const char charEqual = '=';
+    static const char charColon = ':';
+    static const char charComma = ',';
+  private:
+    typedef uint8_t Context;
+    static const Context contextNone = 0;
+    static const Context contextObject = 1;
+    static const Context contextArray = 2;
+    Context currentContext = contextNone;
+    static const uint8_t nestingStackSize = 16;
+    Context nestingStack[nestingStackSize];
+    uint8_t nestingStackCounter = 0;
+    boolean firstValue = true;
+    inline boolean pushContext(Context context);
+    inline void popContext(void);
+  private:
+    inline void printName(const char * name);
+    inline void printName(const __FlashStringHelper * name);
+    inline void printString(const char * string);
+    inline void printString(const __FlashStringHelper * string);
+};
+
+inline void JSONOutput::printName(const char * name) {
+  if (!firstValue)
+    client->print(charComma);
+  else
+    firstValue = false;
+  if (currentContext == contextObject) {
+    client->print(charQuote);
+    if (name) client->print(name);
+    client->print(charQuote);
+    client->print(charColon);
+  }
+}
+
+inline void JSONOutput::printName(const __FlashStringHelper * name) {
+  if (!firstValue)
+    client->print(charComma);
+  else
+    firstValue = false;
+  if (currentContext == contextObject) {
+    client->print(charQuote);
+    if (name) client->print(name);
+    client->print(charQuote);
+    client->print(charColon);
+  }
+}
+
+inline void JSONOutput::printString(const char * string) {
+  static const char nullString[] = "null";
+  if (currentContext != contextNone) {
+    if (string) {
+      client->print(charQuote);
+      client->print(string);
+      client->print(charQuote);
+    }
+    else {
+      client->print(FPSTR(nullString));
+    }
+  }
+}
+
+inline void JSONOutput::printString(const __FlashStringHelper * string) {
+  static const char nullString[] = "null";
+  if (currentContext != contextNone) {
+    if (string) {
+      client->print(charQuote);
+      client->print(string);
+      client->print(charQuote);
+    }
+    else {
+      client->print(FPSTR(nullString));
+    }
+  }
+}
+
+boolean JSONOutput::pushContext(Context context) {
+  if (nestingStackCounter >= nestingStackSize) return (false);
+  nestingStack[nestingStackCounter++] = currentContext;
+  currentContext = context;
+  return (true);
+}
+
+void JSONOutput::popContext(void) {
+  if (nestingStackCounter) {
+    currentContext = nestingStack[--nestingStackCounter];
+  }
+  else {
+    currentContext = contextNone;
+  }
+}
+
+}; //namespace json
+
+}; //namespace util
 
 #endif

@@ -16,16 +16,20 @@ extern "C" {
 #include <user_interface.h>
 }
 
+#include "version.h"
+
+#include "util_data.h"
+#include "util_comm.h"
+
+#include "diag.h"
+#include "webcc.h"
+#include "webconfig.h"
+
 const boolean CONFIG_MODE_WIFI_OPEN = true; //change to false to create password-protected WiFi network in config mode
 
 const unsigned int WEB_SERVER_PORT = 80;
 WiFiServer webServer(WEB_SERVER_PORT);
 
-#include "version.h"
-
-#include "diag.h"
-#include "webcc.h"
-#include "webconfig.h"
 
 using DiagLog = diag::DiagLog<>;
 using WebConfig = webconfig::WebConfig <DiagLog>;
@@ -50,9 +54,6 @@ using WebConfigControl = webcc::WebConfigControl <DiagLog, webcc::HTTPReqParserS
 #include "adc.h"
 #include "eeprom_config.h"
 #include "stringmap.h"
-
-#include "webconfig.h"
-#include "webcc.h"
 
 #ifndef ESP8266
 #warning "Please select a ESP8266 board in Tools/Board"
@@ -362,7 +363,7 @@ void setup() {
   pinMode(PIN_SWITCH_CONFIG, INPUT_PULLUP);
   pinMode(PIN_LED_FAULT, OUTPUT);
 
-  DiagLog::instance()->log(DiagLog::Severity::DEBUG, F("Chip ID: "), ESP.getChipId(), F("Flash chip ID:"), ESP.getFlashChipId());
+  DiagLog::instance()->log(DiagLog::Severity::DEBUG, F("Chip ID: "), ESP.getChipId(), F(", flash chip ID:"), ESP.getFlashChipId());
 
   loadConfig();
 
@@ -370,8 +371,6 @@ void setup() {
 
   isConfigMode = !digitalRead(PIN_SWITCH_CONFIG);
   
-  isConfigMode = true;
-
   if (isConfigMode) {
     WebConfigControl::instance()->setRootRedirect((const char *)F("webconfig"));
     WebConfig::instance()->enable();

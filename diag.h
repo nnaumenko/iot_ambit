@@ -17,8 +17,9 @@
 
 #include <Arduino.h>
 #include "module.h"
-#include "util.h"
-#include "http.h"
+#include "util_data.h"
+#include "util_comm.h"
+#include "webcc.h"
 
 namespace diag {
 
@@ -29,7 +30,17 @@ typedef uint32_t MessageTimestamp;
 
 class Texts {
     MODULE_TEXT(moduleName, "DiagLog");
-    MODULE_TEXT(diagLogPath, "/diag");
+    MODULE_TEXT(diagLogConsolePath, "/diag");
+    MODULE_TEXT(diagLogJsonPath, "/diag.json");
+
+    MODULE_TEXT(jsonParTimestamp, "timestamp");
+    MODULE_TEXT(jsonParMessageNumber, "msgNo");
+    MODULE_TEXT(jsonParLog, "log");
+
+    MODULE_TEXT(jsonParMsgNo, "no");
+    MODULE_TEXT(jsonParMsgTime, "time");
+    MODULE_TEXT(jsonParMsgSev, "sev");
+    MODULE_TEXT(jsonParMsgText, "msg");
 
 } __attribute__((packed));
 
@@ -45,13 +56,118 @@ class TextsUI {
     MODULE_TEXT(messageSeverityUndefined,     "Undefined Message Severity");
 
     MODULE_TEXT(messageNumberRollover,        "Message number rollover");
+
+    MODULE_TEXT(sendingJson,                  "Sending log in JSON format");
+    MODULE_TEXT(sendingConsole,               "Sending console page");
+    MODULE_TEXT(sendingFinished,              "Finished sending");
+
+    MODULE_TEXT(consoleCaption,               "Diagnostic Log");
+
 } __attribute__((packed));
 
 extern const Texts PROGMEM texts;
-
 extern const TextsUI PROGMEM textsUI;
 
 #undef MODULE_TEXT
+
+// Interval (in milliseconds) when Diagnostic Log Console sends HTTP
+// requests in order to receive JSON with messages
+#define DIAG_CONSOLE_UPDATE_DELAY 5000
+
+//If defined, will produce HTML UI form with formatting, i.e. with
+//tabs, line breaks and comments. Formatting increases size of the
+//produced HTML UI form but simplifies debugging
+#define HTML_FORMATTING
+
+#ifdef HTML_FORMATTING
+#define TAB "\t"
+#define CRLF "\r\n"
+#define CSSCOMMENT(comment) "/* " comment " */"
+#define JSCOMMENT(comment) "// " comment
+#else
+#define TAB ""
+#define CRLF ""
+#define CSSCOMMENT(comment) ""
+#define JSCOMMENT(comment) ""
+#endif
+
+#define HTML_CODE(name,value) const char name [sizeof(value)] = value
+
+#define STRINGISATION(a) #a
+#define STRINGISATION_WRAP(a) STRINGISATION(a)
+
+class DiagLogConsoleHTML {
+  public:
+    HTML_CODE(diagLogConsole,
+              "<!DOCTYPE html>" CRLF
+              "<html>" CRLF
+              "<meta http-equiv=\"Content-Type\" content=\"text/html; charset=utf-8\">" CRLF
+              "<head>" CRLF
+              "<title>Diagnostic Log</title>" CRLF
+              "<style type=\"text/css\" media=\"all\">" CRLF
+              "html{overflow-y:scroll;}" CRLF
+              "body{font-family:Arial;background-color:#D0FFD0;color:#000000;font-size:85%;}" CRLF
+              "h1{text-align:center;font-size:130%;font-weight:bold;}" CRLF
+              "textarea{color:#000000;background-color:#F0FFF0;width:95%;resize:none;}" CRLF
+              "</style>" CRLF
+              "<script type=\"text/javascript\">" CRLF
+              "/*<![CDATA[*/" CRLF
+              "var currentMessageNumber = 0;" CRLF
+              "function RefreshConsole(){" CRLF
+              TAB "var xmlhttp = new XMLHttpRequest();" CRLF
+              TAB "xmlhttp.open('GET', 'http://192.168.4.1/diag.json', true);" CRLF
+              TAB "xmlhttp.send();" CRLF
+              TAB "xmlhttp.onreadystatechange = ProcessRequest;" CRLF
+              TAB "function ProcessRequest(e){" CRLF
+              TAB TAB "if (xmlhttp.readyState == 4 && xmlhttp.status == 200) {" CRLF
+              TAB TAB TAB "var text = xmlhttp.responseText;" CRLF
+              TAB TAB TAB "var jsonObj = JSON.parse(text);" CRLF
+              TAB TAB TAB "var index;" CRLF
+              TAB TAB TAB "for (index = 0; index < jsonObj.log.length; ++index) {" CRLF
+              TAB TAB TAB TAB "if (!Number(jsonObj.log[index].no) && currentMessageNumber>=0xFFFFFFF0) currentMessageNumber = 0;" CRLF
+              TAB TAB TAB TAB "if (Number(jsonObj.log[index].no) > currentMessageNumber) {" CRLF
+              TAB TAB TAB TAB TAB "currentMessageNumber = Number(jsonObj.log[index].no);" CRLF
+              TAB TAB TAB TAB TAB "document.getElementById(\"diaglog\").value += '['+jsonObj.log[index].no+\']'" CRLF
+              TAB TAB TAB TAB TAB "document.getElementById(\"diaglog\").value += '['+jsonObj.log[index].time+']'" CRLF
+              TAB TAB TAB TAB TAB "document.getElementById(\"diaglog\").value += '['+jsonObj.log[index].sev+']'" CRLF
+              TAB TAB TAB TAB TAB "document.getElementById(\"diaglog\").value += jsonObj.log[index].msg+'\\r\\n';" CRLF
+              TAB TAB TAB TAB "}" CRLF
+              TAB TAB TAB "}" CRLF
+              TAB TAB "setTimeout(RefreshConsole," STRINGISATION_WRAP(DIAG_CONSOLE_UPDATE_DELAY) ");" CRLF
+              TAB TAB "}" CRLF
+              TAB "}" CRLF
+              "}" CRLF
+              CRLF
+              "function Init(){" CRLF
+              TAB "document.getElementById(\"diaglog\").value=\"\";" CRLF
+              TAB "RefreshConsole();" CRLF
+              "}" CRLF
+              "/*]]>*/" CRLF
+              "</script >" CRLF
+              "</head>" CRLF
+              "<body onload=\"Init();\">" CRLF
+              "<h1>Diagnostic Log</h1>" CRLF
+              "<div align=center>" CRLF
+              "<textarea id=\"diaglog\" rows=\"25\" cols=\"80\" readonly>" CRLF
+              "</textarea>" CRLF
+              "</div>" CRLF
+              "</body>" CRLF
+              "</html>" CRLF
+             );
+} __attribute__((packed));
+
+extern const DiagLogConsoleHTML PROGMEM diagLogConsoleHTML;
+
+#undef HTML_FORMATTING
+#undef TAB
+#undef CRLF
+#undef CSSCOMMENT
+#undef JSCOMMENT
+
+#undef HTML_CODE
+
+#undef STRINGISATION
+#undef STRINGISATION_WRAP
 
 template <size_t StorageBufferSize = 3200> class DiagLogStorage;
 
@@ -82,13 +198,12 @@ class DiagLog : public Module<DiagLog<Storage>> {
     inline void setPrintOutput(Print &output);
     inline void disablePrintOutput(void);
   public:
-    const char * PROGMEM moduleName (void) {
-      /// Returns human-readable module name as a c-string in PROGMEM.
-      return (texts.moduleName);
-    }
+    inline const char * PROGMEM moduleName (void);
+    inline const char * PROGMEM getMainPath(void);
   public:
-    boolean onHTTPReqPath(const char * path);
-    boolean onHTTPReqMethod(const char * method);
+    inline boolean onHTTPReqStart(void);
+    inline boolean onHTTPReqPath(const char * path);
+    inline boolean onHTTPReqMethod(const char * method);
     boolean onRespond(Print &client);
   private:
     Print * output = NULL;
@@ -105,6 +220,9 @@ class DiagLog : public Module<DiagLog<Storage>> {
   private:
     static const size_t maxMessageSize = 256;
     char messageBuffer[maxMessageSize];
+  private:
+    boolean httpConsolePath = false;
+    boolean httpJsonPath = false;
 };
 
 template <class Storage, char LogSeparatorChar>
@@ -236,27 +354,74 @@ const __FlashStringHelper * DiagLog<Storage, LogSeparatorChar>::severityString(S
   }
 }
 
+/// @brief Returns human-readable module name as a c-string in PROGMEM.
+template <class Storage, char LogSeparatorChar>
+const char * PROGMEM DiagLog<Storage, LogSeparatorChar>::moduleName (void) {
+  return (texts.moduleName);
+}
+
+/// @brief Returns default webserver path for this module, implements interface method ModuleWebServer::getMainPath().
+template <class Storage, char LogSeparatorChar>
+const char * PROGMEM DiagLog<Storage, LogSeparatorChar>::getMainPath (void) {
+  return (texts.diagLogConsolePath);
+}
+
+/// @brief Interface to integrate into webserver, implements interface method ModuleWebServer::onHTTPReqStart()
+template <class Storage, char LogSeparatorChar>
+boolean DiagLog<Storage, LogSeparatorChar>::onHTTPReqStart(void) {
+  httpConsolePath = false;
+  httpJsonPath = false;
+  return (true);
+}
+
 /// @brief Interface to integrate into webserver, implements interface method ModuleWebServer::onHTTPReqPath()
 template <class Storage, char LogSeparatorChar>
 boolean DiagLog<Storage, LogSeparatorChar>::onHTTPReqPath(const char * path) {
-  return (!strcmp_P(path, texts.diagLogPath));
+  httpConsolePath = !strcmp_P(path, texts.diagLogConsolePath);
+  httpJsonPath = !strcmp_P(path, texts.diagLogJsonPath);
+  return (httpConsolePath || httpJsonPath);
 }
 
 /// @brief Interface to integrate into webserver, implements interface method ModuleWebServer::onHTTPReqMethod()
 template <class Storage, char LogSeparatorChar>
 boolean DiagLog<Storage, LogSeparatorChar>::onHTTPReqMethod(const char * method) {
-  return (HTTPRequestHelper::getMethod(method) == HTTPRequestMethod::GET);
+  return (util::http::HTTPRequestHelper::getMethod(method) == util::http::HTTPRequestMethod::GET);
 }
 
 /// @brief Interface to integrate into webserver, implements interface method ModuleWebServer::onRespond()
 template <class Storage, char LogSeparatorChar>
 boolean DiagLog<Storage, LogSeparatorChar>::onRespond(Print & client) {
-  size_t numberOfMessages = storage.count();
-  for (size_t i = 0; i < numberOfMessages; i++) {
-    storage.recall(i, messageBuffer, maxMessageSize);
-    client.println(messageBuffer);
+  if (httpConsolePath) {
+    util::http::HTTPResponseHeader::contentHeader(client, util::http::HTTPContentType::HTML);
+    client.print(FPSTR(diagLogConsoleHTML.diagLogConsole));
+    return (true);
   }
-  return (true);
+  if (httpJsonPath) {
+    util::http::HTTPResponseHeader::contentHeader(client, util::http::HTTPContentType::JSON);
+    util::json::JSONOutput json (client);
+    json.value(FPSTR(texts.jsonParTimestamp), millis());
+    json.value(FPSTR(texts.jsonParMessageNumber), static_cast<unsigned long>(messageNumber) - 1);
+    json.beginArray(FPSTR(texts.jsonParLog));
+    size_t numberOfMessages = storage.count();
+    char tokenStr[2] = {};
+    tokenStr[0] = LogSeparatorChar;
+    for (size_t i = 0; i < numberOfMessages; i++) {
+      storage.recall(i, messageBuffer, maxMessageSize);
+      json.beginObject();
+      char * messagePart = strtok(messageBuffer, tokenStr);
+      json.value(FPSTR(texts.jsonParMsgNo), messagePart);
+      messagePart = strtok(NULL, tokenStr);
+      json.value(FPSTR(texts.jsonParMsgTime), messagePart);
+      messagePart = strtok(NULL, tokenStr);
+      json.value(FPSTR(texts.jsonParMsgSev), messagePart);
+      messagePart = strtok(NULL, tokenStr);
+      json.value(FPSTR(texts.jsonParMsgText), messagePart);
+      json.finish();
+    }
+    json.~JSONOutput();
+    return (true);
+  }
+  return (false);
 }
 
 /// @brief Storage for messages in diagnositic log
@@ -305,6 +470,6 @@ size_t DiagLogStorage<StorageBufferSize>::recall(size_t index, char *buffer, siz
   return (storageRingBuffer.get(index, buffer, bufferSize));
 }
 
-}; //namespace diag;
-#endif
+}; //namespace diag
 
+#endif

@@ -5,7 +5,7 @@
  * of the MIT license. See the LICENSE file for details.
  */
 
-#include "util.h"
+#include "util_data.h"
 
 namespace util {
 
@@ -168,6 +168,8 @@ size_t CStrRingBuffer::getCstrStartChar(size_t index) {
 // PrintToBuffer
 //////////////////////////////////////////////////////////////////////
 
+///@brief Saves single char to buffer
+///@param character Char to save
 size_t PrintToBuffer::write (uint8_t character) {
   if (bufferPosition >= (bufferSize - nullCharSize)) return (0);
   buffer[bufferPosition++] = static_cast<char>(character);
@@ -175,6 +177,9 @@ size_t PrintToBuffer::write (uint8_t character) {
   return (1);
 }
 
+///@brief Saves multiple chars to buffer
+///@param buffer Location to copy chars from
+///@param size Size of the buffer in chars
 size_t PrintToBuffer::write(const uint8_t *buffer, size_t size) {
   const size_t maxCharsToCopy = bufferSize - bufferPosition - nullCharSize;
   if (maxCharsToCopy <= nullCharSize) return (0);
@@ -185,6 +190,6 @@ size_t PrintToBuffer::write(const uint8_t *buffer, size_t size) {
   return (charsToCopy);
 }
 
-}; //namespace arrays;
+}; //namespace arrays
 
-}; //namespace util;
+}; //namespace util

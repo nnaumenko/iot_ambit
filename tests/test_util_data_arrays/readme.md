@@ -1,11 +1,15 @@
+# Purpose of the tests
+
+To confirm that any of the recent modifications of utility functions and/or classes in file util_data, namespace util::arrays (custom data structures) did not introduce anomalies to function and/or class performance
+
 # Running the tests
 
 Copy here all necessary files from main project directory. The files to be copied are as follows:
 
-* util.h
-* util.cpp
+* util_data.h
+* util_data.cpp
 
-Copy here all necessary files from test/common directory. The files to be copied are as follows:
+Copy here all necessary files from tests/common directory. The files to be copied are as follows:
 
 * test.h
 

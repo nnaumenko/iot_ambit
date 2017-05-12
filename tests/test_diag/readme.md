@@ -1,3 +1,7 @@
+# Purpose of the tests
+
+To confirm that any of the recent modification of module Diag (diagnostic log) and its components did not introduce anomalies to module's performance
+
 # Running the tests
 
 Copy here all necessary files from main project directory. The files to be copied are as follows:
@@ -5,10 +9,12 @@ Copy here all necessary files from main project directory. The files to be copie
 * diag.h
 * diag.cpp
 * module.h
-* util.h
-* util.cpp
+* util_comm.h
+* util_comm.cpp
+* util_data.h
+* util_data.cpp
 
-Copy here all necessary files from test/common directory. The files to be copied are as follows:
+Copy here all necessary files from tests/common directory. The files to be copied are as follows:
 
 * test.h
 * fakestream.h

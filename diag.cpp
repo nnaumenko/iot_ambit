@@ -12,4 +12,6 @@ namespace diag {
 const Texts PROGMEM texts;
 const TextsUI PROGMEM textsUI;
 
-};
+const DiagLogConsoleHTML PROGMEM diagLogConsoleHTML;
+
+}; //namespace diag

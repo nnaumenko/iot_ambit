@@ -7,11 +7,11 @@
 
 /**
  * @file
- * @brief Utility functions and classes.
+ * @brief Custom data structures for general use, such as circular buffers
  */
 
-#ifndef UTIL_H
-#define UTIL_H
+#ifndef UTIL_DATA_H
+#define UTIL_DATA_H
 
 #include <Arduino.h>
 
@@ -280,6 +280,9 @@ size_t CStrRingBuffer::getNextIndex(void) const {
   return (nextIndex);
 }
 
+/// @brief A Print class which saves to buffer everything was printed with it
+/// @details Text is saved to buffer until buffer is full. After that new
+/// text is ignored
 class PrintToBuffer : public Print {
   public:
     inline PrintToBuffer(char * buffer, size_t bufferSize);
@@ -293,13 +296,16 @@ class PrintToBuffer : public Print {
     static const size_t nullCharSize = sizeof (nullChar);
 };
 
+/// @brief Initialises PrintToBuffer
+/// @param buffer Buffer to save printed text to
+/// @param bufferSize Size of the buffer in chars
 PrintToBuffer::PrintToBuffer(char * buffer, size_t bufferSize) {
   this->buffer = buffer;
   this->bufferSize = bufferSize;
 }
 
-}; //namespace arrays;
+}; //namespace arrays
 
-}; //namespace util;
+}; //namespace util
 
 #endif

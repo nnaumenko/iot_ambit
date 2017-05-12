@@ -12,4 +12,4 @@ namespace webconfig {
 const Texts PROGMEM texts;
 const TextsUI PROGMEM textsUI;
 
-};
+}; // namespace webconfig

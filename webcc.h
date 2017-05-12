@@ -17,7 +17,7 @@
 #include <ESP8266WiFi.h>
 
 #include "module.h"
-#include "http.h"
+#include "util_comm.h"
 
 namespace webcc {
 
@@ -122,14 +122,14 @@ enum class ParseError {
 /// and log() method which accepts Severity and then variable number of
 /// parameters (see diag::DiagLog::log() for details). If these requirements
 /// are not met, compilation will fail.
-/// @tparam Parser HTTP request parser Policy. Required to contain methods 
-/// begin(), parse(), finished(), error() and getError() (see 
-/// HTTPReqParserStateMachine for details). If these requirements are not met, 
+/// @tparam Parser HTTP request parser Policy. Required to contain methods
+/// begin(), parse(), finished(), error() and getError() (see
+/// HTTPReqParserStateMachine for details). If these requirements are not met,
 /// compilation will fail.
 /// @tparam OutputStream Policy for data output. Output Stream is integrated
-/// between the software modules and web-client. All caching, buffering, 
-/// post-processing before data is sent to web-client is performed by 
-/// OutputStream. OutputStream must be derived from Print class. If these 
+/// between the software modules and web-client. All caching, buffering,
+/// post-processing before data is sent to web-client is performed by
+/// OutputStream. OutputStream must be derived from Print class. If these
 /// requirements are not met, compilation will fail.
 /// @tparam WebForm Used to generate HTML UI forms. See WebccForm for details.
 template <class Diag, class Parser, class OutputStream, class WebForm, class... WebModules>
@@ -173,7 +173,7 @@ class WebConfigControl : public Module<WebConfigControl<Diag, Parser, OutputStre
     };
     const __FlashStringHelper * getErrorMessage(WebccError error);
     const __FlashStringHelper * getParseErrorMessage(ParseError error);
-    HTTPStatusCode getHTTPStatusCode(WebccError error, ParseError parseError);
+    util::http::HTTPStatusCode getHTTPStatusCode(WebccError error, ParseError parseError);
     void handleErrors(OutputStream &output, WebccError error, const Parser &parser);
   private:
     static const int webModulesCallThisAccepted = -1;
@@ -182,6 +182,10 @@ class WebConfigControl : public Module<WebConfigControl<Diag, Parser, OutputStre
     const size_t httpRequestPartMaxSize = 33;
   private:
     const char * rootRedirect = NULL;
+  private:
+    static const size_t outputBufferSize = WIFICLIENT_MAX_PACKET_SIZE;
+    uint8_t outputBuffer[outputBufferSize];
+
 };
 
 
@@ -218,7 +222,7 @@ void WebConfigControl<Diag, Parser, OutputStream, WebForm, WebModules...>::onBeg
 
 template <class Diag, class Parser, class OutputStream, class WebForm, class... WebModules>
 void WebConfigControl<Diag, Parser, OutputStream, WebForm, WebModules...>::onRun(void) {
-  /// @brief Processes incoming connections, passes HTTP Requests to the parser 
+  /// @brief Processes incoming connections, passes HTTP Requests to the parser
   /// and calls ModuleWebServer methods implemented by software modules
   Diag * diagLog = Diag::instance();
   if (!server) return;
@@ -229,7 +233,7 @@ void WebConfigControl<Diag, Parser, OutputStream, WebForm, WebModules...>::onRun
     delay(1);
     yield();
   }
-  OutputStream outputClient(client);
+  OutputStream outputClient(client, outputBuffer, outputBufferSize);
   Parser parser;
   parser.begin(client);
   diagLog->log(Diag::Severity::DEBUG, FPSTR(textsUI.beginParsing));
@@ -329,7 +333,7 @@ void WebConfigControl<Diag, Parser, OutputStream, WebForm, WebModules...>::callW
 
 template <class Diag, class Parser, class OutputStream, class WebForm, class... WebModules>
 int WebConfigControl<Diag, Parser, OutputStream, WebForm, WebModules...>::callWebModulesOnPath(const char * path) {
-  /// @brief Calls onHTTPReqPath method of all modules in WebModules parameter pack and checks which of the 
+  /// @brief Calls onHTTPReqPath method of all modules in WebModules parameter pack and checks which of the
   /// WebModules did accept the paramteter pack
   /// @param path Path from HTTP request
   /// @return Index in WebModules parameter pack of the module which accepted parameter pack. If no module accepted
@@ -467,7 +471,7 @@ boolean WebConfigControl<Diag, Parser, OutputStream, WebForm, WebModules...>::on
 template <class Diag, class Parser, class OutputStream, class WebForm, class... WebModules>
 boolean WebConfigControl<Diag, Parser, OutputStream, WebForm, WebModules...>::onHTTPReqMethod(const char * method) {
   /// @brief Interface to integrate into webserver, implements interface method ModuleWebServer::onHTTPReqMethod()
-  if (HTTPRequestHelper::getMethod(method) == HTTPRequestMethod::GET) return (true);
+  if (util::http::HTTPRequestHelper::getMethod(method) == util::http::HTTPRequestMethod::GET) return (true);
   return (false);
 }
 
@@ -477,7 +481,7 @@ boolean WebConfigControl<Diag, Parser, OutputStream, WebForm, WebModules...>::on
   /// @details Produces HTML page with the list of the modules passed as a template parameter pack WebModules
   Diag * diagLog = Diag::instance();
   if (pathRoot && rootRedirect) {
-    HTTPResponseHeader::redirect(client, (__FlashStringHelper *)rootRedirect);
+    util::http::HTTPResponseHeader::redirect(client, (__FlashStringHelper *)rootRedirect);
     diagLog->log(Diag::Severity::INFORMATIONAL, FPSTR(textsUI.redirectTo), (__FlashStringHelper *)rootRedirect);
     return (true);
   }
@@ -485,7 +489,7 @@ boolean WebConfigControl<Diag, Parser, OutputStream, WebForm, WebModules...>::on
   const char * paths[] = { (WebModules::instance()->getMainPath())... };
   const char * names[] = { (WebModules::instance()->moduleName())... };
   int moduleCount = sizeof...(WebModules);
-  HTTPResponseHeader::contentHeader(client, HTTPContentType::HTML);
+  util::http::HTTPResponseHeader::contentHeader(client, util::http::HTTPContentType::HTML);
   WebForm index(client);
   index.bodyBegin(NULL, textsUI.rootCaption);
   index.sectionBegin(textsUI.moduleIndex);
@@ -513,7 +517,7 @@ void WebConfigControl<Diag, Parser, OutputStream, WebForm, WebModules...>::handl
   if (error == WebccError::PARSER_ERROR) {
     diagLog->log(Diag::Severity::NOTICE, getParseErrorMessage(parser.getError()));
   }
-  HTTPResponseHeader::statusLine(output, getHTTPStatusCode(error, parser.getError()));
+  util::http::HTTPResponseHeader::statusLine(output, getHTTPStatusCode(error, parser.getError()));
   output.print(FPSTR(texts.crlf));
   output.print(getErrorMessage(error));
   output.print(FPSTR(texts.crlf));
@@ -570,38 +574,38 @@ const __FlashStringHelper * WebConfigControl<Diag, Parser, OutputStream, WebForm
 }
 
 template <class Diag, class Parser, class OutputStream, class WebForm, class... WebModules>
-HTTPStatusCode WebConfigControl<Diag, Parser, OutputStream, WebForm, WebModules...>::getHTTPStatusCode(WebccError error, ParseError parseError) {
+util::http::HTTPStatusCode WebConfigControl<Diag, Parser, OutputStream, WebForm, WebModules...>::getHTTPStatusCode(WebccError error, ParseError parseError) {
   /// @brief Generates HTTP Status Code (to be used in HTTP Response) based on WebCC error
   /// and HTTP Request parser error
   /// @param error WebCC error
   /// @param parseError HTTP Request Parser error
   switch (error) {
     case WebccError::NONE:
-      return (HTTPStatusCode::OK);
+      return (util::http::HTTPStatusCode::OK);
     case WebccError::SERVER_NOT_INITIALISED:
-      return (HTTPStatusCode::INTERNAL_SERVER_ERROR);
+      return (util::http::HTTPStatusCode::INTERNAL_SERVER_ERROR);
     case WebccError::PARSER_ERROR:
       switch (parseError) {
         case ParseError::INTERNAL_ERROR:
-          return (HTTPStatusCode::INTERNAL_SERVER_ERROR);
+          return (util::http::HTTPStatusCode::INTERNAL_SERVER_ERROR);
         case ParseError::REQUEST_PART_TOO_LONG:
-          return (HTTPStatusCode::PAYLOAD_TOO_LARGE);
+          return (util::http::HTTPStatusCode::PAYLOAD_TOO_LARGE);
         case ParseError::REQUEST_STRUCTURE:
-          return (HTTPStatusCode::BAD_REQUEST);
+          return (util::http::HTTPStatusCode::BAD_REQUEST);
         case ParseError::REQUEST_SEMANTICS:
-          return (HTTPStatusCode::CONFLICT);
+          return (util::http::HTTPStatusCode::CONFLICT);
         default:
-          return (HTTPStatusCode::INTERNAL_SERVER_ERROR);
+          return (util::http::HTTPStatusCode::INTERNAL_SERVER_ERROR);
       }
-      return (HTTPStatusCode::INTERNAL_SERVER_ERROR);
+      return (util::http::HTTPStatusCode::INTERNAL_SERVER_ERROR);
     case WebccError::METHOD_NOT_ACCEPTED:
-      return (HTTPStatusCode::NOT_IMPLEMENTED);
+      return (util::http::HTTPStatusCode::NOT_IMPLEMENTED);
     case WebccError::PATH_NOT_ACCEPTED:
-      return (HTTPStatusCode::NOT_FOUND);
+      return (util::http::HTTPStatusCode::NOT_FOUND);
     case WebccError::PATH_CONFLICT:
-      return (HTTPStatusCode::INTERNAL_SERVER_ERROR);
+      return (util::http::HTTPStatusCode::INTERNAL_SERVER_ERROR);
     default:
-      return (HTTPStatusCode::INTERNAL_SERVER_ERROR);
+      return (util::http::HTTPStatusCode::INTERNAL_SERVER_ERROR);
   }
 }
 
@@ -612,7 +616,7 @@ HTTPStatusCode WebConfigControl<Diag, Parser, OutputStream, WebForm, WebModules.
 //If defined, will produce HTML UI form with formatting, i.e. with
 //tabs, line breaks and comments. Formatting increases size of the
 //produced HTML UI form but simplifies debugging
-#define HTML_FORMATTING 
+#define HTML_FORMATTING
 
 #ifdef HTML_FORMATTING
 #define TAB "\t"
@@ -932,19 +936,19 @@ extern const WebccFormHTML PROGMEM webccFormHTML;
 
 /// @brief Provides simple framework for generating HTML forms which are
 /// utilised as user interface
-/// @details In this version HTML form consists of parameters (also 
+/// @details In this version HTML form consists of parameters (also
 /// plaintexts and links), grouped into sections and subsections.
-/// @details First bodyBegin() must be called to generate HTML head, 
-/// CSS, Javascript code, etc. After that Section must be begin by 
+/// @details First bodyBegin() must be called to generate HTML head,
+/// CSS, Javascript code, etc. After that Section must be begin by
 /// using sectionBegin(), and then Subsection by using subsectionBegin().
-/// @details In this version Section corresponds to a tab in user interface, 
+/// @details In this version Section corresponds to a tab in user interface,
 /// and Subsection corresponds to group of parameter within a tab.
 /// @details Within the Subsection parameters can be generated by calling
 /// textParameter(), checkboxParameter() or selectParameter() to add the
 /// actual parameters to the form. Also plaintext() can be used to add plain
 /// text (rather than text box filled with some data) or link() to add the
 /// hyperlink to the form.
-/// @details When beginning new Section or Subsection, the current Section 
+/// @details When beginning new Section or Subsection, the current Section
 /// or Subsection will be automatically finalised.
 class WebccForm {
   public:
@@ -1083,11 +1087,11 @@ void WebccForm::selectParameter(const char * displayName,
 /// @param progmemStrings If true cstring arguments optionName and optionValue
 /// are assumed to be located in PROGMEM, if false these cstring arguments are
 /// assumed to be located in RAM
-/// @param optionValue Cstring, value of the currently processed drop-down 
-/// list item. Can be located in RAM or PROGMEM (depending on value of 
+/// @param optionValue Cstring, value of the currently processed drop-down
+/// list item. Can be located in RAM or PROGMEM (depending on value of
 /// progmemStrings parameter).
 /// @param optionName Cstring, name of the currently processed drop-down list
-/// item. Can be located in RAM or PROGMEM (depending on value of 
+/// item. Can be located in RAM or PROGMEM (depending on value of
 /// progmemStrings parameter).
 /// @param moreOptions Contains further pairs of value and name, e.g.
 /// (1, "MyValue") of drop-down list items which will be processed recursively
@@ -1106,7 +1110,7 @@ void WebccForm::selectParameterExpand(long value, boolean progmemStrings, Option
 void WebccForm::selectParameterExpand(long value, boolean progmemStrings) {
   (void)value;
   (void)progmemStrings;
-  }
+}
 
 /// @brief Generates text parameter
 /// @param displayName CString which contains parameter's name visible for user in
@@ -1137,13 +1141,13 @@ void WebccForm::textParameter (const char * displayName,
 /// @brief Generates plain text in the HTML form
 /// @details Plain text is only displayed in the HTML form and does not represent
 /// an user-configurable parameter
-/// @param displayName CString which contains text visible for user in the UI. 
+/// @param displayName CString which contains text visible for user in the UI.
 /// Can be located in RAM or PROGMEM (depending on value of progmemStrings parameter)
 /// @param value Value to include in the HTML form
 /// @param tooltipText CString which contains parameter's tooltip text (or NULL if
 /// no tooltip required). Can be located in RAM or PROGMEM (depending on value of
 /// progmemStrings parameter).
-/// @param progmemStrings If true cstring arguments displayName and tooltipText 
+/// @param progmemStrings If true cstring arguments displayName and tooltipText
 /// are assumed to be located in PROGMEM, if false these cstring
 /// arguments are assumed to be located in RAM
 void WebccForm::plaintext (const char * displayName,
@@ -1172,7 +1176,7 @@ void WebccForm::selectParameterBegin(const char * displayName,
   client->print(FPSTR(webccFormHTML.selectParameter4));
 }
 
-/// @brief Output a single list item HTML code of drop-down 
+/// @brief Output a single list item HTML code of drop-down
 /// list parameter
 void WebccForm::selectParameterOption(const char * displayName,
                                       long optionValue,
@@ -1199,9 +1203,9 @@ void WebccForm::selectParameterEnd (void) {
 /// @brief Output a tooltip to HTML form
 /// @param tooltipText Cstring, text of the tooltip or NULL if
 /// tooltip not required
-/// @param progmemStrings If true then tooltipText cstring is 
-/// assumed to be located in PROGMEM, if false then tooltipText 
-/// cstring assumed to be located in RAM 
+/// @param progmemStrings If true then tooltipText cstring is
+/// assumed to be located in PROGMEM, if false then tooltipText
+/// cstring assumed to be located in RAM
 void WebccForm::tooltip(const char * tooltipText, boolean progmemStrings) {
   if (!client) return;
   if (!tooltipText) return;
@@ -1214,41 +1218,41 @@ void WebccForm::tooltip(const char * tooltipText, boolean progmemStrings) {
 // BufferedPrint
 //////////////////////////////////////////////////////////////////////
 
-/// @brief A simple Print-derived class which will store all printed 
-/// data in the internal buffer and only sends them to other 
+/// @brief A simple Print-derived class which will store all printed
+/// data in the internal buffer and only sends them to other
 /// Print-derived object (client) when the buffer overflows.
-/// @details The reason for buffering is that ESP8266 sends a packet 
-/// and than waits for ACK before sending subsequent packets. This 
-/// causes sending many small packets to be slow whereas sending 
+/// @details The reason for buffering is that ESP8266 sends a packet
+/// and than waits for ACK before sending subsequent packets. This
+/// causes sending many small packets to be slow whereas sending
 /// single large packet is much faster.
-/// @warning Internal buffer size is statically defined as 
-/// WIFICLIENT_MAX_PACKET_SIZE is 1460, see 
-/// libraries/ESP8266WiFi/src/WiFiClient.h for details. A different 
-/// value might be required when porting to other platforms due to 
-/// memory constraints.
 class BufferedPrint : public Print {
   public:
-    inline BufferedPrint(Print & client);
+    inline BufferedPrint(Print & client, uint8_t * buffer, size_t bufferSize);
     inline ~BufferedPrint();
   public:
     virtual size_t write(uint8_t character);
   public:
-    inline static size_t getBufferSize(void);
+    inline size_t getBufferSize(void);
   private:
     Print * client = NULL;
   private:
     void sendBuffer(void);
     size_t bufferPosition = 0;
-    const static size_t bufferSize = WIFICLIENT_MAX_PACKET_SIZE;
-    uint8_t buffer[bufferSize];
+    uint8_t * buffer = NULL;
+    size_t bufferSize = 0;
 };
 
-/// Sets private client field equal to supplied client
-BufferedPrint::BufferedPrint (Print & client) {
+/// Initialises client and buffer data
+/// @param client Client to send data to
+/// @param buffer Buffer to use for temporarily storing data 
+/// @param bufferSize size of the buffer in bytes
+BufferedPrint::BufferedPrint (Print & client, uint8_t * buffer, size_t bufferSize) {
   this->client = &client;
+  this->buffer = buffer;
+  this->bufferSize = bufferSize;
 }
 
-/// Sends remaining buffer contents to clients before 
+/// Sends remaining buffer contents to clients before
 /// object is deleted
 BufferedPrint::~BufferedPrint () {
   sendBuffer();
@@ -1264,8 +1268,8 @@ inline size_t BufferedPrint::getBufferSize(void) {
 //////////////////////////////////////////////////////////////////////
 
 /// @brief Parses HTTP requests and decomposes them into HTTP Request Parts
-/// @details Call parse() method repeatedly to parse a HTTP Request. 
-/// Use finished() and error() method to determine whether parsing is 
+/// @details Call parse() method repeatedly to parse a HTTP Request.
+/// Use finished() and error() method to determine whether parsing is
 /// completed with or without error.
 /// @details This implementation is based on the state machine and does
 /// not have a state machine stack.
@@ -1466,6 +1470,6 @@ boolean HTTPReqParserStateMachine::InputStreamHelper::isControlCharacterInSet(Co
   return (false);
 }
 
-}; //namespace webcc;
+}; //namespace webcc
 
 #endif

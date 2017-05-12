@@ -5,8 +5,12 @@
  * of the MIT license. See the LICENSE file for details.
  */
 
-#include "http.h"
+#include "util_comm.h"
 #include <ESP8266WiFi.h>
+
+namespace util {
+
+namespace http {
 
 //////////////////////////////////////////////////////////////////////
 // HTTPRequestHelper
@@ -43,7 +47,7 @@ HTTPRequestMethod HTTPRequestHelper::getMethod(const char * method) {
 //////////////////////////////////////////////////////////////////////
 
 /// Converts 2 digit hexadecimal number into integer
-/// @param buffer ASCII representation of hex code, minimum length 2 
+/// @param buffer ASCII representation of hex code, minimum length 2
 /// characters
 /// @return Converted value in range 0..255 or decodeError if conversion
 /// error occured
@@ -58,7 +62,7 @@ int HTTPHexCode::decodeHex(const char buffer[]) {
 }
 
 /// Converts single hexadecimal ASCII digit into integer
-/// @param hexDigit character representing hexadecimal digit in 
+/// @param hexDigit character representing hexadecimal digit in
 /// ASCII format
 /// @return Converted value in range 0..15 or decodeError if conversion
 /// error occured
@@ -77,11 +81,11 @@ int HTTPHexCode::decodeDigit(char hexDigit) {
 /// @details The following operations are performed with the input string:
 /// * All '+' characters are substituted with spaces (' ')
 /// * All percent-codes are substituted with the corresponding charaters
-/// @details If input string contains percent codes, it is possible for 
+/// @details If input string contains percent codes, it is possible for
 /// string to become shorter after conversion
 /// @warning This method modifies input string
 /// @warning Only 2-digit percent codes are supported
-/// @param buffer Contains input cstring to be decoded (this string will be 
+/// @param buffer Contains input cstring to be decoded (this string will be
 /// modified by conversion)
 /// @param bufferSize maximum length of the string to be processed
 
@@ -116,9 +120,9 @@ void URL::decode(char buffer[], size_t bufferSize) {
 //////////////////////////////////////////////////////////////////////
 
 /// @brief Generates HTTP Response header with given Content-type and Charset
-/// @details Also adds status line with HTTP Status Code "200 OK" to the 
+/// @details Also adds status line with HTTP Status Code "200 OK" to the
 /// beginning of the response header
-/// @param client Client to send response header to 
+/// @param client Client to send response header to
 /// @param type Content-Type to include in the response header
 /// @param charset Charset to include in response header
 void HTTPResponseHeader::contentHeader(Print &client, HTTPContentType type, HTTPContentCharset charset) {
@@ -132,9 +136,9 @@ void HTTPResponseHeader::contentHeader(Print &client, HTTPContentType type, HTTP
   client.print(F("\r\n\r\n"));
 }
 
-/// @brief Generates HTTP Response with redirect to other URL 
+/// @brief Generates HTTP Response with redirect to other URL
 /// (HTTP status code "303 See Other")
-/// @param client Client to send generated response to 
+/// @param client Client to send generated response to
 /// @param path Redirect destination
 void HTTPResponseHeader::redirect(Print &client, const __FlashStringHelper * path) {
   statusLine(client, HTTPStatusCode::SEE_OTHER);
@@ -157,7 +161,7 @@ void HTTPResponseHeader::statusLine(Print &client, HTTPStatusCode statusCode) {
   client.print(F("\r\n"));
 }
 
-/// @brief Provides human-readable description of HTTP Status Code (e.g. 
+/// @brief Provides human-readable description of HTTP Status Code (e.g.
 /// "OK" for HTTP Status Code 200)
 /// @param statusCode HTTP Status Code
 /// @return Cstring in progmem with details of HTTP Status Code
@@ -304,3 +308,129 @@ const __FlashStringHelper * HTTPResponseHeader::contentCharsetText(HTTPContentCh
       return (F(""));
   }
 }
+
+}; //namespace http
+
+namespace json {
+
+//////////////////////////////////////////////////////////////////////
+// JSONOutput
+//////////////////////////////////////////////////////////////////////
+
+JSONOutput::JSONOutput(Print & client) {
+  this->client = &client;
+  beginObject();
+}
+
+JSONOutput::~JSONOutput() {
+  while (currentContext != contextNone) {
+    finish();
+  }
+}
+
+void JSONOutput::beginArray(const char * name) {
+  printName(name);
+  pushContext(contextArray);
+  client->print(charLbracket);
+  firstValue = true;
+}
+
+void JSONOutput::beginArray(const __FlashStringHelper * name) {
+  printName(name);
+  pushContext(contextArray);
+  client->print(charLbracket);
+  firstValue = true;
+}
+
+void JSONOutput::beginObject(const char * name) {
+  printName(name);
+  pushContext(contextObject);
+  client->print(charLbrace);
+  firstValue = true;
+}
+
+void JSONOutput::beginObject(const __FlashStringHelper * name) {
+  printName(name);
+  pushContext(contextObject);
+  client->print(charLbrace);
+  firstValue = true;
+}
+
+void JSONOutput::finish(void) {
+  if (currentContext == contextArray) client->print(charRbracket);
+  if (currentContext == contextObject) client->print(charRbrace);
+  popContext();
+  firstValue = false;
+}
+
+void JSONOutput::value(const char * name, const char * value) {
+  printName(name);
+  printString(value);
+}
+
+void JSONOutput::value(const char * name, const __FlashStringHelper * value) {
+  printName(name);
+  printString(value);
+}
+
+void JSONOutput::value(const char * name, long value) {
+  printName(name);
+  if (currentContext != contextNone) client->print(value);
+}
+
+void JSONOutput::value(const char * name, unsigned long value) {
+  printName(name);
+  if (currentContext != contextNone) client->print(value);
+}
+
+void JSONOutput::value(const char * name, boolean value) {
+  static const char PROGMEM valueTrue[] = "true";
+  static const char PROGMEM valueFalse[] = "false";
+  printName(name);
+  if (currentContext != contextNone) {
+    if (value) {
+      client->print(FPSTR(valueTrue));
+    }
+    else {
+      client->print(FPSTR(valueFalse));
+    }
+  }
+}
+
+void JSONOutput::value(const __FlashStringHelper * name, const char * value) {
+  printName(name);
+  printString(value);
+}
+
+void JSONOutput::value(const __FlashStringHelper * name, const __FlashStringHelper * value) {
+  printName(name);
+  printString(value);
+}
+
+void JSONOutput::value(const __FlashStringHelper * name, long value) {
+  printName(name);
+  if (currentContext != contextNone) client->print(value);
+}
+
+void JSONOutput::value(const __FlashStringHelper * name, unsigned long value) {
+  printName(name);
+  if (currentContext != contextNone) client->print(value);
+}
+
+void JSONOutput::value(const __FlashStringHelper * name, boolean value) {
+  static const char PROGMEM valueTrue[] = "true";
+  static const char PROGMEM valueFalse[] = "false";
+  printName(name);
+  if (currentContext != contextNone) {
+    if (value) {
+      client->print(FPSTR(valueTrue));
+    }
+    else {
+      client->print(FPSTR(valueFalse));
+    }
+  }
+}
+
+}; //namespace json
+
+}; //namespace util

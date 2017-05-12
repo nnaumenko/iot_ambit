@@ -2,7 +2,7 @@
 
 #include "test.h"
 
-#include "util.h"
+#include "util_data.h"
 
 template <typename T, size_t testBufferSize>
 class RingBufferTester {
