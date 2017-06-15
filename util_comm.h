@@ -142,6 +142,8 @@ class HTTPResponseHeader {
 
 namespace json {
 
+/// @brief Generates a JSON and sends to Print type client
+/// @details All JSON nested structures are automatically 
 class JSONOutput {
   public:
     JSONOutput(Print & client);
@@ -191,6 +193,7 @@ class JSONOutput {
     inline void printString(const __FlashStringHelper * string);
 };
 
+/// Print json object name from RAM string
 inline void JSONOutput::printName(const char * name) {
   if (!firstValue)
     client->print(charComma);
@@ -204,6 +207,7 @@ inline void JSONOutput::printName(const char * name) {
   }
 }
 
+/// Print json object name from PROGMEM string
 inline void JSONOutput::printName(const __FlashStringHelper * name) {
   if (!firstValue)
     client->print(charComma);
@@ -217,6 +221,7 @@ inline void JSONOutput::printName(const __FlashStringHelper * name) {
   }
 }
 
+/// Print json object value string from RAM
 inline void JSONOutput::printString(const char * string) {
   static const char nullString[] = "null";
   if (currentContext != contextNone) {
@@ -231,6 +236,7 @@ inline void JSONOutput::printString(const char * string) {
   }
 }
 
+/// Print json object value string from PROGMEM
 inline void JSONOutput::printString(const __FlashStringHelper * string) {
   static const char nullString[] = "null";
   if (currentContext != contextNone) {
@@ -245,14 +251,16 @@ inline void JSONOutput::printString(const __FlashStringHelper * string) {
   }
 }
 
-boolean JSONOutput::pushContext(Context context) {
+/// Go one nesting level deeper
+inline boolean JSONOutput::pushContext(Context context) {
   if (nestingStackCounter >= nestingStackSize) return (false);
   nestingStack[nestingStackCounter++] = currentContext;
   currentContext = context;
   return (true);
 }
 
-void JSONOutput::popContext(void) {
+/// Get back from one nesting level
+inline void JSONOutput::popContext(void) {
   if (nestingStackCounter) {
     currentContext = nestingStack[--nestingStackCounter];
   }

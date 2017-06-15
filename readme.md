@@ -1,4 +1,4 @@
-#Web-configurable ESP8266-based room air monitor
+# Web-configurable ESP8266-based room air monitor
 
 This project is a ESP8266-based device to monitor room air temperature, humidity and CO2 concentration. It also contains optional OneWire temperature sensor which can be used for measuring outdoors temperature.
 
@@ -32,17 +32,17 @@ ADC input of ESP8266 is used to collect the data from MG811 CO2 sensor. Since MG
 
 ## References
 
-###ESP8266 core for Arduino
+### ESP8266 core for Arduino
 
 This project is compiled with Arduino IDE using [ESP8266 core for Arduino](https://github.com/esp8266/Arduino/).
 
-###Blynk
+### Blynk
 
 This project uses [Blynk]( http://www.blynk.cc/) for data viewing & archiving.
 
 The following [Blynk configuration](tinyurl.com/h8appo8) can be used with this project ([installation instructions](http://docs.blynk.cc/#sharing-share-your-project-configuration)).
 
-###Arduino Libraries
+### Arduino Libraries
 
 This project uses the following Arduino libraries:
 
@@ -51,7 +51,7 @@ This project uses the following Arduino libraries:
 * [Arduino library for DHT11DHT22, etc Temp & Humidity Sensors] (https://github.com/adafruit/DHT-sensor-library)
 * [Blynk library for embedded hardware](https://github.com/blynkkk/blynk-library/releases/)
 
-###Dynamic Tabs
+### Dynamic Tabs
 
 Webconfig page uses modified version of [Dynamic Tabs](https://akrabat.com/dynamic-javascript-tabs/) by Rob Allen. The license for Dynamic Tabs is as follows:
 

@@ -7,7 +7,7 @@
 
 /**
  * @file
- * @brief Web interface for configuring the device.
+ * @brief Web interface for configuring the device
  */
 
 #ifndef WEBCONFIG_H
@@ -25,7 +25,7 @@ namespace webconfig {
 #endif
 #define MODULE_TEXT(name,value) public: const char name [sizeof(value)] = value
 
-/// String literals used internally by WebConfig class.
+/// String literals used internally by WebConfig module
 class Texts {
     MODULE_TEXT(moduleName, "WebConfig");
 
@@ -35,7 +35,7 @@ class Texts {
     MODULE_TEXT(crlf, "\r\n");
 } __attribute__((packed));
 
-/// String literals used in UI and visible to user.
+/// String literals used in UI and visible to user
 class TextsUI {
     MODULE_TEXT(webconfigDisabled, "Webconfig is disabled because config mode was not activated. To enable webconfig please press Config button and restart the device.");
 

@@ -17,3 +17,4 @@ enum class ADCFilter {
 };
 
 #endif
+

@@ -27,15 +27,15 @@ namespace webcc {
 
 #define MODULE_TEXT(name,value) public: const char name [sizeof(value)] = value
 
-/// String literals used internally by WebConfig class.
+/// String literals used internally by WebCC module
 class Texts {
-    MODULE_TEXT(moduleName, "WebConfigControl");
+    MODULE_TEXT(moduleName, "WebCC");
     MODULE_TEXT(rootPath, "/");
     MODULE_TEXT(indexPath, "/index");
     MODULE_TEXT(crlf, "\r\n");
 } __attribute__((packed));
 
-/// String literals used in UI and visible to user.
+/// String literals used in UI and visible to user
 class TextsUI {
     MODULE_TEXT(errorNone, "No error");
     MODULE_TEXT(errorUnknown, "Unknown error");
@@ -259,7 +259,7 @@ void WebConfigControl<Diag, Parser, OutputStream, WebForm, WebModules...>::onRun
         tempBuffer[sizeof(tempBuffer) - 1] = '\0';
         break;
       case HTTPRequestPart::PATH:
-        //In case of empty path control will not be passed here, thus path check is needed in subsequent HTTP request parts
+        //In case of empty path, control will not be passed here, thus path check is needed in subsequent HTTP request parts
         diagLog->log(Diag::Severity::INFORMATIONAL, FPSTR(textsUI.printPath), readBuffer);
         indexModuleAccepted = callWebModulesOnPath(readBuffer);
         if (indexModuleAccepted == webModulesCallNoneAccepted) {

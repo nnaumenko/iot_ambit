@@ -60,10 +60,35 @@ class RingBufferTester {
       TEST_ASSERT(!validationResult);
       TEST_FUNC_END();
     }
+    void constructor_RingBufferAllocatesMemory_expect_ValidationPass(void){
+      TEST_FUNC_START();
+      //arrange
+      size_t testSize = 2;
+      util::arrays::RingBuffer<T> testRingBuffer(testSize);
+      //act
+      boolean validationResult = testRingBuffer.validate();
+      //assert
+      TEST_ASSERT(validationResult);
+      TEST_FUNC_END();
+    }
+    void constructor_RingBufferAllocatesTooMuchMemory_expectValidationFail(void){
+      TEST_FUNC_START();
+      //arrange
+      static const size_t maxMemory = 65535;
+      size_t testSize = maxMemory/sizeof(T) - 1;
+      util::arrays::RingBuffer<T> testRingBuffer(testSize);
+      //act
+      boolean validationResult = testRingBuffer.validate();
+      //assert
+      TEST_ASSERT(!validationResult);
+      TEST_FUNC_END();
+    }
   public:
-    void test_validate(void) {
+    void test_constructorsAndValidate(void) {
       validate_correctInit_expectTrue();
       validate_notInitialised_expectFalse();
+      constructor_RingBufferAllocatesMemory_expect_ValidationPass();
+      constructor_RingBufferAllocatesTooMuchMemory_expectValidationFail();
     }
   public:
     void push_singleValue_expectCorrectValue(void) {
@@ -471,7 +496,7 @@ class RingBufferTester {
   public:
     void runTests(void) {
       test_testValues();
-      test_validate();
+      test_constructorsAndValidate();
       test_push();
       test_count();
       test_subscriptOperator();

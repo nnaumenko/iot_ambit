@@ -7,7 +7,12 @@
 
 /**
  * @file
- * @brief Custom data structures for general use, such as circular buffers
+ * @brief Custom data structures and data handling for general use
+ * @detail The following functionality is grouped into the namespaces:
+ *  * arrays: data structures storing multiple units of data
+ *  * checksum: checksum calculation
+ *  * filter: analog value filtering
+ *  * analog: analog value acquiring and processing
  */
 
 #ifndef UTIL_DATA_H
@@ -23,7 +28,6 @@
 namespace util {
 
 /// @brief Selects one of two type based on boolean condition.
-///
 /// @tparam conditon Boolean expression based on which the type
 /// will be selected.
 /// @tparam T1 Type to be used if condition is true
@@ -34,16 +38,22 @@ namespace util {
 /// <boolean condition> is false.
 template<boolean condition, typename T1, typename T2>
 struct TypeSelect;
+/// See TypeSelect
 template<typename T1, typename T2>
 struct TypeSelect<false, T1, T2> {
   typedef T2 data_t;
 };
+/// See TypeSelect
 template<typename T1, typename T2>
 struct TypeSelect<true, T1, T2> {
   typedef T1 data_t;
 };
 
 namespace arrays {
+
+//////////////////////////////////////////////////////////////////////
+// RingBuffer
+//////////////////////////////////////////////////////////////////////
 
 /// @brief Circular buffer
 /// @tparam T Type of the data to be stored in buffer. Must have a trivial
@@ -72,6 +82,7 @@ class RingBuffer {
   public:
     inline RingBuffer ();
     inline RingBuffer (void * buffer, size_t itemsInBuffer);
+    inline RingBuffer (size_t itemsInBuffer);
     inline ~RingBuffer ();
     inline boolean validate(void) const;
     void push(data_t item);
@@ -85,6 +96,7 @@ class RingBuffer {
     inline void popUnsafe(void);
   private:
     T * ringBuffer = NULL;
+    boolean memoryAllocated = false;
     size_t ringBufferSize = 0;
     size_t indexOldestItem = 0;
     size_t itemsCount = 0;
@@ -105,7 +117,7 @@ RingBuffer<T>::RingBuffer () {
 
 template <typename T>
 RingBuffer<T>::RingBuffer (void * buffer, size_t itemsInBuffer) {
-  /// @brief Creates a ring buffer.
+  /// @brief Creates a ring buffer
   /// @param buffer Memory area to store buffer data
   /// @param itemsInBuffer How much items of type T can be stored in the buffer
   ringBuffer = reinterpret_cast<T*>(buffer);
@@ -113,19 +125,38 @@ RingBuffer<T>::RingBuffer (void * buffer, size_t itemsInBuffer) {
 }
 
 template <typename T>
+RingBuffer<T>::RingBuffer (size_t itemsInBuffer) {
+  /// @brief Creates a ring buffer and allocates memory to store the data
+  /// @warning Not recommended for repeated use due to possible memory fragmentation
+  /// @param itemsInBuffer How much items of type T can be stored in the buffer
+  ringBuffer = reinterpret_cast<T*> (malloc(itemsInBuffer * sizeof(T)));
+  if (ringBuffer) {
+    new (ringBuffer) T[itemsInBuffer];
+    ringBufferSize = itemsInBuffer;
+    memoryAllocated = true;
+  }
+}
+template <typename T>
 RingBuffer<T>::~RingBuffer () {
-  /// @brief Performs a ring buffer cleanup by calling pop() for every items in buffer
+  /// @brief Performs a ring buffer cleanup
+  /// @details If no memory was allocated by this class, just calls pop() for every item in buffer
+  /// @details If memory
   if (!validate()) return;
-  const size_t tempCount = itemsCount; //itemsCount field will be modified by popUnsafe()
-  for (size_t i = 0; i < tempCount; i++)
-    popUnsafe();
+  if (memoryAllocated) {
+    delete(ringBuffer);
+  }
+  else {
+    const size_t tempCount = itemsCount; //itemsCount field will be modified by popUnsafe()
+    for (size_t i = 0; i < tempCount; i++)
+      popUnsafe();
+  }
 }
 
 template <typename T>
 boolean RingBuffer<T>::validate(void) const {
   /// @brief Checks if the ring buffer is initialised
   /// @return true if ring buffer is initialised, otherwise returns false
-  return ((ringBuffer != NULL) && (ringBufferSize != 0));
+  return (ringBuffer && ringBufferSize);
 }
 
 template <typename T>
@@ -208,6 +239,10 @@ typename RingBuffer<T>::data_t RingBuffer<T>::operator [] (size_t index) const {
   if (ringBufferIndex >= ringBufferSize) ringBufferIndex -= ringBufferSize;
   return (ringBuffer[ringBufferIndex]);
 }
+
+//////////////////////////////////////////////////////////////////////
+// CStrRingBuffer
+//////////////////////////////////////////////////////////////////////
 
 /// @brief Circular buffer for storing c-strings
 /// @details Implements a c-string circular buffer. C-strings are sent to the circular
@@ -305,6 +340,264 @@ PrintToBuffer::PrintToBuffer(char * buffer, size_t bufferSize) {
 }
 
 }; //namespace arrays
+
+namespace checksum {
+
+//////////////////////////////////////////////////////////////////////
+// crc16
+//////////////////////////////////////////////////////////////////////
+
+/// @brief Calculates checksum crc16 for a memory area
+/// @details Implementation based on this great guide: http://www.ross.net/crc/download/crc_v3.txt
+/// @param buffer A memory area to calculate crc16 for
+/// @param bufferSize Memory area size in bytes
+/// @param poly A polynomial to calculate CRC. High (17th) bit of the polynomial is implicitly set. Default is 0x8005.
+/// @param reverseIn If true, bit order in every input byte is reversed before performing CRC calculations. True by default.
+/// @param reverseOut If true, bit order in CRC value is reversed after calculations. True by default.
+/// @return Calculated CRC16 value
+uint16_t crc16(const void * buffer, size_t bufferSize, uint16_t poly = 0x8005, uint16_t init = 0x0000, boolean reverseIn = true, boolean reverseOut = true);
+
+}; //namespace checksum
+
+namespace analog {
+
+//////////////////////////////////////////////////////////////////////
+// FixedPoint
+//////////////////////////////////////////////////////////////////////
+
+/// @brief Fixed point number with integer and fraction parts
+/// @tparam T An integer base type for fixed point number.
+/// @tparam FractionBits Number of least significant bits storing fraction part
+/// @tparam U A wider range data type, used as intermediary to avoid overflow during calculations
+/// @tparam TRangeMin Minimum value possible for T
+/// @tparam TRangeMax Maximum value possible for T
+/// @details Basic arithmetic (+, -, *, /, +=, -=, *=, /=) and logic (<, <=, >, >=, !=, ==)
+/// operations are possible.
+/// @details If as a result of the arithmetic operation the Fixed Point value reaches
+/// minimum or maximum possible values for integer part, it becames an overflow value. The
+/// overflow values are capped at minimum and maximum of possible range. Any further arithmetic
+/// operation with overflow value results in the same overflow value.
+/// @details Overflow can be detected with overflow() method.
+/// @details If both TRangeMin or TRangeMax are zero, no range check is performed and the
+/// fixed-point value is not overflow-safe; overflow() method always returns false.
+/// @details Minimum and maximum possible values for integer part are declared as constants min and max.
+/// @details Conversion to the integer type T is possible and is performed by rounding (i.e. if fraction
+/// part is greater or equal to 0.5 the return value is increased by 1).
+template <typename T, size_t FractionBits, typename U = T, T TMinRange = static_cast<T>(0), T TMaxRange = static_cast<T>(0)>
+class FixedPoint {
+  public:
+    /// @brief Default constructor, sets value to zero
+    inline FixedPoint() {
+      value.setT(tZero);
+    }
+    /// @brief Copy constructor, copies value from other FixedPoint object
+    /// @param other Other FixedPoint object to copy value from
+    inline FixedPoint(const FixedPoint<T, FractionBits, U, TMinRange, TMaxRange> &other) {
+      value = other.value;
+    }
+    /// @brief Creates a Fixed Point value from integer and decimal fraction part
+    /// @details For example Pi can be defined as follows:
+    ///     FixedPoint(3, 14159265);
+    /// @param integer Integer part
+    /// @param decFraction Decimal fraction part
+    FixedPoint(T integer, T decFraction = tZero);
+  public:
+    /// @brief Convert integer part to integer type T
+    /// @details Conversion is performed by rounding, e.g. conversion of value 1.5 will return 2
+    /// @return Integer part of the value
+    inline explicit operator T() const {
+      if (TMinRange && TMaxRange) {
+        if (value.get() == TMaxRange) return (TMaxRange);
+        if (value.get() == TMinRange) return (TMinRange);
+      }
+      T absValue = value.get();
+      boolean negativeValue = false;
+      if (TMinRange && TMaxRange) {
+        if (TMinRange < tZero) {
+          if (absValue < tZero) {
+            absValue = ~absValue + tOne;
+            negativeValue = true;
+          }
+        }
+      }
+      absValue = (absValue >> FractionBits) + ((absValue >> (FractionBits - 1)) & tOne); //add 1 if most significant fraction bit is set (fraction part >= 0.5)
+      return (negativeValue ? ~absValue + tOne : absValue);
+    }
+    /// @brief Assignment operator, copies value from other FixedPoint object
+    /// @param other Other FixedPoint object to copy value from
+    inline FixedPoint<T, FractionBits, U, TMinRange, TMaxRange>& operator = (const FixedPoint<T, FractionBits, U, TMinRange, TMaxRange> &other) {
+      value.setT(other.value.get());
+      return (*this);
+    }
+  public:
+    inline FixedPoint<T, FractionBits, U, TMinRange, TMaxRange>& operator += (const FixedPoint<T, FractionBits, U, TMinRange, TMaxRange> &rhs) {
+      value.setU(static_cast<U>(value.get()) + static_cast<U>(rhs.value.get()));
+      return (*this);
+    }
+    inline FixedPoint<T, FractionBits, U, TMinRange, TMaxRange>& operator -= (const FixedPoint<T, FractionBits, U, TMinRange, TMaxRange> &rhs) {
+      value.setU(static_cast<U>(value.get()) - static_cast<U>(rhs.value.get()));
+      return (*this);
+    }
+    inline FixedPoint<T, FractionBits, U, TMinRange, TMaxRange>& operator *= (const FixedPoint<T, FractionBits, U, TMinRange, TMaxRange> &rhs) {
+      value.setU(static_cast<U>(value.get()) * static_cast<U>(rhs.value.get()) / static_cast<U>(fractionBitsPwr2));
+      return (*this);
+    }
+    inline FixedPoint<T, FractionBits, U, TMinRange, TMaxRange>& operator /= (const FixedPoint<T, FractionBits, U, TMinRange, TMaxRange> &rhs) {
+      value.setU(static_cast<U>(value.get()) * static_cast<U>(fractionBitsPwr2) /  static_cast<U>(rhs.value.get()));
+      return (*this);
+    }
+    friend inline FixedPoint<T, FractionBits, U, TMinRange, TMaxRange>
+    operator + (const FixedPoint<T, FractionBits, U, TMinRange, TMaxRange> &lhs, const FixedPoint<T, FractionBits, U, TMinRange, TMaxRange> &rhs) {
+      FixedPoint<T, FractionBits, U, TMinRange, TMaxRange> temp = lhs;
+      temp += rhs;
+      return (temp);
+    }
+    friend inline FixedPoint<T, FractionBits, U, TMinRange, TMaxRange>
+    operator - (const FixedPoint<T, FractionBits, U, TMinRange, TMaxRange> &lhs, const FixedPoint<T, FractionBits, U, TMinRange, TMaxRange> &rhs) {
+      FixedPoint<T, FractionBits, U, TMinRange, TMaxRange> temp = lhs;
+      temp -= rhs;
+      return (temp);
+    }
+    friend inline FixedPoint<T, FractionBits, U, TMinRange, TMaxRange>
+    operator * (const FixedPoint<T, FractionBits, U, TMinRange, TMaxRange> &lhs, const FixedPoint<T, FractionBits, U, TMinRange, TMaxRange> &rhs) {
+      FixedPoint<T, FractionBits, U, TMinRange, TMaxRange> temp = lhs;
+      temp *= rhs;
+      return (temp);
+    }
+    friend inline FixedPoint<T, FractionBits, U, TMinRange, TMaxRange>
+    operator / (const FixedPoint<T, FractionBits, U, TMinRange, TMaxRange> &lhs, const FixedPoint<T, FractionBits, U, TMinRange, TMaxRange> &rhs) {
+      FixedPoint<T, FractionBits, U, TMinRange, TMaxRange> temp = lhs;
+      temp /= rhs;
+      return (temp);
+    }
+  public:
+    inline boolean operator == (const FixedPoint<T, FractionBits, U, TMinRange, TMaxRange> &rhs) const {
+      return (value.get() == rhs.value.get());
+    }
+    inline boolean operator != (const FixedPoint<T, FractionBits, U, TMinRange, TMaxRange> &rhs) const {
+      return (!(*this == rhs));
+    }
+    inline boolean operator < (const FixedPoint<T, FractionBits, U, TMinRange, TMaxRange> &rhs) const {
+      return (value.get() < rhs.value.get());
+    }
+    inline boolean operator > (const FixedPoint<T, FractionBits, U, TMinRange, TMaxRange> &rhs) const {
+      return (rhs < *this);
+    }
+    inline boolean operator <= (const FixedPoint<T, FractionBits, U, TMinRange, TMaxRange> &rhs) const {
+      return (!(*this > rhs));
+    }
+    inline boolean operator >= (const FixedPoint<T, FractionBits, U, TMinRange, TMaxRange> &rhs) const {
+      return (!(*this < rhs));
+    }
+  public:
+    static const T min = TMinRange ? ((TMinRange >> FractionBits) + 1) : TMinRange; ///< Minimum range for integer part of FixedPoint value
+    static const T max = TMaxRange >> FractionBits; ///< Maximum range for integer part of FixedPoint value
+    /// @brief Detect overflow
+    /// @return true if the value of this object is overflow, false otherwise.
+    /// If the minimum/maximum limits are not set, always returns false.
+    boolean overflow(void) {
+      if (!TMinRange || !TMaxRange) return (false);
+      if ((value.get() == TMinRange) || (value.get() == TMaxRange)) return (true);
+      return (false);
+    }
+  protected:
+    /// @brief Internal value class, created to encapsulate the value and unify value assignment
+    class {
+      public:
+        /// @brief Sets value from type T value
+        /// @newValue New value of type T, consists of integer and fraction part at this point
+        /// @return true if no overflow occured, false otherwise
+        inline boolean setT(T newValue) {
+          if (TMinRange && TMaxRange) {
+            if (val == TMaxRange || val == TMinRange) return (false);
+          }
+          val = newValue;
+          return (true);
+        }
+        /// @brief Sets value from type U value
+        /// @newValue New value of type U, consists of integer and fraction part at this point
+        /// @return true if no overflow occured, false otherwise
+        inline boolean setU(U newValue) {
+          if (TMinRange && TMaxRange) {
+            if (val == TMaxRange || val == TMinRange) {
+              return (false);
+            }
+          }
+          if (TMaxRange && TMinRange) {
+            if (newValue < static_cast<U>(TMinRange)) {
+              val = TMinRange;
+              return (false);
+            }
+            if (newValue > static_cast<U>(TMaxRange)) {
+              val = TMaxRange;
+              return (false);
+            }
+          }
+          val = static_cast<T>(newValue);
+          return (true);
+        }
+        /// @brief Returns value of type T (with integer and fraction parts)
+        /// @returns Value of type T, consists of integer and fraction part
+        inline T get(void) const {
+          return (val);
+        }
+      private:
+        T val = {}; ///< Storage for value
+    } value;
+  protected:
+    static const T tZero = static_cast<T>(0); ///< 0 constant of type T
+    static const T tOne = static_cast<T>(1);  ///< 1 constant of type T
+    static const T fractionBitsPwr2 = tOne << FractionBits; ///< A number of type T, equals to 2 pow FractionBits
+    //Make sure that FractionBits are less than total bit width of T
+    static_assert(FractionBits < (sizeof(T) * 8), "Too many fraction bits"); 
+    //Make sure that more than zero FractionBits are defined (if zero fraction bits required, simply use type T)
+    static_assert(FractionBits > 0, "Too few fraction bits");
+};
+
+template <typename T, size_t FractionBits, typename U, T TMinRange, T TMaxRange>
+FixedPoint<T, FractionBits, U, TMinRange, TMaxRange>::FixedPoint(T integer, T decFraction) {
+  static const T decimalRadix = static_cast<T>(10);
+  //check integer part against range
+  if (TMinRange && TMaxRange) {
+    if (integer < min) {
+      value.setT(TMinRange);
+      return;
+    }
+    if (integer > max) {
+      value.setT(TMaxRange);
+      return;
+    }
+  }
+  //fraction part
+  T fractionPart = tZero;
+  if (decFraction) {
+    //negate fraction part if it is negative
+    if (decFraction < tZero) decFraction = ~decFraction + tOne;
+    //truncate decimal fractions to fit max limit (TODO: truncate to whole T range to improve precision)
+    if (max) {
+      while (decFraction > max) {
+        decFraction /= decimalRadix;
+      }
+    }
+    //calculate divider as power of decimalRadix
+    T tempDecFraction = decFraction;
+    int dividerPwr10 = 0;
+    while (tempDecFraction) {
+      dividerPwr10++;
+      tempDecFraction /= decimalRadix;
+    }
+    //safely divide fraction by divider
+    fractionPart = decFraction << FractionBits; //no overflow since decFraction was truncated to range
+    for (int i = 0; i < dividerPwr10 ; i++) {
+      fractionPart /= decimalRadix;
+    }
+  }
+  if (integer < tZero) fractionPart = ~fractionPart + tOne;
+  //calculate fixed point number as a sum of integer and fraction parts
+  this->value.setT((integer << FractionBits) + fractionPart);
+}
+
+}; //namespace analog
 
 }; //namespace util
 

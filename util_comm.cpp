@@ -317,17 +317,23 @@ namespace json {
 // JSONOutput
 //////////////////////////////////////////////////////////////////////
 
+/// @brief Initialises JSONOutput object
+/// @param client A Print to output generated JSON to
 JSONOutput::JSONOutput(Print & client) {
   this->client = &client;
   beginObject();
 }
 
+/// @brief Destroys JSONOutput object
+/// @details Closes all braces and brackets in order to produce a valid JSON
 JSONOutput::~JSONOutput() {
   while (currentContext != contextNone) {
     finish();
   }
 }
 
+/// @brief Starts new Array
+/// @param name Name of the array as a RAM string
 void JSONOutput::beginArray(const char * name) {
   printName(name);
   pushContext(contextArray);
@@ -335,6 +341,8 @@ void JSONOutput::beginArray(const char * name) {
   firstValue = true;
 }
 
+/// @brief Starts new Array
+/// @param name Name of the array as a PROGMEM string
 void JSONOutput::beginArray(const __FlashStringHelper * name) {
   printName(name);
   pushContext(contextArray);
@@ -342,6 +350,8 @@ void JSONOutput::beginArray(const __FlashStringHelper * name) {
   firstValue = true;
 }
 
+/// @brief Starts new Object
+/// @param name Name of the object as a RAM string
 void JSONOutput::beginObject(const char * name) {
   printName(name);
   pushContext(contextObject);
@@ -349,6 +359,8 @@ void JSONOutput::beginObject(const char * name) {
   firstValue = true;
 }
 
+/// @brief Starts new Object
+/// @param name Name of the object as a PROGMEM string
 void JSONOutput::beginObject(const __FlashStringHelper * name) {
   printName(name);
   pushContext(contextObject);
@@ -356,6 +368,8 @@ void JSONOutput::beginObject(const __FlashStringHelper * name) {
   firstValue = true;
 }
 
+/// @brief Finishes current object or array
+/// @details Closes brace or bracket in order to produce a valid JSON
 void JSONOutput::finish(void) {
   if (currentContext == contextArray) client->print(charRbracket);
   if (currentContext == contextObject) client->print(charRbrace);
@@ -363,26 +377,41 @@ void JSONOutput::finish(void) {
   firstValue = false;
 }
 
+/// @brief Produces a Name = Value pair
+/// @param name Name as a RAM string
+/// @param value Value as a RAM string
 void JSONOutput::value(const char * name, const char * value) {
   printName(name);
   printString(value);
 }
 
+/// @brief Produces a Name = Value pair
+/// @param name Name as a RAM string
+/// @param value Value as a PROGMEM string
 void JSONOutput::value(const char * name, const __FlashStringHelper * value) {
   printName(name);
   printString(value);
 }
 
+/// @brief Produces a Name = Value pair
+/// @param name Name as a RAM string
+/// @param value Value as an integer
 void JSONOutput::value(const char * name, long value) {
   printName(name);
   if (currentContext != contextNone) client->print(value);
 }
 
+/// @brief Produces a Name = Value pair
+/// @param name Name as a RAM string
+/// @param value Value as an unsigned integer
 void JSONOutput::value(const char * name, unsigned long value) {
   printName(name);
   if (currentContext != contextNone) client->print(value);
 }
 
+/// @brief Produces a Name = Value pair
+/// @param name Name as a RAM string
+/// @param value Value as a boolean (output is true/false)
 void JSONOutput::value(const char * name, boolean value) {
   static const char PROGMEM valueTrue[] = "true";
   static const char PROGMEM valueFalse[] = "false";
@@ -397,26 +426,41 @@ void JSONOutput::value(const char * name, boolean value) {
   }
 }
 
+/// @brief Produces a Name = Value pair
+/// @param name Name as a PROGMEM string
+/// @param value Value as a RAM string
 void JSONOutput::value(const __FlashStringHelper * name, const char * value) {
   printName(name);
   printString(value);
 }
 
+/// @brief Produces a Name = Value pair
+/// @param name Name as a PROGMEM string
+/// @param value Value as a PROGMEM string
 void JSONOutput::value(const __FlashStringHelper * name, const __FlashStringHelper * value) {
   printName(name);
   printString(value);
 }
 
+/// @brief Produces a Name = Value pair
+/// @param name Name as a PROGMEM string
+/// @param value Value as an integer
 void JSONOutput::value(const __FlashStringHelper * name, long value) {
   printName(name);
   if (currentContext != contextNone) client->print(value);
 }
 
+/// @brief Produces a Name = Value pair
+/// @param name Name as a PROGMEM string
+/// @param value Value as an unsigned integer
 void JSONOutput::value(const __FlashStringHelper * name, unsigned long value) {
   printName(name);
   if (currentContext != contextNone) client->print(value);
 }
 
+/// @brief Produces a Name = Value pair
+/// @param name Name as a PROGMEM string
+/// @param value Value as a boolean (output is true/false)
 void JSONOutput::value(const __FlashStringHelper * name, boolean value) {
   static const char PROGMEM valueTrue[] = "true";
   static const char PROGMEM valueFalse[] = "false";

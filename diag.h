@@ -25,9 +25,7 @@ namespace diag {
 
 #define MODULE_TEXT(name,value) public: const char name [sizeof(value)] = value
 
-typedef uint32_t MessageNumber;
-typedef uint32_t MessageTimestamp;
-
+/// String literals used internally by Diag module
 class Texts {
     MODULE_TEXT(moduleName, "DiagLog");
     MODULE_TEXT(diagLogConsolePath, "/diag");
@@ -44,6 +42,7 @@ class Texts {
 
 } __attribute__((packed));
 
+/// String literals used in UI and visible to user
 class TextsUI {
     MODULE_TEXT(messageSeverityEmergency,     "Emergency");
     MODULE_TEXT(messageSeverityAlert,         "Alert");
@@ -74,9 +73,9 @@ extern const TextsUI PROGMEM textsUI;
 // requests in order to receive JSON with messages
 #define DIAG_CONSOLE_UPDATE_DELAY 5000
 
-//If defined, will produce HTML UI form with formatting, i.e. with
-//tabs, line breaks and comments. Formatting increases size of the
-//produced HTML UI form but simplifies debugging
+// If defined, will produce HTML UI form with formatting, i.e. with
+// tabs, line breaks and comments. Formatting increases size of the
+// produced HTML UI form but simplifies debugging
 #define HTML_FORMATTING
 
 #ifdef HTML_FORMATTING
@@ -96,6 +95,7 @@ extern const TextsUI PROGMEM textsUI;
 #define STRINGISATION(a) #a
 #define STRINGISATION_WRAP(a) STRINGISATION(a)
 
+/// @brief Contaings console HTML/JS code which will be sent to client via webserver
 class DiagLogConsoleHTML {
   public:
     HTML_CODE(diagLogConsole,
@@ -168,6 +168,9 @@ extern const DiagLogConsoleHTML PROGMEM diagLogConsoleHTML;
 
 #undef STRINGISATION
 #undef STRINGISATION_WRAP
+
+typedef uint32_t MessageNumber;
+typedef uint32_t MessageTimestamp;
 
 template <size_t StorageBufferSize = 3200> class DiagLogStorage;
 

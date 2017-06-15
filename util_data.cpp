@@ -192,4 +192,60 @@ size_t PrintToBuffer::write(const uint8_t *buffer, size_t size) {
 
 }; //namespace arrays
 
+namespace checksum {
+
+/// @brief Reverse bit order in a 8-bit value
+/// @param x Input value
+/// @return Value with bits reversed
+static uint8_t reverse8(uint8_t x) {
+  x = ((x & 0xF0) >> 4) | ((x & 0x0F) << 4);
+  x = ((x & 0xCC) >> 2) | ((x & 0x33) << 2);
+  x = ((x & 0xAA) >> 1) | ((x & 0x55) << 1);
+  return x;
+}
+
+/// @brief Reverse bit order in a 16-bit value
+/// @param x Input value
+/// @return Value with bits reversed
+static uint16_t reverse16(uint16_t x) {
+  x = (((x & 0xAAAA)) >> 1) | ((x & 0x5555) << 1);
+  x = (((x & 0xCCCC)) >> 2) | ((x & 0x3333) << 2);
+  x = (((x & 0xF0F0)) >> 4) | ((x & 0x0F0F) << 4);
+  x = (((x & 0xFF00)) >> 8) | ((x & 0x00FF) << 8);
+  return (x);
+}
+
+/*
+/// @brief Reverse bit order in a 32-bit value
+/// @param x Input value
+/// @return Value with bits reversed
+
+static uint32_t reverse32(uint32_t x) {
+  x = (((x & 0xAAAAAAAA) >> 1) | ((x & 0x55555555) << 1));
+  x = (((x & 0xCCCCCCCC) >> 2) | ((x & 0x33333333) << 2));
+  x = (((x & 0xF0F0F0F0) >> 4) | ((x & 0x0F0F0F0F) << 4));
+  x = (((x & 0xFF00FF00) >> 8) | ((x & 0x00FF00FF) << 8));
+  return ((x >> 16) | (x << 16));
+}
+*/
+
+uint16_t crc16(const void * buffer, size_t bufferSize, uint16_t poly, uint16_t init, boolean reverseIn, boolean reverseOut) {
+  static const uint32_t polyHighBit = 0x01000000;
+  static const uint32_t poly32 = (poly << 8) | polyHighBit;
+  static const size_t crcBytes = 2;
+  const uint8_t * data = reinterpret_cast<const uint8_t*>(buffer);
+  uint32_t crc = (static_cast<uint32_t>(init) << 8);
+  if (!buffer) bufferSize = 0;
+  for (size_t i = 0; i < (bufferSize + crcBytes); i++) {
+    if (i < bufferSize) crc |= reverseIn ? static_cast<uint32_t>(reverse8(*data++)) : static_cast<uint32_t>(*data++);
+    for (int j = 0; j < 8; j++) {
+      crc = crc << 1;
+      if (crc & polyHighBit) crc ^= poly32;
+    }
+  }
+  return (reverseOut ? reverse16(static_cast<uint16_t>(crc >> 8)) : static_cast<uint16_t>(crc >> 8));
+}
+
+}; //namespace checksum
+
 }; //namespace util

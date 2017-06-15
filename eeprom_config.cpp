@@ -8,6 +8,7 @@
 #include "diag.h"
 #include "version.h"
 #include "eeprom_config.h"
+#include "util_data.h"
 
 #include <EEPROM.h>
 
@@ -47,8 +48,8 @@ void loadFromEEPROM (int address, void * parameter, size_t length) {
   }
 }
 
-uint16 calculateCheckSum (void) {
-  return (0); //TODO: CRC16 checksum
+uint16_t calculateCheckSum (void) {
+  return (util::checksum::crc16(&eepromSavedParametersStorage, sizeof(EepromSavedParametersStorage)));
 }
 
 void saveConfig(void) {
@@ -79,8 +80,12 @@ void loadConfig(void) {
   if ((eepromSavedParametersStorage.versionMajor != FIRMWARE_VERSION_MAJOR) ||
       (eepromSavedParametersStorage.versionMinor != FIRMWARE_VERSION_MINOR))
     DiagLog::instance()->log(DiagLog::Severity::WARNING, F("CONFIG SAVED WITH DIFFERENT FIRMWARE VERSION, PLEASE ACTIVATE CONFIG MODE AND REVIEW DATA"));
-  DiagLog::instance()->log(DiagLog::Severity::NOTICE, F("Checksum: 0x"), eepromSavedParametersStorage.checkSum);
-  if (calculateCheckSum() != eepromSavedParametersStorage.checkSum) DiagLog::instance()->log(DiagLog::Severity::WARNING, F("CONFIG CHECKSUM MISMATCH, PLEASE ACTIVATE CONFIG MODE AND REVIEW DATA"));
+  DiagLog::instance()->log(DiagLog::Severity::NOTICE, F("Checksum: "), eepromSavedParametersStorage.checkSum);
+  uint16_t actualCheckSum = calculateCheckSum();
+  if (actualCheckSum != eepromSavedParametersStorage.checkSum) {
+    DiagLog::instance()->log(DiagLog::Severity::WARNING, F("Actual checksum: "), actualCheckSum);
+    DiagLog::instance()->log(DiagLog::Severity::WARNING, F("CONFIG CHECKSUM MISMATCH, PLEASE ACTIVATE CONFIG MODE AND REVIEW DATA"));
+  }
   DiagLog::instance()->log(DiagLog::Severity::DEBUG, F("WIFI network: "), eepromSavedParametersStorage.wifiSsid);
   if (EEPROM_DEBUG_PRINT_INSECURE) {
     DiagLog::instance()->log(DiagLog::Severity::DEBUG, F("WIFI password: "), eepromSavedParametersStorage.wifiPassword);
