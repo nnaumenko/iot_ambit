@@ -126,7 +126,7 @@ class URL {
     static void decode(char buffer[], size_t bufferSize);
 };
 
-///Composes typical HTTP Response Headers and their parts
+/// Composes typical HTTP Response Headers and their parts
 class HTTPResponseHeader {
   public:
     static void contentHeader(Print &client, HTTPContentType type, HTTPContentCharset charset = HTTPContentCharset::UTF8);

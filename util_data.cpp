@@ -248,4 +248,8 @@ uint16_t crc16(const void * buffer, size_t bufferSize, uint16_t poly, uint16_t i
 
 }; //namespace checksum
 
+namespace dsp {
+
+}; //namespace dsp
+
 }; //namespace util

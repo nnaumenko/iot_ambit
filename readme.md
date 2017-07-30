@@ -47,8 +47,8 @@ The following [Blynk configuration](tinyurl.com/h8appo8) can be used with this p
 This project uses the following Arduino libraries:
 
 * [OneWire library for Dallas/Maxim 1-Wire Chips](https://github.com/PaulStoffregen/OneWire)
-* [Arduino plug and go library for the Maxim (previously Dallas) DS18B20 (and similar) temperature ICs] (https://github.com/milesburton/Arduino-Temperature-Control-Library)
-* [Arduino library for DHT11DHT22, etc Temp & Humidity Sensors] (https://github.com/adafruit/DHT-sensor-library)
+* [Arduino plug and go library for the Maxim (previously Dallas) DS18B20 (and similar) temperature ICs](https://github.com/milesburton/Arduino-Temperature-Control-Library)
+* [Arduino library for DHT11DHT22, etc Temp & Humidity Sensors](https://github.com/adafruit/DHT-sensor-library)
 * [Blynk library for embedded hardware](https://github.com/blynkkk/blynk-library/releases/)
 
 ### Dynamic Tabs

@@ -11,8 +11,7 @@
  * @detail The following functionality is grouped into the namespaces:
  *  * arrays: data structures storing multiple units of data
  *  * checksum: checksum calculation
- *  * filter: analog value filtering
- *  * analog: analog value acquiring and processing
+ *  * dsp: digital signal processing
  */
 
 #ifndef UTIL_DATA_H
@@ -359,7 +358,7 @@ uint16_t crc16(const void * buffer, size_t bufferSize, uint16_t poly = 0x8005, u
 
 }; //namespace checksum
 
-namespace analog {
+namespace dsp {
 
 //////////////////////////////////////////////////////////////////////
 // FixedPoint
@@ -368,7 +367,10 @@ namespace analog {
 /// @brief Fixed point number with integer and fraction parts
 /// @tparam T An integer base type for fixed point number.
 /// @tparam FractionBits Number of least significant bits storing fraction part
-/// @tparam U A wider range data type, used as intermediary to avoid overflow during calculations
+/// @tparam U A wider range data type, used as intermediary to avoid overflow during calculations.
+/// Ideally should be twice as wide as T. If U is not specified, T is also used as intermediary (
+/// not recommended since it may lead to overflow during multiplication/division and initialisation
+/// from integer with decimal point shift).
 /// @tparam TRangeMin Minimum value possible for T
 /// @tparam TRangeMax Maximum value possible for T
 /// @details Basic arithmetic (+, -, *, /, +=, -=, *=, /=) and logic (<, <=, >, >=, !=, ==)
@@ -377,9 +379,9 @@ namespace analog {
 /// minimum or maximum possible values for integer part, it becames an overflow value. The
 /// overflow values are capped at minimum and maximum of possible range. Any further arithmetic
 /// operation with overflow value results in the same overflow value.
-/// @details Overflow can be detected with overflow() method.
+/// @details Overflow can be detected with overflow() function.
 /// @details If both TRangeMin or TRangeMax are zero, no range check is performed and the
-/// fixed-point value is not overflow-safe; overflow() method always returns false.
+/// fixed-point value is not overflow-safe; overflow() always returns false.
 /// @details Minimum and maximum possible values for integer part are declared as constants min and max.
 /// @details Conversion to the integer type T is possible and is performed by rounding (i.e. if fraction
 /// part is greater or equal to 0.5 the return value is increased by 1).
@@ -395,12 +397,8 @@ class FixedPoint {
     inline FixedPoint(const FixedPoint<T, FractionBits, U, TMinRange, TMaxRange> &other) {
       value = other.value;
     }
-    /// @brief Creates a Fixed Point value from integer and decimal fraction part
-    /// @details For example Pi can be defined as follows:
-    ///     FixedPoint(3, 14159265);
-    /// @param integer Integer part
-    /// @param decFraction Decimal fraction part
-    FixedPoint(T integer, T decFraction = tZero);
+    FixedPoint(T integer, size_t decimalsPrecision = 0);
+    FixedPoint(const char * str);
   public:
     /// @brief Convert integer part to integer type T
     /// @details Conversion is performed by rounding, e.g. conversion of value 1.5 will return 2
@@ -490,16 +488,20 @@ class FixedPoint {
       return (!(*this < rhs));
     }
   public:
-    static const T min = TMinRange ? ((TMinRange >> FractionBits) + 1) : TMinRange; ///< Minimum range for integer part of FixedPoint value
+    static const T min = TMinRange  ? ((TMinRange >> FractionBits) + 1) : TMinRange; ///< Minimum range for integer part of FixedPoint value
     static const T max = TMaxRange >> FractionBits; ///< Maximum range for integer part of FixedPoint value
+  public:
     /// @brief Detect overflow
+    /// @par value Value to check for overflow
     /// @return true if the value of this object is overflow, false otherwise.
     /// If the minimum/maximum limits are not set, always returns false.
-    boolean overflow(void) {
-      if (!TMinRange || !TMaxRange) return (false);
+    inline boolean overflow(void) const {
+      if (!TMinRange && !TMaxRange) return (false);
       if ((value.get() == TMinRange) || (value.get() == TMaxRange)) return (true);
       return (false);
     }
+  public:
+    T getValue(size_t decimalPrecision, boolean *status = nullptr) const;
   protected:
     /// @brief Internal value class, created to encapsulate the value and unify value assignment
     class {
@@ -508,9 +510,6 @@ class FixedPoint {
         /// @newValue New value of type T, consists of integer and fraction part at this point
         /// @return true if no overflow occured, false otherwise
         inline boolean setT(T newValue) {
-          if (TMinRange && TMaxRange) {
-            if (val == TMaxRange || val == TMinRange) return (false);
-          }
           val = newValue;
           return (true);
         }
@@ -522,8 +521,6 @@ class FixedPoint {
             if (val == TMaxRange || val == TMinRange) {
               return (false);
             }
-          }
-          if (TMaxRange && TMinRange) {
             if (newValue < static_cast<U>(TMinRange)) {
               val = TMinRange;
               return (false);
@@ -549,55 +546,701 @@ class FixedPoint {
     static const T tOne = static_cast<T>(1);  ///< 1 constant of type T
     static const T fractionBitsPwr2 = tOne << FractionBits; ///< A number of type T, equals to 2 pow FractionBits
     //Make sure that FractionBits are less than total bit width of T
-    static_assert(FractionBits < (sizeof(T) * 8), "Too many fraction bits"); 
+    static_assert(FractionBits < (sizeof(T) * 8), "Too many fraction bits");
     //Make sure that more than zero FractionBits are defined (if zero fraction bits required, simply use type T)
     static_assert(FractionBits > 0, "Too few fraction bits");
 };
 
 template <typename T, size_t FractionBits, typename U, T TMinRange, T TMaxRange>
-FixedPoint<T, FractionBits, U, TMinRange, TMaxRange>::FixedPoint(T integer, T decFraction) {
-  static const T decimalRadix = static_cast<T>(10);
-  //check integer part against range
-  if (TMinRange && TMaxRange) {
-    if (integer < min) {
-      value.setT(TMinRange);
-      return;
-    }
-    if (integer > max) {
-      value.setT(TMaxRange);
-      return;
-    }
+FixedPoint<T, FractionBits, U, TMinRange, TMaxRange>::FixedPoint(T value, size_t decimalsPrecision) {
+  /// @brief Creates a Fixed Point value from integer value with known decimal precision
+  /// @details For example Pi can be defined as follows (provided that large number fits into type T):
+  ///     FixedPoint(314159265, 8);
+  /// @param value Integer part
+  /// @param decimalsPrecision How many least significant decimal digits are fractions
+  /// (= for how many digits to left-shift decimal point)
+  if (!value) {
+    this->value.setT(tZero);
+    return;
   }
-  //fraction part
-  T fractionPart = tZero;
-  if (decFraction) {
-    //negate fraction part if it is negative
-    if (decFraction < tZero) decFraction = ~decFraction + tOne;
-    //truncate decimal fractions to fit max limit (TODO: truncate to whole T range to improve precision)
-    if (max) {
-      while (decFraction > max) {
-        decFraction /= decimalRadix;
+  if (decimalsPrecision) {
+    static const T decimalRadix = static_cast<T>(10);
+    T divider = tOne;
+    for (size_t i = 0; i < decimalsPrecision; i++) {
+      if (TMinRange && TMaxRange) {
+        if (divider < (TMaxRange / decimalRadix)) {
+          divider *= decimalRadix;
+        }//if (divider < (TMaxRange / decimalRadix))
+        else {
+          value /= decimalRadix;
+          if (!value) {
+            this->value.setT(tZero);
+            return;
+          }
+        }
+      }
+      else {//if (TMinRange && TMaxRange)
+        divider *= decimalRadix;
       }
     }
-    //calculate divider as power of decimalRadix
-    T tempDecFraction = decFraction;
-    int dividerPwr10 = 0;
-    while (tempDecFraction) {
-      dividerPwr10++;
-      tempDecFraction /= decimalRadix;
+    this->value.setU(static_cast<U>(value) * static_cast<U>(fractionBitsPwr2) / static_cast<U>(divider));
+    return;
+  }
+  if (TMinRange && TMaxRange) {
+    if (value < min) {
+      this->value.setT(TMinRange);
+      return;
     }
-    //safely divide fraction by divider
-    fractionPart = decFraction << FractionBits; //no overflow since decFraction was truncated to range
-    for (int i = 0; i < dividerPwr10 ; i++) {
-      fractionPart /= decimalRadix;
+    if (value > max) {
+      this->value.setT(TMaxRange);
+      return;
     }
   }
-  if (integer < tZero) fractionPart = ~fractionPart + tOne;
-  //calculate fixed point number as a sum of integer and fraction parts
-  this->value.setT((integer << FractionBits) + fractionPart);
+  this->value.setT(value << FractionBits);
 }
 
-}; //namespace analog
+template <typename T, size_t FractionBits, typename U, T TMinRange, T TMaxRange>
+FixedPoint<T, FractionBits, U, TMinRange, TMaxRange>::FixedPoint(const char * str) {
+  const char * currStrChar = str;
+  const char decimalPointChar = '.';
+  const char minusSignChar = '-';
+  const char plusSignChar = '+';
+  const T decimalRadixT = static_cast<T>(10);
+  value.setT(tZero);
+  //make sure str is not NULL and not empty
+  if ((!str) || (!(*currStrChar))) return;
+  //check plus & minus sign
+  boolean negative = false;
+  if ((*currStrChar) == minusSignChar) {
+    currStrChar++;
+    negative = true;
+    if (TMinRange && TMaxRange) {
+      if (TMinRange > tZero) return;
+    }
+  } else {
+    if ((*currStrChar) == plusSignChar) currStrChar++;
+  }
+  //process integer part
+  T integerPart = static_cast<U>(0);
+  while ((*currStrChar) && ((*currStrChar) != decimalPointChar)) {
+    if (((*currStrChar) < '0') || ((*currStrChar) > '9')) {
+      value.setT(tZero);
+      return;
+    }
+    T currentDigit = static_cast<T>((*currStrChar) - '0');
+    if (negative) currentDigit = ~currentDigit + tOne;
+    integerPart = integerPart * decimalRadixT + currentDigit;
+    if (TMinRange && TMaxRange) {
+      if (integerPart < (min + 1)) {
+        value.setT(TMinRange);
+        return;
+      }
+      if (integerPart > (max - 1)) {
+        value.setT(TMaxRange);
+        return;
+      }
+    }//if (TMinRange && TMaxRange)
+    currStrChar++;
+  }//while
+  integerPart = integerPart << FractionBits;
+  if (!(*currStrChar)) {
+    value.setT(integerPart);
+    return;
+  }
+  //set fraction part pointer to the last digit of the str
+  const char * decimalPointStrChar = currStrChar;
+  while (*(currStrChar + 1)) {
+    currStrChar++;
+  }
+  //process fraction part
+  T fractionPart = tZero;
+  while (currStrChar != decimalPointStrChar) {
+    if (((*currStrChar) < '0') || ((*currStrChar) > '9')) {
+      value.setT(tZero);
+      return;
+    }
+    T currentDigit = static_cast<T>((*currStrChar) - '0');
+    fractionPart = (fractionPart + (currentDigit << FractionBits)) / decimalRadixT;
+    currStrChar--;
+  }
+  if (negative) fractionPart = ~fractionPart + tOne;
+  value.setT(integerPart + fractionPart);
+}
+
+
+template <typename T, size_t FractionBits, typename U, T TMinRange, T TMaxRange>
+T FixedPoint<T, FractionBits, U, TMinRange, TMaxRange>::getValue(size_t decimalPrecision, boolean *status) const {
+  /// @brief Converts a Fixed Point value to the base type with a specified decimal precision
+  /// @details For example, result of conversion of value of 10.573 can be 10
+  /// (for decimalPrecision 0), 106 (for decimalPrecision 1), 1057 (for decimalPrecision 2),
+  /// 10573 (for decimalPrecision 3), 105730 (for decimalPrecision 4), etc.
+  /// @param decimalPrecision How many least significant decimal digits of the returned value
+  /// are fractions (= for how many digits to left-shift decimal point)
+  /// @param status Pointer to boolean variable which will be set to true if conversion was
+  /// successful and to false otherwise. If not needed, this parameter can be skipped or
+  /// set equal to nullptr
+  /// @return Conversion result or TMinRange/TMaxRange if result is out of range of type T
+  /// (TMinRange...TMaxRange)
+  if (status) {
+    (*status) = false;
+  }
+  U tempValue = static_cast<U>(this->value.get());
+  static const U decimalRadix = static_cast<U>(10);
+  for (size_t i = 0; i < decimalPrecision; i++) {
+    tempValue *= decimalRadix;
+    if (TMinRange && TMaxRange) {
+      if (tempValue < static_cast<U>(TMinRange)) {
+        return (TMinRange);
+      }
+      if (tempValue > static_cast<U>(TMaxRange)) {
+        return (TMaxRange);
+      }
+    }//if (TMinRange && TMaxRange)
+  }//for
+  if (status) {
+    (*status) = true;
+  }
+  tempValue /= static_cast<U>(fractionBitsPwr2);
+  return (static_cast<T>(tempValue));
+}
+
+
+//////////////////////////////////////////////////////////////////////
+// Filter
+//////////////////////////////////////////////////////////////////////
+
+template <typename T, typename Timestamp>
+class TemplateFilter {
+  public:
+    enum class Status {
+      NONE,                               ///< No status returned
+      OK,                                 ///< Filter functions normally
+      ERROR_INIT_DATA_INCORRECT,          ///< Error: incorrect data provided for filter initialisation
+      ERROR_INIT_NOT_ENOUGH_MEMORY,       ///< Error: incorrect data provided for filter initialisation
+      ERROR_INIT_FAILED,                  ///< Error: filter initialisation failed
+      WARNING_INIT_DATA_INCORRECT,        ///< Warning: incorrect data provided for filter initialisation; filter may produce unexpected results
+      WARNING_TOO_MANY_INPUTS,            ///< Warning: too many inputs provided for the filter; some inputs were ignored
+      ERROR_TOO_FEW_INPUTS,               ///< Error: too few inputs provided for the filter
+    };
+  public:
+    virtual ~TemplateFilter() {};
+    inline const T& filter(Timestamp timestamp = 0);
+    template <typename... Inputs> const T& filter(Timestamp timestamp, const Inputs... inputs);
+    Status getStatus(void);
+  protected:
+    virtual Status filterProcess(const T *inputs, size_t inputsNumber, T &output, Timestamp timestamp) = 0;
+  protected:
+    Timestamp getDeltaTime(Timestamp currentTime);
+  protected:
+    void setInitStatus(Status initStatus);
+    void setInputsNumber(size_t min, size_t max);
+  private:
+    Status status = Status::NONE;
+  private:
+    T outputValue = static_cast<T>(0);
+    Timestamp lastTime = static_cast<Timestamp>(0);
+  private:
+    size_t minInputs = 0;
+    size_t maxInputs = 0;
+};
+
+template <typename T, typename Timestamp>
+const T& TemplateFilter<T, Timestamp>::filter(Timestamp timestamp) {
+  outputValue = static_cast<T>(0);
+  if ((status == Status::ERROR_INIT_DATA_INCORRECT) ||
+      (status == Status::ERROR_INIT_NOT_ENOUGH_MEMORY) ||
+      (status == Status::ERROR_INIT_FAILED)) {
+    lastTime = timestamp;
+    return (outputValue);
+  }
+  if (minInputs) {
+    status = Status::ERROR_TOO_FEW_INPUTS;
+    lastTime = timestamp;
+    return (outputValue);
+  }
+  status = filterProcess(nullptr, 0, outputValue, timestamp);
+  lastTime = timestamp;
+  return (outputValue);
+}
+
+template <typename T, typename Timestamp>
+template <typename... Inputs> const T& TemplateFilter<T, Timestamp>::filter(Timestamp timestamp, const Inputs... inputs) {
+  T inputsArray[] = { T(inputs)... };
+  outputValue = static_cast<T>(0);
+  if ((status == Status::ERROR_INIT_DATA_INCORRECT) ||
+      (status == Status::ERROR_INIT_NOT_ENOUGH_MEMORY) ||
+      (status == Status::ERROR_INIT_FAILED)) {
+    lastTime = timestamp;
+    return (outputValue);
+  }
+  if (minInputs && maxInputs && (sizeof...(inputs) < minInputs)) {
+    status = Status::ERROR_TOO_FEW_INPUTS;
+    lastTime = timestamp;
+    return (outputValue);
+  }
+  status = filterProcess(inputsArray, sizeof...(inputs), outputValue, timestamp);
+  if ((status == Status::OK) && minInputs && maxInputs && (sizeof...(inputs) > maxInputs)) {
+    status = Status::WARNING_TOO_MANY_INPUTS;
+  }
+  lastTime = timestamp;
+  return (outputValue);
+}
+
+template <typename T, typename Timestamp>
+Timestamp TemplateFilter<T, Timestamp>::getDeltaTime(Timestamp currentTime) {
+  if (!lastTime) return (static_cast<Timestamp>(0));
+  return (currentTime - lastTime);
+}
+
+template <typename T, typename Timestamp>
+typename TemplateFilter<T, Timestamp>::Status TemplateFilter<T, Timestamp>::getStatus(void) {
+  return (status);
+}
+
+template <typename T, typename Timestamp>
+void TemplateFilter<T, Timestamp>::setInitStatus(Status initStatus) {
+  status = initStatus;
+}
+
+template <typename T, typename Timestamp>
+void TemplateFilter<T, Timestamp>::setInputsNumber(size_t min, size_t max) {
+  if (min > max) return;
+  minInputs = min;
+  maxInputs = max;
+}
+
+
+//////////////////////////////////////////////////////////////////////
+// MovingAverage
+//////////////////////////////////////////////////////////////////////
+
+template <typename T, typename Timestamp>
+class MovingAverage : public TemplateFilter<T, Timestamp> {
+  public:
+    MovingAverage(size_t numValues);
+    virtual typename TemplateFilter<T, Timestamp>::Status filterProcess(const T *inputs, size_t inputsNumber, T &output, Timestamp timestamp);
+    virtual ~MovingAverage() {}
+  private:
+    arrays::RingBuffer<T> ringBuffer;
+    T lastValue = static_cast<T>(0);
+};
+
+template <typename T, typename Timestamp>
+MovingAverage<T, Timestamp>::MovingAverage(size_t numValues) : ringBuffer(numValues) {
+  static const size_t inputNumber = 1;
+  TemplateFilter<T, Timestamp>::setInputsNumber(inputNumber, inputNumber);
+  if (!ringBuffer.validate()) {
+    TemplateFilter<T, Timestamp>::setInitStatus(TemplateFilter<T, Timestamp>::Status::ERROR_INIT_NOT_ENOUGH_MEMORY);
+    return;
+  }
+  TemplateFilter<T, Timestamp>::setInitStatus(TemplateFilter<T, Timestamp>::Status::OK);
+}
+
+template <typename T, typename Timestamp>
+typename TemplateFilter<T, Timestamp>::Status MovingAverage<T, Timestamp>::filterProcess(const T * inputs, size_t inputsNumber, T & output, Timestamp timestamp) {
+  (void)timestamp;
+  if (!inputsNumber) return (TemplateFilter<T, Timestamp>::Status::ERROR_TOO_FEW_INPUTS);
+  ringBuffer.push(inputs[0]);
+  T total = static_cast<T>(0);
+  T subtotal = static_cast<T>(0);
+  for (int i = 0; i < ringBuffer.count(); i++) {
+    T backupSubtotal = subtotal;
+    subtotal += ringBuffer[i];
+    if (overflow(subtotal)) {
+      //When overflow occurs we divide part of the sum (subtotal) by amount of items and add it to total (precision is lost but overflow avoided)
+      total += (backupSubtotal / static_cast<T>(ringBuffer.count()));
+      subtotal = ringBuffer[i];
+    }
+  }
+  if (ringBuffer.count()) {
+    total += (subtotal / static_cast<T>(ringBuffer.count())); //if there was no overflow, then total is still zero at this point
+  }
+  output = total;
+  return (TemplateFilter<T, Timestamp>::Status::OK);
+};
+
+//////////////////////////////////////////////////////////////////////
+// LowPass
+//////////////////////////////////////////////////////////////////////
+
+template <typename T, typename Timestamp>
+class LowPass : public TemplateFilter<T, Timestamp> {
+  public:
+    LowPass(const T &fc, const T &pi, const T & fcDivider = static_cast<T>(1));
+    virtual typename TemplateFilter<T, Timestamp>::Status filterProcess(const T *inputs, size_t inputsNumber, T &output, Timestamp timestamp);
+    virtual ~LowPass() {}
+  private:
+    T fc = static_cast<T>(0);
+    T fcDivider = static_cast<T>(1);
+    T fcPi2 = static_cast<T>(0);
+    T lastOutput = static_cast<T>(0);
+};
+
+template <typename T, typename Timestamp>
+LowPass<T, Timestamp>::LowPass(const T & fc, const T & pi, const T & fcDivider) {
+  static const size_t inputNumber = 1;
+  TemplateFilter<T, Timestamp>::setInputsNumber(inputNumber, inputNumber);
+  if ((fc <= static_cast<T>(0)) || (fcDivider <= static_cast<T>(0)) || overflow (fc / fcDivider)) {
+    this->fc = static_cast<T>(0);
+    this->fcDivider = static_cast<T>(1);
+    TemplateFilter<T, Timestamp>::setInitStatus(TemplateFilter<T, Timestamp>::Status::ERROR_INIT_DATA_INCORRECT);
+    return;
+  }
+  this->fc = fc;
+  this->fcDivider = fcDivider;
+  fcPi2 = fc * pi * static_cast<T>(2);
+  TemplateFilter<T, Timestamp>::setInitStatus(TemplateFilter<T, Timestamp>::Status::OK);
+}
+
+template <typename T, typename Timestamp>
+typename TemplateFilter<T, Timestamp>::Status LowPass<T, Timestamp>::filterProcess(const T * inputs, size_t inputsNumber, T & output, Timestamp timestamp) {
+
+  Timestamp deltaTime (this->getDeltaTime(timestamp));
+  if (!inputsNumber) {
+    return (TemplateFilter<T, Timestamp>::Status::ERROR_TOO_FEW_INPUTS);
+  }
+  if (!deltaTime) {
+    output = static_cast<T>(inputs[0]);
+    lastOutput = static_cast<T>(inputs[0]);
+  }
+  else {
+    T dt = static_cast<T>(deltaTime);
+    output = lastOutput + (dt * fcPi2 * (inputs[0] - lastOutput)) / (dt * fcPi2 / fcDivider + static_cast<T>(1)) / fcDivider;
+    lastOutput = output;
+  }
+  return (TemplateFilter<T, Timestamp>::Status::OK);
+}
+
+//////////////////////////////////////////////////////////////////////
+// LinearScale
+//////////////////////////////////////////////////////////////////////
+
+template <typename T, typename Timestamp>
+class LinearScale : public TemplateFilter<T, Timestamp> {
+  public:
+    LinearScale(const T &x1, const T &y1, const T &x2, const T &y2);
+    LinearScale(const T &a, const T &b);
+    LinearScale(const T &b);
+    virtual typename TemplateFilter<T, Timestamp>::Status filterProcess(const T *inputs, size_t inputsNumber, T &output, Timestamp timestamp);
+  private:
+    T a = static_cast<T>(1);
+    T b = static_cast<T>(0);
+};
+
+template <typename T, typename Timestamp>
+LinearScale<T, Timestamp>::LinearScale(const T & x1, const T & y1, const T & x2, const T & y2) {
+  static const size_t inputNumber = 1;
+  TemplateFilter<T, Timestamp>::setInputsNumber(inputNumber, inputNumber);
+  if (x1 == x2) {
+    TemplateFilter<T, Timestamp>::setInitStatus(TemplateFilter<T, Timestamp>::Status::ERROR_INIT_DATA_INCORRECT);
+    return;
+  }
+  a = (y1 - y2) / (x1 - x2);
+  b = y1 - a * x1;
+  if (overflow(a) || overflow(b) || (a == static_cast<T>(0))) {
+    TemplateFilter<T, Timestamp>::setInitStatus(TemplateFilter<T, Timestamp>::Status::ERROR_INIT_FAILED);
+    return;
+  }
+  TemplateFilter<T, Timestamp>::setInitStatus(TemplateFilter<T, Timestamp>::Status::OK);
+}
+
+template <typename T, typename Timestamp>
+LinearScale<T, Timestamp>::LinearScale(const T & a, const T & b) {
+  static const size_t inputNumber = 1;
+  TemplateFilter<T, Timestamp>::setInputsNumber(inputNumber, inputNumber);
+  this->a = a;
+  this->b = b;
+  if (overflow(a) || overflow(b)) {
+    TemplateFilter<T, Timestamp>::setInitStatus(TemplateFilter<T, Timestamp>::Status::ERROR_INIT_DATA_INCORRECT);
+    return;
+  }
+  TemplateFilter<T, Timestamp>::setInitStatus(TemplateFilter<T, Timestamp>::Status::OK);
+}
+
+template <typename T, typename Timestamp>
+LinearScale<T, Timestamp>::LinearScale(const T & b) {
+  static const size_t inputNumber = 1;
+  TemplateFilter<T, Timestamp>::setInputsNumber(inputNumber, inputNumber);
+  this->a = static_cast<T>(1);
+  this->b = b;
+  if (overflow(b)) {
+    TemplateFilter<T, Timestamp>::setInitStatus(TemplateFilter<T, Timestamp>::Status::ERROR_INIT_DATA_INCORRECT);
+    return;
+  }
+  TemplateFilter<T, Timestamp>::setInitStatus(TemplateFilter<T, Timestamp>::Status::OK);
+}
+
+template <typename T, typename Timestamp>
+typename TemplateFilter<T, Timestamp>::Status LinearScale<T, Timestamp>::filterProcess(const T * inputs, size_t inputsNumber, T & output, Timestamp timestamp) {
+  (void)timestamp;
+  if (!inputsNumber) return (TemplateFilter<T, Timestamp>::Status::ERROR_TOO_FEW_INPUTS);
+  output = a * inputs[0] + b;
+  return (TemplateFilter<T, Timestamp>::Status::OK);
+}
+
+//////////////////////////////////////////////////////////////////////
+// SquareScale
+//////////////////////////////////////////////////////////////////////
+
+template <typename T, typename Timestamp>
+class SquareScale : public TemplateFilter<T, Timestamp> {
+  public:
+    SquareScale(const T &x1, const T &y1,
+                const T &x2, const T &y2,
+                const T &x3, const T &y3);
+    SquareScale(const T &a, const T &b, const T&c);
+    virtual typename TemplateFilter<T, Timestamp>::Status filterProcess(const T *inputs, size_t inputsNumber, T &output, Timestamp timestamp);
+  private:
+    T a = static_cast<T>(0);
+    T b = static_cast<T>(1);
+    T c = static_cast<T>(0);
+    T h = static_cast<T>(0);
+};
+
+template <typename T, typename Timestamp>
+SquareScale<T, Timestamp>::SquareScale(
+  const T & x1, const T & y1,
+  const T & x2, const T & y2,
+  const T & x3, const T & y3) {
+  //Set input number
+  static const size_t inputNumber = 1;
+  TemplateFilter<T, Timestamp>::setInputsNumber(inputNumber, inputNumber);
+  //Calculate square function a, b, c coefficients
+  const T denominator1 = (x1 - x2);
+  const T denominator2 = (x1 - x3);
+  const T denominator3 = (x2 - x3);
+  if ((denominator1 == static_cast<T>(0)) ||
+      (denominator2 == static_cast<T>(0)) ||
+      (denominator3 == static_cast<T>(0))) {
+    TemplateFilter<T, Timestamp>::setInitStatus(TemplateFilter<T, Timestamp>::Status::ERROR_INIT_DATA_INCORRECT);
+    return;
+  }
+  a = x3 * (y2 - y1) + x2 * (y1 - y3) + x1 * (y3 - y2);
+  a /= denominator1;
+  a /= denominator2;
+  a /= denominator3;
+  b = (y1 - y2) * x3 * x3 + (y3 - y1) * x2 * x2 + (y2 - y3) * x1 * x1;
+  b /= denominator1;
+  b /= denominator2;
+  b /= denominator3;
+  c = y1 * (x2 - x3) * x2 * x3 + y2 * (x3 - x1) * x3 * x1 + y3 * (x1 - x2) * x1 * x2;
+  c /= denominator1;
+  c /= denominator2;
+  c /= denominator3;
+  if (overflow(a) || overflow(b) || overflow(c)) {
+    TemplateFilter<T, Timestamp>::setInitStatus(TemplateFilter<T, Timestamp>::Status::ERROR_INIT_FAILED);
+    return;
+  }
+  //Check parabola vertex position
+  if (a == static_cast<T>(0)) {
+    TemplateFilter<T, Timestamp>::setInitStatus(TemplateFilter<T, Timestamp>::Status::OK);
+    return;
+  }
+  h = b / a / static_cast<T>(-2);
+  //k = c - h * h;
+  if (overflow(h)) return;
+  T xmin = x1;
+  if (x2 < xmin) xmin = x2;
+  if (x3 < xmin) xmin = x3;
+  T xmax = x3;
+  if (x2 > xmax) xmax = x2;
+  if (x1 > xmax) xmax = x1;
+  if ((h > xmin) && (h < xmax)) {
+    TemplateFilter<T, Timestamp>::setInitStatus(TemplateFilter<T, Timestamp>::Status::WARNING_INIT_DATA_INCORRECT);
+    return;
+  }
+  TemplateFilter<T, Timestamp>::setInitStatus(TemplateFilter<T, Timestamp>::Status::OK);
+}
+
+template <typename T, typename Timestamp>
+SquareScale<T, Timestamp>::SquareScale(const T & a, const T & b, const T & c) {
+  static const size_t inputNumber = 1;
+  TemplateFilter<T, Timestamp>::setInputsNumber(inputNumber, inputNumber);
+  this->a = a;
+  this->b = b;
+  this->c = c;
+  if (overflow(a) || overflow(b) || overflow (c)) {
+    TemplateFilter<T, Timestamp>::setInitStatus(TemplateFilter<T, Timestamp>::Status::ERROR_INIT_DATA_INCORRECT);
+    return;
+  }
+  TemplateFilter<T, Timestamp>::setInitStatus(TemplateFilter<T, Timestamp>::Status::OK);
+}
+
+template <typename T, typename Timestamp>
+typename TemplateFilter<T, Timestamp>::Status SquareScale<T, Timestamp>::filterProcess(const T * inputs, size_t inputsNumber, T & output, Timestamp timestamp) {
+  (void)timestamp;
+  if (!inputsNumber) return (TemplateFilter<T, Timestamp>::Status::ERROR_TOO_FEW_INPUTS);
+  output = a * inputs[0] * inputs[0] + b * inputs[0] + c;
+  return (TemplateFilter<T, Timestamp>::Status::OK);
+}
+
+//////////////////////////////////////////////////////////////////////
+// SplineScale
+//////////////////////////////////////////////////////////////////////
+
+template <typename T, typename Timestamp>
+class SplineScale : public TemplateFilter<T, Timestamp> {
+  public:
+    SplineScale(const T &x1, const T &y1,
+                const T &x2, const T &y2,
+                const T &x3, const T &y3);
+    virtual typename TemplateFilter<T, Timestamp>::Status filterProcess(const T *inputs, size_t inputsNumber, T &output, Timestamp timestamp);
+  private:
+    T a1 = static_cast<T>(0);
+    T b1 = static_cast<T>(1);
+    T a2 = static_cast<T>(0);
+    T b2 = static_cast<T>(1);
+    T x1 = static_cast<T>(0);
+    T y1 = static_cast<T>(0);
+    T x2 = static_cast<T>(0);
+    T y2 = static_cast<T>(0);
+    T x3 = static_cast<T>(0);
+    T y3 = static_cast<T>(0);
+};
+
+template <typename T, typename Timestamp>
+SplineScale<T, Timestamp>::SplineScale(
+  const T & xMin, const T & yMin,
+  const T & xMid, const T & yMid,
+  const T & xMax, const T & yMax) {
+  //Set input number
+  static const size_t inputNumber = 1;
+  TemplateFilter<T, Timestamp>::setInputsNumber(inputNumber, inputNumber);
+  //Initialise points
+  x1 = xMin;
+  y1 = yMin;
+  x2 = xMid;
+  y2 = yMid;
+  x3 = xMax;
+  y3 = yMax;
+  //Sort points by x in accending order
+  struct TSwapHelper {
+    inline static void swap(T &a, T &b) {
+      T temp = a;
+      a = b;
+      b = temp;
+    }
+  };
+  if (x1 > x2) {
+    TSwapHelper::swap(x1, x2);
+    TSwapHelper::swap(y1, y2);
+  }
+  if (x2 > x3) {
+    TSwapHelper::swap(x2, x3);
+    TSwapHelper::swap(y2, y3);
+  }
+  if (x1 > x2) {
+    TSwapHelper::swap(x1, x2);
+    TSwapHelper::swap(y1, y2);
+  }
+
+  //Calculate cubic spline coefficients
+  const T denominator1 = 2 * (x1 - x2);
+  const T denominator2 = x1 - x3;
+  const T denominator3 = x2 - x3;
+  if ((denominator1 == static_cast<T>(0)) ||
+      (denominator2 == static_cast<T>(0)) ||
+      (denominator3 == static_cast<T>(0))) {
+    TemplateFilter<T, Timestamp>::setInitStatus(TemplateFilter<T, Timestamp>::Status::ERROR_INIT_DATA_INCORRECT);
+    return;
+  }
+  a1 = x1 * (y2 - y3) + x2 * (y3 - y1) + x3 * (y1 - y2);
+  a1 /= denominator1;
+  a1 /= denominator2;
+  a1 /= denominator3;
+  a1 /= (x1 - x2);
+  a2 = a1 * (x2 - x1);
+  a2 /= (x2 - x3);
+  b1 = x1 * x1 * (y3 - y2) - x1 * (x2 * (-3 * y1 + y2 + 2 * y3) + 3 * x3 * (y1 - y2)) + x2 * x2 * (y3 - y1) + x2 * x3 * (y2 - y1) + 2 * x3 * x3 * (y1 - y2);
+  b1 /= denominator1;
+  b1 /= denominator2;
+  b1 /= denominator3;
+  b2 = 2 * x1 * x1 * (y2 - y3) + x2 * (x1 * (y3 - y2) + x3 * (2 * y1 + y2 - 3 * y3)) + 3 * x1 * x3 * (y3 - y2) + x2 * x2 * (y3 - y1) + x3 * x3 * (y2 - y1);
+  b2 /= denominator1;
+  b2 /= denominator2;
+  b2 /= denominator3;
+  //Check validity
+  if (overflow(a1) || overflow(a2) || overflow(b1) || overflow(b2)) {
+    TemplateFilter<T, Timestamp>::setInitStatus(TemplateFilter<T, Timestamp>::Status::ERROR_INIT_FAILED);
+    return;
+  }
+  TemplateFilter<T, Timestamp>::setInitStatus(TemplateFilter<T, Timestamp>::Status::OK);
+}
+
+template <typename T, typename Timestamp>
+typename TemplateFilter<T, Timestamp>::Status SplineScale<T, Timestamp>::filterProcess(const T * inputs, size_t inputsNumber, T & output, Timestamp timestamp) {
+  (void)timestamp;
+  if (!inputsNumber) return (TemplateFilter<T, Timestamp>::Status::ERROR_TOO_FEW_INPUTS);
+  output = (inputs[0] < x2) ?
+           (a1 * (inputs[0] - x1) * (inputs[0] - x1) * (inputs[0] - x1) + b1 * (inputs[0] - x1) + y1) :
+           (a2 * (inputs[0] - x3) * (inputs[0] - x3) * (inputs[0] - x3) + b2 * (inputs[0] - x3) + y3);
+  return (TemplateFilter<T, Timestamp>::Status::OK);
+}
+
+//////////////////////////////////////////////////////////////////////
+// Value
+//////////////////////////////////////////////////////////////////////
+
+typedef int32_t ValueBase;
+static const ValueBase ValueBaseMin = INT32_MIN;
+static const ValueBase ValueBaseMax = INT32_MAX;
+static const size_t ValueFractionBits = 10;
+typedef int64_t IntermediaryValue;
+
+using Value = FixedPoint<ValueBase, ValueFractionBits, IntermediaryValue, ValueBaseMin, ValueBaseMax>;
+
+static const Value ValuePi = Value(314159265, 8);
+
+/// @brief Checks whether the valve is overflown (out of range)
+/// @details This function is for compatibility only
+/// @par Reserved for the case when Value is a Plain-Old-Data type (e.g. float) and does not have methods
+/// @param value Value to check
+/// @return True if value is overflown, false if value is a regular number
+inline boolean overflow(const Value &value) {
+  return (value.overflow());
+}
+
+/// @brief Returns an integer value with known decimal precision
+/// @par For example for value 10.7 and precision 1 (1 digit after decimal point) will return 107
+/// @par This function is for compatibility only
+/// @par Reserved for the case when Value is a Plain-Old-Data type (e.g. float) and does not have methods
+/// @param value Value
+/// @return Converted value or zero if conversion failed
+inline ValueBase getValue(const Value &value, size_t decimals, boolean *status = nullptr) {
+  return (value.getValue(decimals, status));
+}
+
+//////////////////////////////////////////////////////////////////////
+// Timestamp
+//////////////////////////////////////////////////////////////////////
+
+typedef uint32_t Timestamp;
+
+inline Timestamp getTimestamp(void) {
+  return (millis());
+}
+
+const Value timestampPerSecond(1000); // 1000 milliseconds per second
+
+//////////////////////////////////////////////////////////////////////
+// Filters
+//////////////////////////////////////////////////////////////////////
+
+using Filter = TemplateFilter<Value, Timestamp>;
+using FilterMovingAverage = MovingAverage<Value, Timestamp>;
+using FilterLowPass = LowPass<Value, Timestamp>;
+using FilterLinearScale = LinearScale<Value, Timestamp>;
+using FilterSquareScale = SquareScale<Value, Timestamp>;
+using FilterSplineScale = SplineScale<Value, Timestamp>;
+
+enum class FilterType {
+  MOVING_AVERAGE,
+  LOW_PASS,
+  LINEAR_SCALE,
+  SQUARE_SCALE
+};
+
+}; //namespace dsp
 
 }; //namespace util
 
