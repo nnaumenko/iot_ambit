@@ -232,18 +232,18 @@ template <class Storage, char LogSeparatorChar>
 template <typename... MessageParts> uint32_t DiagLog<Storage, LogSeparatorChar>::log(Severity severity, const MessageParts... messageParts) {
   /// @brief Logs the message
   /// @details This method is used by other modules to send messages to Diagnostic Log
-  /// @details Usage example:
-  /// @details     diag::DiagLog<>::instance()->log(diag::DiagLog<>::Severity::DEBUG, "My message");
-  /// @details Message may also consist of multiple parts:
-  /// @details
+  /// @par Usage example:
+  /// @par     diag::DiagLog<>::instance()->log(diag::DiagLog<>::Severity::DEBUG, "My message");
+  /// @par Message may also consist of multiple parts:
+  /// @par
   ///     int myValue = 0;
   ///     diag::DiagLog<>::instance()->log(diag::DiagLog<>::Severity::DEBUG, "Int value: ", myValue, F(" float value:"), 1.55);
-  /// @details Message is checked against severity filter setting and discarded if its
+  /// @par Message is checked against severity filter setting and discarded if its
   /// severity exceeds (less severe than) severity filter setting.
-  /// @details Message number and timestamp (current millis() value) are automatically
+  /// @par Message number and timestamp (current millis() value) are automatically
   /// appended to the message.
-  /// @details Then message is printed to the output and sent to storage.
-  /// @details If the message number is about to roll over (i.e. incremented from 0xFFFFFFFF
+  /// @par Then message is printed to the output and sent to storage.
+  /// @par If the message number is about to roll over (i.e. incremented from 0xFFFFFFFF
   /// to 0x00000000), this is automatically noted in a message with severity CRITICAL.
   /// @param severity Message severity.
   /// @param messageParts Parameter pack which consists of all message parts.
@@ -284,7 +284,7 @@ void DiagLog<Storage, LogSeparatorChar>::disablePrintOutput(void) {
 /// @details Messages with the severity exceeding (less severe than)
 /// severity filter setting will be ignored. They will not be stored
 /// or forwarded to the output.
-/// @details Messages with severity exactly as specified by severity
+/// @par Messages with severity exactly as specified by severity
 /// filter will be stored and forwarded to the output.
 /// @return Current setting of severity filter.
 template <class Storage, char LogSeparatorChar>
@@ -296,7 +296,7 @@ typename DiagLog<Storage, LogSeparatorChar>::Severity DiagLog<Storage, LogSepara
 /// @details Messages with the severity exceeding (less severe than)
 /// severity filter setting will be ignored. They will not be stored
 /// or forwarded to the output.
-/// @details Messages with severity exactly as specified by severity
+/// @par Messages with severity exactly as specified by severity
 /// filter will be stored and forwarded to the output.
 /// @param leastSeverityAllowed Messages with severity exceeding this
 /// value (less severe) will be ignored.

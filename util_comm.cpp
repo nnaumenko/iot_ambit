@@ -81,7 +81,7 @@ int HTTPHexCode::decodeDigit(char hexDigit) {
 /// @details The following operations are performed with the input string:
 /// * All '+' characters are substituted with spaces (' ')
 /// * All percent-codes are substituted with the corresponding charaters
-/// @details If input string contains percent codes, it is possible for
+/// @par If input string contains percent codes, it is possible for
 /// string to become shorter after conversion
 /// @warning This method modifies input string
 /// @warning Only 2-digit percent codes are supported

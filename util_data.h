@@ -33,7 +33,7 @@ namespace util {
 /// @tparam T2 Type to be used if condition is false
 /// @details TypeSelect::data_t is defined as <typename T1> if
 /// <boolean condition> is true.
-/// @details TypeSelect::data_t is defined as <typename T2> if
+/// @par TypeSelect::data_t is defined as <typename T2> if
 /// <boolean condition> is false.
 template<boolean condition, typename T1, typename T2>
 struct TypeSelect;
@@ -107,7 +107,7 @@ template <typename T>
 RingBuffer<T>::RingBuffer () {
   /// @brief Creates non-initialised ring buffer
   /// @details Only needed for compatibility
-  /// @details Non-initialised circular buffer behaves as empty
+  /// @par Non-initialised circular buffer behaves as empty
   /// ring buffer with the following differences:
   /// * validate() always returns false
   /// * push() and pop() perform no action
@@ -139,7 +139,7 @@ template <typename T>
 RingBuffer<T>::~RingBuffer () {
   /// @brief Performs a ring buffer cleanup
   /// @details If no memory was allocated by this class, just calls pop() for every item in buffer
-  /// @details If memory
+  /// @par If memory was allocated by this class, it is released using delete() 
   if (!validate()) return;
   if (memoryAllocated) {
     delete(ringBuffer);
@@ -280,7 +280,7 @@ class CStrRingBuffer {
 CStrRingBuffer::CStrRingBuffer() {
   /// @brief Creates non-initialised c-string circular buffer
   /// @details Only needed for compatibility
-  /// @details Non-initialised circular buffer behaves as empty
+  /// @par Non-initialised circular buffer behaves as empty
   /// ring buffer with the following differences:
   /// * validate() always returns false
   /// * push() and pop() perform no action
@@ -375,15 +375,15 @@ namespace dsp {
 /// @tparam TRangeMax Maximum value possible for T
 /// @details Basic arithmetic (+, -, *, /, +=, -=, *=, /=) and logic (<, <=, >, >=, !=, ==)
 /// operations are possible.
-/// @details If as a result of the arithmetic operation the Fixed Point value reaches
+/// @par If as a result of the arithmetic operation the Fixed Point value reaches
 /// minimum or maximum possible values for integer part, it becames an overflow value. The
 /// overflow values are capped at minimum and maximum of possible range. Any further arithmetic
 /// operation with overflow value results in the same overflow value.
-/// @details Overflow can be detected with overflow() function.
-/// @details If both TRangeMin or TRangeMax are zero, no range check is performed and the
+/// @par Overflow can be detected with overflow() function.
+/// @par If both TRangeMin or TRangeMax are zero, no range check is performed and the
 /// fixed-point value is not overflow-safe; overflow() always returns false.
-/// @details Minimum and maximum possible values for integer part are declared as constants min and max.
-/// @details Conversion to the integer type T is possible and is performed by rounding (i.e. if fraction
+/// @par Minimum and maximum possible values for integer part are declared as constants min and max.
+/// @par Conversion to the integer type T is possible and is performed by rounding (i.e. if fraction
 /// part is greater or equal to 0.5 the return value is increased by 1).
 template <typename T, size_t FractionBits, typename U = T, T TMinRange = static_cast<T>(0), T TMaxRange = static_cast<T>(0)>
 class FixedPoint {

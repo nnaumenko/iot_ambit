@@ -11,7 +11,7 @@
  * @details Since module usage is fully defined at compile time,
  * modules do not use virtual methods and rely on Curiously
  * Recurring Template Pattern (CRTP) instead.
- * @details Each software module is a singleton.
+ * @par Each software module is a singleton.
  */
 
 #ifndef MODULE_H
@@ -94,7 +94,7 @@ class ModuleTimings {
 
 /// @brief Interface for the software module which integrates with webserver
 /// @details The methods belonging to this interface are called as follows:
-/// @details
+/// @par
 /// * When HTTP request is received, onHTTPReqStart() is called. The module
 /// performs any initialisation required to take part in request processing.
 /// * HTTP request is being parsed and onHTTPReqPath() is called. The module
@@ -126,7 +126,7 @@ class ModuleWebServer {
       /// @brief To be implemented by actual module if this functionality is required.
       /// @details Called when HTTP request is received and is about to be processed.
       /// This method is always called regardless of the HTTP request content.
-      /// @details In this method module initialises its webserver-related functionality.
+      /// @par In this method module initialises its webserver-related functionality.
       /// @return In current implementation return value is ignored. To maintain
       /// compatibility with future versions this method should always return true.
       return (true);
@@ -135,7 +135,7 @@ class ModuleWebServer {
       /// @brief To be implemented by actual module if this functionality is required.
       /// @details Called after onHTTP ReqStart() when path is extracted from HTTP
       /// request.
-      /// @details In this method module checks the path specified in HTTP request and
+      /// @par In this method module checks the path specified in HTTP request and
       /// makes a decision whether it accepts this path and is able to produce a response.
       /// @param path Path from HTTP request. The path is already URL-decoded
       /// before it is passed to the module.
@@ -149,7 +149,7 @@ class ModuleWebServer {
       /// @brief To be implemented by actual module if this functionality is required.
       /// @details Called after onHTTPReqPath and only if previous call of onHTTPReqPath()
       /// returned true.
-      /// @details In this method module checks the method specified in HTTP request and
+      /// @par In this method module checks the method specified in HTTP request and
       /// makes a decision whether it can accept this method and produce a response based
       /// on path and method.
       /// @param method Method from HTTP request.
@@ -163,8 +163,8 @@ class ModuleWebServer {
       /// @brief To be implemented by actual module if this functionality is required.
       /// @details Can be called once or multiple times after onHTTPReqMethod() and only
       /// if previous calls of onHTTPReqPath() and onHTTPReqMethod() both returned true.
-      /// @details Only called if HTTP request URL contains Query String.
-      /// @details In this method module checks the name and value of the Query String
+      /// @par Only called if HTTP request URL contains Query String.
+      /// @par In this method module checks the name and value of the Query String
       /// item and sets module internal values to produce the correct response.
       /// @param name Name(key) of the Query String item.
       /// @param value Value of the Query String item.
@@ -178,8 +178,8 @@ class ModuleWebServer {
       /// @brief To be implemented by actual module if this functionality is required.
       /// @details Can be called once or multiple times after onHTTPReqMethod() and only
       /// if previous calls of onHTTPReqPath() and onHTTPReqMethod() both returned true.
-      /// @details Only called if HTTP request contains POST Query String.
-      /// @details In this method module checks the name and value of the Query String
+      /// @par Only called if HTTP request contains POST Query String.
+      /// @par In this method module checks the name and value of the Query String
       /// item and sets module internal values to produce the correct response.
       /// @param name Name(key) of the POST Query String item.
       /// @param value Value of the POST Query String item.
@@ -193,12 +193,12 @@ class ModuleWebServer {
       /// @brief To be implemented by actual module if this functionality is required.
       /// @details Called when HTTP request processing is completed and the response
       /// is to be produced.
-      /// @details Only called if previous calls of onHTTPReqPath() and onHTTPReqMethod()
+      /// @par Only called if previous calls of onHTTPReqPath() and onHTTPReqMethod()
       /// both returned true.
-      /// @details In this method module generates a HTTP response, complete with Status
+      /// @par In this method module generates a HTTP response, complete with Status
       /// Line, Header Fields (if any) and Message Body (HTML, JSON, XML, plain text, etc.).
-      /// @details No part of the response is produced by the caller routine.
-      /// @details The response is generated by calling print() / println() methods of the
+      /// @par No part of the response is produced by the caller routine.
+      /// @par The response is generated by calling print() / println() methods of the
       /// client parameter.
       /// @param client Print class to send the response to.
       /// @return If no error occured during request generation, this method returns
@@ -209,11 +209,11 @@ class ModuleWebServer {
       /// @brief To be implemented by actual module if this functionality is required.
       /// @details Called when HTTP request processing is completed and the response
       /// was generated.
-      /// @details This method is always called regardless of the HTTP request content
+      /// @par This method is always called regardless of the HTTP request content
       /// and previous return values.
-      /// @details In this method module performs actions after HTTP request was
+      /// @par In this method module performs actions after HTTP request was
       /// processed.
-      /// @details The module must assume that onHTTPReqStart() method will only be
+      /// @par The module must assume that onHTTPReqStart() method will only be
       /// called when next HTTP request is received by webserver (which might never
       /// happen as well), so if any actions must be taken to restore the module to
       /// normal state, they are placed in this method.
