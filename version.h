@@ -16,6 +16,6 @@
 #include <Arduino.h>
 
 #define FIRMWARE_VERSION_MAJOR     0
-#define FIRMWARE_VERSION_MINOR     16
+#define FIRMWARE_VERSION_MINOR     17
 
 #endif

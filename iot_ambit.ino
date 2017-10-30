@@ -162,10 +162,10 @@ void calcCalDataMG811(void) {
                            F(" Calibrated="), eepromSavedParametersStorage.MG811CalPoint1Calibrated,
                            F("ppm"));
   double tempCalDataMG811_a = (Y2 - Y1) / (X2 - X1);
-  double tempCalDataMG811_b = Y1 - calDataMG811_a * X1;
+  double tempCalDataMG811_b = Y1 - tempCalDataMG811_a * X1;
   DiagLog::instance()->log(DiagLog::Severity::DEBUG,
-                           F("Calibration data: a="), calDataMG811_a,
-                           F(" b="), calDataMG811_b);
+                           F("Calibration data: a="), tempCalDataMG811_a,
+                           F(" b="), tempCalDataMG811_b);
   if (isnan(tempCalDataMG811_a) ||
       isinf(tempCalDataMG811_a) ||
       isnan(tempCalDataMG811_b) ||
@@ -182,9 +182,9 @@ void calcCalDataMG811(void) {
   }
 }
 
-unsigned int calcConcentrationCO2 (unsigned int rawAdcValue) {
-  if (eepromSavedParametersStorage.rejectCalibrationMG811) return (1024 - rawAdcValue);
-  return ((unsigned int)exp(calDataMG811_a * ((double)rawAdcValue) + calDataMG811_b));
+float calcConcentrationCO2 (unsigned int rawAdcValue) {
+  if (eepromSavedParametersStorage.rejectCalibrationMG811) return (1024.0 - rawAdcValue);
+  return (exp(calDataMG811_a * ((double)rawAdcValue) + calDataMG811_b));
 }
 
 unsigned int movingAverage(unsigned int input) {
@@ -473,4 +473,3 @@ void loop() {
     Blynk.run();
   }
 }
-
