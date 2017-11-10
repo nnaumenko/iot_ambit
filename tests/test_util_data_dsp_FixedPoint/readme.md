@@ -312,7 +312,7 @@ Note: performance figures are for reference only and might vary depending on act
 
 ## Secondary tests
 
-Secondary tests work with functionality not needed for this projects: unsigned base type or no range set. Many tests will be skipped.
+Secondary tests work with functionality not needed for this project: unsigned base type or no range set. Many tests will be skipped.
 
 To run secondary tests, before compiling and uploading make sure that the following line is commented in the file test_util_data_dsp_FixedPoint.ino:
 

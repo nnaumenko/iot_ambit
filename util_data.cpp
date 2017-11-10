@@ -252,4 +252,101 @@ namespace dsp {
 
 }; //namespace dsp
 
+namespace quantity {
+
+boolean Dimensionless::convertToUnit(Dimensionless::Unit unit) {
+  const Unit initDimensionlessUnit = static_cast<Unit>(getInitUnit());
+  static const Quantity::Value percentFactor(100);
+  //If not initialised, fail
+  if (!validate()) return (false);
+  //If init and target units are the same, just return
+  if (unit == initDimensionlessUnit) {
+    setConvertedValue(getInitValue(), getInitUnit(), getUnitTextByUnit(initDimensionlessUnit));
+    return (true);
+  }
+  //Convert from no-unit to percent (multiply by 100%)
+  if (initDimensionlessUnit == Unit::NONE && unit == Unit::PERCENT) {
+    setConvertedValue(getInitValue() * percentFactor,
+                      static_cast <Quantity::UnitBase>(Unit::PERCENT),
+                      getUnitTextByUnit(Unit::PERCENT));
+    return (true);
+  }
+  //Convert from percent to no-unit (divide by 100%)
+  if (initDimensionlessUnit == Unit::PERCENT && unit == Unit::NONE) {
+    setConvertedValue(getInitValue() / percentFactor,
+                      static_cast <Quantity::UnitBase>(Unit::NONE),
+                      getUnitTextByUnit (Unit::NONE));
+    return (true);
+  }
+  //Unit not found or conversion not defined, fail
+  return (false);
+}
+
+const char * Dimensionless::getUnitTextByUnit(Dimensionless::Unit unit) {
+  static const char unitTextNone[] = "";
+  static const char unitTextPercent[] = "%";
+  switch (unit) {
+    case Unit::NONE:
+      return (unitTextNone);
+    case Unit::PERCENT:
+      return (unitTextPercent);
+  }
+  return (nullptr);
+}
+
+boolean Temperature::convertToUnit(Temperature::Unit unit) {
+  const Unit initTempUnit = static_cast<Unit>(getInitUnit());
+  //If not initialised, fail
+  if (!validate()) return (false);
+  //If init and target units are the same, just return
+  if (unit == initTempUnit) {
+    setConvertedValue(getInitValue(), getInitUnit(), getUnitTextByUnit(initTempUnit));
+    return (true);
+  }
+  //Convert Celsius to Fahrenheit
+  if (initTempUnit == Unit::CELSIUS && unit == Unit::FAHRENHEIT) {
+    setConvertedValue(celsiusToFahrenheit(getInitValue()),
+                      static_cast <Quantity::UnitBase>(Unit::FAHRENHEIT),
+                      getUnitTextByUnit(Unit::FAHRENHEIT));
+    return (true);
+  }
+  //Convert Fahrenheit to Celsius
+  if (initTempUnit == Unit::FAHRENHEIT && unit == Unit::CELSIUS) {
+    setConvertedValue(fahrenheitToCelsius(getInitValue()),
+                      static_cast <Quantity::UnitBase>(Unit::CELSIUS),
+                      getUnitTextByUnit (Unit::CELSIUS));
+    return (true);
+  }
+  //Unit not found or conversion not defined, fail
+  return (false);
+}
+
+const char * Temperature::getUnitTextByUnit(Temperature::Unit unit) {
+  static const char unitTextCelsius[] = "C";
+  static const char unitTextFahrenheit[] = "F";
+  switch (unit) {
+    case Unit::CELSIUS:
+      return (unitTextCelsius);
+    case Unit::FAHRENHEIT:
+      return (unitTextFahrenheit);
+  }
+  return (nullptr);
+}
+
+Quantity::Value Temperature::celsiusToFahrenheit(Quantity::Value celsiusValue) {
+  static const Quantity::Value celsiusFahrenheitA1 = Quantity::Value(9);
+  static const Quantity::Value celsiusFahrenheitA2 = Quantity::Value(5);
+  static const Quantity::Value celsiusFahrenheitB = Quantity::Value(32);
+  return ((celsiusValue * celsiusFahrenheitA1 / celsiusFahrenheitA2) + celsiusFahrenheitB);
+}
+
+Quantity::Value Temperature::fahrenheitToCelsius(Quantity::Value fahrenheitValue) {
+  static const Quantity::Value fahrenheitCelsiusA1 = Quantity::Value(5);
+  static const Quantity::Value fahrenheitCelsiusA2 = Quantity::Value(9);
+  static const Quantity::Value fahrenheitCelsiusB = Quantity::Value(32);
+  return ((fahrenheitValue - fahrenheitCelsiusB) * fahrenheitCelsiusA1 / fahrenheitCelsiusA2);
+}
+
+}; //namespace quantity
+
 }; //namespace util

@@ -139,7 +139,7 @@ template <typename T>
 RingBuffer<T>::~RingBuffer () {
   /// @brief Performs a ring buffer cleanup
   /// @details If no memory was allocated by this class, just calls pop() for every item in buffer
-  /// @par If memory was allocated by this class, it is released using delete() 
+  /// @par If memory was allocated by this class, it is released using delete()
   if (!validate()) return;
   if (memoryAllocated) {
     delete(ringBuffer);
@@ -704,6 +704,54 @@ T FixedPoint<T, FractionBits, U, TMinRange, TMaxRange>::getValue(size_t decimalP
   return (static_cast<T>(tempValue));
 }
 
+}; //namespace dsp
+
+//////////////////////////////////////////////////////////////////////
+// Value
+//////////////////////////////////////////////////////////////////////
+
+typedef int32_t ValueBase;
+static const ValueBase ValueBaseMin = INT32_MIN;
+static const ValueBase ValueBaseMax = INT32_MAX;
+static const size_t ValueFractionBits = 10;
+typedef int64_t IntermediaryValue;
+
+using Value = dsp::FixedPoint<ValueBase, ValueFractionBits, IntermediaryValue, ValueBaseMin, ValueBaseMax>;
+
+static const Value ValuePi = Value(314159265, 8);
+
+/// @brief Checks whether the valve is overflown (out of range)
+/// @details This function is for compatibility only
+/// @par Reserved for the case when Value is a Plain-Old-Data type (e.g. float) and does not have methods
+/// @param value Value to check
+/// @return True if value is overflown, false if value is a regular number
+inline boolean overflow(const Value &value) {
+  return (value.overflow());
+}
+
+/// @brief Returns an integer value with known decimal precision
+/// @par For example for value 10.7 and precision 1 (1 digit after decimal point) will return 107
+/// @par This function is for compatibility only
+/// @par Reserved for the case when Value is a Plain-Old-Data type (e.g. float) and does not have methods
+/// @param value Value
+/// @return Converted value or zero if conversion failed
+inline ValueBase getValue(const Value &value, size_t decimals, boolean *status = nullptr) {
+  return (value.getValue(decimals, status));
+}
+
+//////////////////////////////////////////////////////////////////////
+// Timestamp
+//////////////////////////////////////////////////////////////////////
+
+typedef uint32_t Timestamp;
+
+inline Timestamp getTimestamp(void) {
+  return (millis());
+}
+
+const Value timestampPerSecond(1000); // 1000 milliseconds per second
+
+namespace dsp {
 
 //////////////////////////////////////////////////////////////////////
 // Filter
@@ -1178,51 +1226,6 @@ typename TemplateFilter<T, Timestamp>::Status SplineScale<T, Timestamp>::filterP
 }
 
 //////////////////////////////////////////////////////////////////////
-// Value
-//////////////////////////////////////////////////////////////////////
-
-typedef int32_t ValueBase;
-static const ValueBase ValueBaseMin = INT32_MIN;
-static const ValueBase ValueBaseMax = INT32_MAX;
-static const size_t ValueFractionBits = 10;
-typedef int64_t IntermediaryValue;
-
-using Value = FixedPoint<ValueBase, ValueFractionBits, IntermediaryValue, ValueBaseMin, ValueBaseMax>;
-
-static const Value ValuePi = Value(314159265, 8);
-
-/// @brief Checks whether the valve is overflown (out of range)
-/// @details This function is for compatibility only
-/// @par Reserved for the case when Value is a Plain-Old-Data type (e.g. float) and does not have methods
-/// @param value Value to check
-/// @return True if value is overflown, false if value is a regular number
-inline boolean overflow(const Value &value) {
-  return (value.overflow());
-}
-
-/// @brief Returns an integer value with known decimal precision
-/// @par For example for value 10.7 and precision 1 (1 digit after decimal point) will return 107
-/// @par This function is for compatibility only
-/// @par Reserved for the case when Value is a Plain-Old-Data type (e.g. float) and does not have methods
-/// @param value Value
-/// @return Converted value or zero if conversion failed
-inline ValueBase getValue(const Value &value, size_t decimals, boolean *status = nullptr) {
-  return (value.getValue(decimals, status));
-}
-
-//////////////////////////////////////////////////////////////////////
-// Timestamp
-//////////////////////////////////////////////////////////////////////
-
-typedef uint32_t Timestamp;
-
-inline Timestamp getTimestamp(void) {
-  return (millis());
-}
-
-const Value timestampPerSecond(1000); // 1000 milliseconds per second
-
-//////////////////////////////////////////////////////////////////////
 // Filters
 //////////////////////////////////////////////////////////////////////
 
@@ -1241,6 +1244,292 @@ enum class FilterType {
 };
 
 }; //namespace dsp
+
+//////////////////////////////////////////////////////////////////////
+// Physical Quantities (temperature, humidity, pressure, luminance, etc)
+//////////////////////////////////////////////////////////////////////
+
+namespace quantity {
+
+//////////////////////////////////////////////////////////////////////
+// TemplateQuantity
+//////////////////////////////////////////////////////////////////////
+
+template <typename ValueType, typename TimestampType, typename UnitBaseType, typename DescriptionIdType, size_t DescriptionTextSize, size_t UnitTextSize>
+class TemplateQuantity {
+  public:
+    typedef ValueType Value;
+    typedef TimestampType Timestamp;
+    typedef UnitBaseType UnitBase;
+    typedef DescriptionIdType DescriptionId;
+  public:
+    TemplateQuantity() {}
+    TemplateQuantity(TemplateQuantity<ValueType, Timestamp, UnitBase, DescriptionId, DescriptionTextSize, UnitTextSize> &other) {
+      initFromOther(other);
+    }
+  protected:
+    TemplateQuantity(DescriptionId descriptionId,
+                     ValueType value,
+                     UnitBase unit,
+                     const char * unitText = nullptr,
+                     Timestamp timestamp = {},
+                     const char * descriptionText = nullptr) {
+      init(descriptionId, value, unit, unitText, timestamp, descriptionText);
+    }
+  public:
+    inline boolean validate(void) const {
+      return (initComplete);
+    }
+  public:
+    inline DescriptionId getDescriptionId(void) const {
+      return (descriptionId);
+    }
+    inline Timestamp getTimestamp(void) const {
+      return (timestamp);
+    }
+    inline Value getValue(void) const {
+      return (setUnitsValue);
+    }
+    inline const char * getUnitText(void) const {
+      return (setUnitText);
+    }
+    inline const char * getDescriptionText(void) const {
+      return (descriptionText);
+    }
+    inline static size_t getUnitTextMaxSize(void) {
+      static const size_t nullTerminatorSize = 1;
+      return (UnitTextSize - nullTerminatorSize);
+    }
+    inline static size_t getDescriptionTextMaxSize(void) {
+      static const size_t nullTerminatorSize = 1;
+      return (DescriptionTextSize - nullTerminatorSize);
+    }
+  public:
+    inline TemplateQuantity<ValueType, Timestamp, UnitBase, DescriptionId, DescriptionTextSize, UnitTextSize>& operator = (
+      const TemplateQuantity<ValueType, Timestamp, UnitBase, DescriptionId, DescriptionTextSize, UnitTextSize> &other)
+    {
+      initFromOther(other);
+      return (*this);
+    }
+  protected:
+    inline boolean init(DescriptionId descriptionId,
+                        Value value,
+                        UnitBase unit,
+                        const char * unitText = nullptr,
+                        Timestamp timestamp = 0,
+                        const char * descriptionText = nullptr);
+    inline boolean setConvertedValue(Value value,
+                                     UnitBase units,
+                                     const char * unitText = nullptr);
+  protected:
+    inline Value getInitValue(void) const {
+      return (initValue);
+    }
+    inline UnitBase getInitUnit(void) const {
+      return (initUnit);
+    }
+  private:
+    inline boolean initFromOther(const TemplateQuantity<ValueType, Timestamp, UnitBase, DescriptionId, DescriptionTextSize, UnitTextSize> &other);
+    inline void setDescriptionText(const char * descriptionText);
+    inline void setSetUnitText(const char * descriptionText);
+  private:
+    //Essential components of the quantity
+    //As an example the following physical quantity will be used:
+    //"outdoors temperature (id=12) is 10.25 degrees Celsius as measured at 15381 milliseconds from startup"
+    //
+    //WHAT does the quantity represent, e.g. "outdoors temperature, id=12"
+    DescriptionId descriptionId = 0;                  //description id
+    char descriptionText[DescriptionTextSize] = {};   //description in human-readable form
+    //WHEN the quantity was measured, e.g. "at 15381 milliseconds from startup"
+    Timestamp timestamp = {};
+    //HOW MUCH is the numerical measurement result, e.g. "10.25"
+    Value initValue = {};                             //value when initialised, expressed in initUnits
+    Value setUnitsValue = {};                         //initValue converted from initUnits to setUnits
+    //In WHICH UNITS the measurement result is represented, e.g. in degrees Celsius
+    UnitBase initUnit;                                //unit when initialised
+    UnitBase setUnit;                                 //unit to convert value to
+    char setUnitText[UnitTextSize] = {};              //units in human-readable form
+  private:
+    boolean initComplete = false;
+};
+
+template <typename ValueType, typename TimestampType, typename UnitBaseType, typename DescriptionIdType, size_t DescriptionTextSize, size_t UnitTextSize>
+boolean TemplateQuantity<ValueType, TimestampType, UnitBaseType, DescriptionIdType, DescriptionTextSize, UnitTextSize>::init(
+  DescriptionId descriptionId,
+  Value value,
+  UnitBase unit,
+  const char * unitText,
+  Timestamp timestamp,
+  const char * descriptionText)
+{
+  if (initComplete) return (false);
+  this->descriptionId = descriptionId;
+  setDescriptionText(descriptionText);
+  this->timestamp = timestamp;
+  this->initValue = value;
+  this->setUnitsValue = value;
+  this->initUnit = unit;
+  this->setUnit = unit;
+  setSetUnitText(unitText);
+  initComplete = true;
+  return (true);
+}
+
+template <typename ValueType, typename TimestampType, typename UnitBaseType, typename DescriptionIdType, size_t DescriptionTextSize, size_t UnitTextSize>
+boolean TemplateQuantity<ValueType, TimestampType, UnitBaseType, DescriptionIdType, DescriptionTextSize, UnitTextSize>::initFromOther(
+  const TemplateQuantity<ValueType, TimestampType, UnitBaseType, DescriptionIdType, DescriptionTextSize, UnitTextSize> &other)
+{
+  if (initComplete) return (false);
+  if (other.initComplete) {
+    descriptionId = other.descriptionId;
+    setDescriptionText(other.descriptionText);
+    timestamp = other.timestamp;
+    initValue = other.initValue;
+    setUnitsValue = other.setUnitsValue;
+    initUnit = other.initUnit;
+    setUnit = other.setUnit;
+    setSetUnitText(other.setUnitText);
+    initComplete = true;
+  }
+  return (true);
+}
+
+template <typename ValueType, typename TimestampType, typename UnitBaseType, typename DescriptionIdType, size_t DescriptionTextSize, size_t UnitTextSize>
+boolean TemplateQuantity<ValueType, TimestampType, UnitBaseType, DescriptionIdType, DescriptionTextSize, UnitTextSize>::setConvertedValue(
+  Value value,
+  UnitBase units,
+  const char * unitText)
+{
+  if (!initComplete) return (false);
+  setUnitsValue = value;
+  setUnit = units;
+  setSetUnitText(unitText);
+  return (true);
+}
+
+template <typename ValueType, typename TimestampType, typename UnitBaseType, typename DescriptionIdType, size_t DescriptionTextSize, size_t UnitTextSize>
+void TemplateQuantity<ValueType, TimestampType, UnitBaseType, DescriptionIdType, DescriptionTextSize, UnitTextSize>::setDescriptionText(const char * descriptionText) {
+  static const size_t nullTerminatorSize = 1;
+  static const char nullTerminator = '\0';
+  if (!descriptionText) {
+    this->descriptionText[0] = nullTerminator;
+    return;
+  }
+  memset(this->descriptionText, nullTerminator, DescriptionTextSize);
+  strncpy(this->descriptionText, descriptionText, DescriptionTextSize - nullTerminatorSize);
+}
+
+template <typename ValueType, typename TimestampType, typename UnitBaseType, typename DescriptionIdType, size_t DescriptionTextSize, size_t UnitTextSize>
+void TemplateQuantity<ValueType, TimestampType, UnitBaseType, DescriptionIdType, DescriptionTextSize, UnitTextSize>::setSetUnitText(const char * unitText) {
+  static const size_t nullTerminatorSize = 1;
+  static const char nullTerminator = '\0';
+  if (!unitText) {
+    this->setUnitText[0] = nullTerminator;
+    return;
+  }
+  memset(this->setUnitText, nullTerminator, UnitTextSize);
+  strncpy(this->setUnitText, unitText, UnitTextSize - nullTerminatorSize);
+}
+
+//////////////////////////////////////////////////////////////////////
+// Quantity
+//////////////////////////////////////////////////////////////////////
+
+typedef uint8_t QuantityUnitBase;
+typedef uint16_t QuantityDescriptionId;
+
+static const char DescriptionTextSize = 32;
+static const char UnitTextSize = 6;
+
+using Quantity = TemplateQuantity<Value, Timestamp, QuantityUnitBase, QuantityDescriptionId, DescriptionTextSize, UnitTextSize>;
+
+//////////////////////////////////////////////////////////////////////
+// Generic Quantity
+//////////////////////////////////////////////////////////////////////
+
+class Generic : public Quantity {
+  public:
+    enum class Unit : UnitBase {
+      GENERIC,
+    };
+  public:
+    Generic (Quantity::DescriptionId descriptionId,
+             Quantity::Value value,
+             const char * genericUnitText,
+             Quantity::Timestamp timestamp = {},
+             const char * descriptionText = nullptr)
+      : Quantity(descriptionId,
+                 value,
+                 static_cast<UnitBase>(Unit::GENERIC),
+                 genericUnitText,
+                 timestamp,
+                 descriptionText)
+    {}
+};
+
+
+//////////////////////////////////////////////////////////////////////
+// Dimensionless Quantity
+//////////////////////////////////////////////////////////////////////
+
+class Dimensionless : public Quantity {
+  public:
+    enum class Unit : UnitBase {
+      NONE,
+      PERCENT,
+    };
+  public:
+    Dimensionless (Quantity::DescriptionId descriptionId,
+                   Quantity::Value value,
+                   Unit unit,
+                   Quantity::Timestamp timestamp = {},
+                   const char * descriptionText = nullptr)
+      : Quantity(descriptionId,
+                 value,
+                 static_cast<UnitBase>(unit),
+                 getUnitTextByUnit(unit),
+                 timestamp,
+                 descriptionText)
+    {}
+  public:
+    boolean convertToUnit(Unit unit);
+    static const char * getUnitTextByUnit(Unit unit);
+};
+
+
+//////////////////////////////////////////////////////////////////////
+// Temperature
+//////////////////////////////////////////////////////////////////////
+
+class Temperature : public Quantity {
+  public:
+    enum class Unit : UnitBase {
+      CELSIUS,
+      FAHRENHEIT,
+    };
+  public:
+    Temperature (Quantity::DescriptionId descriptionId,
+                 Quantity::Value value,
+                 Unit unit,
+                 Quantity::Timestamp timestamp = {},
+                 const char * descriptionText = nullptr)
+      : Quantity(descriptionId,
+                 value,
+                 static_cast<UnitBase>(unit),
+                 getUnitTextByUnit(unit),
+                 timestamp,
+                 descriptionText)
+    {}
+  public:
+    boolean convertToUnit(Unit unit);
+    static const char * getUnitTextByUnit(Unit unit);
+  private:
+    //Fahrenheit<->Celsius conversion factors (A) & offsets (B)
+    static Quantity::Value celsiusToFahrenheit(Quantity::Value celsiusValue);
+    static Quantity::Value fahrenheitToCelsius(Quantity::Value fahrenheitValue);
+};
+
+}; //namespace quantity
 
 }; //namespace util
 
