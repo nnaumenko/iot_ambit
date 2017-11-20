@@ -255,6 +255,10 @@ namespace dsp {
 namespace quantity {
 
 boolean Dimensionless::convertToUnit(Dimensionless::Unit unit) {
+  /// @brief Performs conversion to a measurement unit
+  /// @param unit Measurement unit to convert to
+  /// @return true if conversion was successful,
+  /// false if error occured during conversion
   const Unit initDimensionlessUnit = static_cast<Unit>(getInitUnit());
   static const Quantity::Value percentFactor(100);
   //If not initialised, fail
@@ -283,6 +287,9 @@ boolean Dimensionless::convertToUnit(Dimensionless::Unit unit) {
 }
 
 const char * Dimensionless::getUnitTextByUnit(Dimensionless::Unit unit) {
+  /// @brief Returns human-readable form of a measurement unit
+  /// @param Measurement unit
+  /// @return A cstring in RAM with human-readable form of unit
   static const char unitTextNone[] = "";
   static const char unitTextPercent[] = "%";
   switch (unit) {
@@ -295,6 +302,10 @@ const char * Dimensionless::getUnitTextByUnit(Dimensionless::Unit unit) {
 }
 
 boolean Temperature::convertToUnit(Temperature::Unit unit) {
+  /// @brief Performs conversion to a measurement unit
+  /// @param unit Measurement unit to convert to
+  /// @return true if conversion was successful,
+  /// false if error occured during conversion
   const Unit initTempUnit = static_cast<Unit>(getInitUnit());
   //If not initialised, fail
   if (!validate()) return (false);
@@ -322,6 +333,9 @@ boolean Temperature::convertToUnit(Temperature::Unit unit) {
 }
 
 const char * Temperature::getUnitTextByUnit(Temperature::Unit unit) {
+  /// @brief Returns human-readable form of a measurement unit
+  /// @param Measurement unit
+  /// @return A cstring in RAM with human-readable form of unit
   static const char unitTextCelsius[] = "C";
   static const char unitTextFahrenheit[] = "F";
   switch (unit) {
@@ -334,6 +348,7 @@ const char * Temperature::getUnitTextByUnit(Temperature::Unit unit) {
 }
 
 Quantity::Value Temperature::celsiusToFahrenheit(Quantity::Value celsiusValue) {
+  ///Convert temperature from degrees Celsius to degrees Fahrenheit
   static const Quantity::Value celsiusFahrenheitA1 = Quantity::Value(9);
   static const Quantity::Value celsiusFahrenheitA2 = Quantity::Value(5);
   static const Quantity::Value celsiusFahrenheitB = Quantity::Value(32);
@@ -341,6 +356,7 @@ Quantity::Value Temperature::celsiusToFahrenheit(Quantity::Value celsiusValue) {
 }
 
 Quantity::Value Temperature::fahrenheitToCelsius(Quantity::Value fahrenheitValue) {
+  ///Convert temperature from degrees Fahrenheit to degrees Celsius
   static const Quantity::Value fahrenheitCelsiusA1 = Quantity::Value(5);
   static const Quantity::Value fahrenheitCelsiusA2 = Quantity::Value(9);
   static const Quantity::Value fahrenheitCelsiusB = Quantity::Value(32);

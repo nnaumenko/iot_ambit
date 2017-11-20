@@ -55,9 +55,20 @@ The following is expected in serial monitor window:
     PASSED
     Test function started: static void TestTemperature::conversion_convertFromFahrenheitToCelsiusAndBack_expectCorrectData(), file test_util_data_quantity.ino
     PASSED
-    
-    ---------------- TESTING FINISHED ---------------
-    Test functions passed: 17
+    Test function started: static void TestQuantityIntrospectionReflection::testClassTypeMatch(), file test_util_data_quantity.ino
+    PASSED
+    Test function started: static void TestQuantityIntrospectionReflection::testObjectTypeMatch(), file test_util_data_quantity.ino
+    PASSED
+    Test function started: static void TestQuantityIntrospectionReflection::testClassTypeAndObjectTypeMatch(), file test_util_data_quantity.ino
+    PASSED
+    Test function started: static void TestQuantityIntrospectionReflection::testCopiedObjectTypeMatch(), file test_util_data_quantity.ino
+    PASSED
+    Test function started: static void TestQuantityIntrospectionReflection::testConcreteClassReflection(), file test_util_data_quantity.ino
+    PASSED
+    Test function started: static void TestQuantityIntrospectionReflection::testAttemptWrongTypeReflection(), file test_util_data_quantity.ino
+    PASSED
+    ---------------- TESTING FINISHED ---------------
+    Test functions passed: 23
     Test functions failed: 0
 
 # Failed tests

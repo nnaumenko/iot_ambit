@@ -562,6 +562,259 @@ class TestTemperature {
     }
 };
 
+template <typename T>
+class Matrix {
+  public:
+    Matrix() {}
+    Matrix(size_t rows, size_t columns) {
+      this->rows = rows;
+      this->columns = columns;
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wvla"
+      matrix = new (T[rows * columns]);
+#pragma GCC diagnostic pop
+      T defaultValue = {};
+      for (size_t i = 0; i < rows * columns; i++)
+        matrix[i] = defaultValue;
+    }
+    ~Matrix() {
+      delete(matrix);
+    }
+  public:
+    inline boolean operator == (const Matrix<T> &rhs) const {
+      if (rhs.rows != rows) return (false);
+      if (rhs.columns != columns) return (false);
+      if (!matrix || !rhs.matrix) return (false);
+      for (size_t i = 0; i < rows * columns; i++)
+        if (rhs.matrix[i] != matrix[i]) return (false);
+      return (true);
+    }
+  public:
+    inline size_t getRows(void) const {
+      return (rows);
+    }
+    inline size_t getColumns(void) const {
+      return (columns);
+    }
+    inline T getValue(size_t row, size_t column) const {
+      if ((row > rows) || (column > columns) || !matrix) return (false);
+      return (matrix[row * columns + column]);
+    }
+    inline void setValue(size_t row, size_t column, T value) {
+      if ((row > rows) || (column > columns) || !matrix) return;
+      matrix[row * columns + column] = value;
+    }
+    void print(Print &dst) {
+      for (size_t i = 0; i < this->getRows(); i++) {
+        for (size_t j = 0; j < this->getColumns(); j++) {
+          dst.print(this->getValue(i, j));
+          dst.print(' ');
+        }
+        dst.println();
+      }
+
+    }
+  private:
+    size_t rows = 0;
+    size_t columns = 0;
+    T * matrix = nullptr;
+};
+
+template <class Base, class... IntrospectedClasses>
+class TestIntrospectionClassMatchMatrix : public Matrix<boolean> {
+  public:
+    TestIntrospectionClassMatchMatrix() :
+      Matrix<boolean>(sizeof... (IntrospectedClasses), sizeof... (IntrospectedClasses))
+    {
+      decltype(INTROSPECT_CLASS(Base)) classTypes[] = {INTROSPECT_CLASS(IntrospectedClasses)...};
+      for (size_t i = 0; i < sizeof... (IntrospectedClasses); i++)
+        for (size_t j = 0; j < sizeof... (IntrospectedClasses); j++)
+          setValue(i, j, classTypes[i] == classTypes[j]);
+    }
+};
+
+template <class Base>
+class TestIntrospectionObjectMatchMatrix : public Matrix<boolean> {
+  public:
+    template <class... TestObjects>TestIntrospectionObjectMatchMatrix(const TestObjects... testObjects) :
+      Matrix<boolean>(sizeof... (testObjects), sizeof... (testObjects))
+    {
+      decltype(INTROSPECT_CLASS(Base)) objectTypes[] = {testObjects->INTROSPECT_OBJECT()...};
+      for (size_t i = 0; i < sizeof... (testObjects); i++)
+        for (size_t j = 0; j < sizeof... (testObjects); j++)
+          setValue(i, j, (objectTypes[i] == objectTypes[j]));
+    }
+};
+
+template <class Base, class... IntrospectedClasses>
+class TestIntrospectionClassVsObjectMatchMatrix : public Matrix<boolean> {
+  public:
+    template <class... TestObjects>TestIntrospectionClassVsObjectMatchMatrix(const TestObjects... testObjects) :
+      Matrix<boolean> (sizeof... (IntrospectedClasses) , sizeof... (testObjects))
+    {
+      decltype(INTROSPECT_CLASS(Base)) objectTypes[] = {testObjects->INTROSPECT_OBJECT()...};
+      decltype(INTROSPECT_CLASS(Base)) classTypes[] = {INTROSPECT_CLASS(IntrospectedClasses)...};
+      for (size_t i = 0; i < sizeof... (IntrospectedClasses); i++)
+        for (size_t j = 0; j < sizeof... (testObjects); j++)
+          setValue(i, j, (classTypes[i] == objectTypes[j]));
+    }
+};
+
+class TestQuantityIntrospectionReflection {
+  public:
+    static void testClassTypeMatch(void) {
+      TEST_FUNC_START();
+      //arrange
+      static const size_t numClasses = 4;
+      Matrix<boolean> referenceClassMatchMatrix(numClasses, numClasses);
+      for (size_t i = 0; i < numClasses; i++)
+        for (size_t j = 0; j < numClasses; j++)
+          referenceClassMatchMatrix.setValue(i, j, i == j ? true : false);
+      //act
+      const TestIntrospectionClassMatchMatrix<util::quantity::Quantity,
+            util::quantity::Quantity,
+            util::quantity::Generic,
+            util::quantity::Dimensionless,
+            util::quantity::Temperature> testClassMatchMatrix;
+      //assert
+      TEST_ASSERT(testClassMatchMatrix == referenceClassMatchMatrix);
+      TEST_FUNC_END();
+    }
+    static void testObjectTypeMatch(void) {
+      TEST_FUNC_START();
+      //arrange
+      static const size_t numObjects = 8;
+      util::quantity::Quantity q1;
+      util::quantity::Quantity q2;
+      util::quantity::Generic g1(1, 2, "unit1");
+      util::quantity::Generic g2(3, 4, "unit2");
+      util::quantity::Dimensionless d1(1, 2, util::quantity::Dimensionless::Unit::NONE);
+      util::quantity::Dimensionless d2(3, 4, util::quantity::Dimensionless::Unit::PERCENT);
+      util::quantity::Temperature t1(1, 2, util::quantity::Temperature::Unit::CELSIUS);
+      util::quantity::Temperature t2(3, 4, util::quantity::Temperature::Unit::FAHRENHEIT);
+      util::quantity::Quantity * testObject1 = &q1;
+      util::quantity::Quantity * testObject2 = &q2;
+      util::quantity::Quantity * testObject3 = &g1;
+      util::quantity::Quantity * testObject4 = &g2;
+      util::quantity::Quantity * testObject5 = &d1;
+      util::quantity::Quantity * testObject6 = &d2;
+      util::quantity::Quantity * testObject7 = &t1;
+      util::quantity::Quantity * testObject8 = &t2;
+
+      Matrix<boolean> referenceObjectMatchMatrix(numObjects, numObjects);
+      for (size_t i = 0; i < numObjects; i++)
+        for (size_t j = 0; j < numObjects; j++)
+          referenceObjectMatchMatrix.setValue(i, j, ((i >> 1) == (j >> 1)) ? true : false);
+      //act
+      const TestIntrospectionObjectMatchMatrix<util::quantity::Quantity> testObjectMatchMatrix(
+        testObject1,
+        testObject2,
+        testObject3,
+        testObject4,
+        testObject5,
+        testObject6,
+        testObject7,
+        testObject8);
+      //assert
+      TEST_ASSERT(testObjectMatchMatrix == referenceObjectMatchMatrix);
+      TEST_FUNC_END();
+    }
+    static void testClassTypeAndObjectTypeMatch(void) {
+      TEST_FUNC_START();
+      //arrange
+      static const size_t numObjects = 8;
+      static const size_t numClasses = 4;
+      util::quantity::Quantity q1;
+      util::quantity::Quantity q2;
+      util::quantity::Generic g1(1, 2, "unit1");
+      util::quantity::Generic g2(3, 4, "unit2");
+      util::quantity::Dimensionless d1(1, 2, util::quantity::Dimensionless::Unit::NONE);
+      util::quantity::Dimensionless d2(3, 4, util::quantity::Dimensionless::Unit::PERCENT);
+      util::quantity::Temperature t1(1, 2, util::quantity::Temperature::Unit::CELSIUS);
+      util::quantity::Temperature t2(3, 4, util::quantity::Temperature::Unit::FAHRENHEIT);
+      util::quantity::Quantity * testObject1 = &q1;
+      util::quantity::Quantity * testObject2 = &q2;
+      util::quantity::Quantity * testObject3 = &g1;
+      util::quantity::Quantity * testObject4 = &g2;
+      util::quantity::Quantity * testObject5 = &d1;
+      util::quantity::Quantity * testObject6 = &d2;
+      util::quantity::Quantity * testObject7 = &t1;
+      util::quantity::Quantity * testObject8 = &t2;
+      Matrix<boolean> referenceClassVsObjectMatchMatrix(numClasses, numObjects);
+      for (size_t i = 0; i < referenceClassVsObjectMatchMatrix.getRows(); i++)
+        for (size_t j = 0; j < referenceClassVsObjectMatchMatrix.getColumns(); j++)
+          referenceClassVsObjectMatchMatrix.setValue(i, j, false);
+      referenceClassVsObjectMatchMatrix.setValue(0, 0, true);
+      referenceClassVsObjectMatchMatrix.setValue(0, 1, true);
+      referenceClassVsObjectMatchMatrix.setValue(1, 2, true);
+      referenceClassVsObjectMatchMatrix.setValue(1, 3, true);
+      referenceClassVsObjectMatchMatrix.setValue(2, 4, true);
+      referenceClassVsObjectMatchMatrix.setValue(2, 5, true);
+      referenceClassVsObjectMatchMatrix.setValue(3, 6, true);
+      referenceClassVsObjectMatchMatrix.setValue(3, 7, true);
+      //act
+      const TestIntrospectionClassVsObjectMatchMatrix<util::quantity::Quantity,
+            util::quantity::Quantity,
+            util::quantity::Generic,
+            util::quantity::Dimensionless,
+            util::quantity::Temperature
+            > testClassVsObjectMatchMatrix (
+              testObject1,
+              testObject2,
+              testObject3,
+              testObject4,
+              testObject5,
+              testObject6,
+              testObject7,
+              testObject8
+            );
+      //assert
+      TEST_ASSERT(testClassVsObjectMatchMatrix == referenceClassVsObjectMatchMatrix);
+      TEST_FUNC_END();
+    }
+    static void testCopiedObjectTypeMatch(void) {//TODO
+      TEST_FUNC_START();
+      //arrange
+      //act
+      //assert
+      TEST_ASSERT(true);
+      TEST_FUNC_END();
+    }
+    static void testIntrospection(void) {
+      testClassTypeMatch();
+      testObjectTypeMatch();
+      testClassTypeAndObjectTypeMatch();
+      testCopiedObjectTypeMatch();
+    }
+  public:
+    static void testConcreteClassReflection(void) {//TODO
+      TEST_FUNC_START();
+      //arrange
+      //act
+      //assert
+      TEST_ASSERT(true);
+      TEST_FUNC_END();
+    }
+    static void testAttemptWrongTypeReflection(void) {//TODO
+      TEST_FUNC_START();
+      //arrange
+      //act
+      //assert
+      TEST_ASSERT(true);
+      TEST_FUNC_END();
+    }
+    static void testReflection(void) {
+      testConcreteClassReflection();
+      testAttemptWrongTypeReflection();
+    }
+
+  public:
+    static void runTests(void) {
+      testIntrospection();
+      testReflection();
+    }
+};
+
 TEST_GLOBALS();
 
 void setup() {
@@ -570,6 +823,7 @@ void setup() {
   TestQuantityAndGeneric::runTests();
   TestDimensionless::runTests();
   TestTemperature::runTests();
+  TestQuantityIntrospectionReflection::runTests();
   TEST_END();
 }
 
