@@ -12,7 +12,7 @@ util::Value absDiff(util::Value v1, util::Value v2) {
 
 class TestQuantityAndGeneric {
   public:
-    static void test_validate_genericQuantity_expectTrue() {
+    static void test_validate_genericQuantity_expectTrue(void) {
       TEST_FUNC_START();
       //arrange
       util::quantity::QuantityDescriptionId id(3);
@@ -27,7 +27,7 @@ class TestQuantityAndGeneric {
       TEST_ASSERT(validationResult);
       TEST_FUNC_END();
     }
-    static void test_validate_noninitialisedQuantity_expectFalse() {
+    static void test_validate_noninitialisedQuantity_expectFalse(void) {
       TEST_FUNC_START();
       //arrange
       util::quantity::Quantity testQuantity;
@@ -42,7 +42,7 @@ class TestQuantityAndGeneric {
       test_validate_noninitialisedQuantity_expectFalse();
     }
   public:
-    static void test_accessors_getGenericQuantityData_expectCorrectValues() {
+    static void test_accessors_getGenericQuantityData_expectCorrectValues(void) {
       TEST_FUNC_START();
       //arrange
       util::quantity::QuantityDescriptionId id(3);
@@ -67,7 +67,7 @@ class TestQuantityAndGeneric {
       TEST_ASSERT(!strcmp(descriptionText, resultDescriptionText));
       TEST_FUNC_END();
     }
-    static void test_accessors_getNoninitialisedQuantityData_expectDefaultValues() {
+    static void test_accessors_getNoninitialisedQuantityData_expectDefaultValues(void) {
       TEST_FUNC_START();
       //arrange
       util::quantity::Quantity testQuantity;
@@ -87,7 +87,7 @@ class TestQuantityAndGeneric {
       TEST_ASSERT(!strlen(resultDescriptionText));
       TEST_FUNC_END();
     }
-    static void test_accessors_getGenericAsQuantityData_expectCorrectValues() {
+    static void test_accessors_getGenericAsQuantityData_expectCorrectValues(void) {
       TEST_FUNC_START();
       //arrange
       util::quantity::QuantityDescriptionId id(3);
@@ -119,7 +119,7 @@ class TestQuantityAndGeneric {
       test_accessors_getGenericAsQuantityData_expectCorrectValues();
     }
   public:
-    static void test_copyConstructor_copyFromGenericQuantity_expectSameValues() {
+    static void test_copyConstructor_copyFromGenericQuantity_expectSameValues(void) {
       TEST_FUNC_START();
       //arrange
       util::quantity::QuantityDescriptionId id(3);
@@ -152,7 +152,7 @@ class TestQuantityAndGeneric {
       TEST_ASSERT(!strcmp(resultDescriptionTextSrc, resultDescriptionTextDst));
       TEST_FUNC_END();
     }
-    static void test_copyConstructor_copyFromNoninitialisedQuantity_expectDefaultData() {
+    static void test_copyConstructor_copyFromNoninitialisedQuantity_expectDefaultData(void) {
       TEST_FUNC_START();
       //arrange
       util::quantity::Quantity testQuantitySource;
@@ -173,9 +173,87 @@ class TestQuantityAndGeneric {
       TEST_ASSERT(!strlen(resultDescriptionText));
       TEST_FUNC_END();
     }
-    static void test_copyConstructor(void) {
+    static void test_initFromParametersConstructor_idTextTooLong_expectIdTextTruncated(void) {
+      TEST_FUNC_START();
+      //arrange
+      util::quantity::QuantityDescriptionId id(3);
+      util::Value value(5);
+      const char unit[] = "test";
+      util::Timestamp timestamp = util::getTimestamp();
+      const size_t extraChars = 2;
+      char descriptionText[util::quantity::Quantity::getDescriptionTextMaxSize() + extraChars];
+      static const size_t nullTerminatorSize = 1;
+      static const char nullTerminator = '\0';
+      for (size_t i = 0; i < sizeof(descriptionText) - nullTerminatorSize; i++) {
+        descriptionText[i] = (i % 26) + 'a';
+      }
+      descriptionText[sizeof(descriptionText) - nullTerminatorSize] = nullTerminator;
+      //act
+      util::quantity::Generic testGenericQuantity(id, value, unit, timestamp, descriptionText);
+      //assert
+      TEST_ASSERT(strlen(descriptionText) > testGenericQuantity.getDescriptionTextMaxSize());
+      TEST_ASSERT(!strncmp(testGenericQuantity.getDescriptionText(), descriptionText, testGenericQuantity.getDescriptionTextMaxSize() - nullTerminatorSize));
+      TEST_ASSERT(strlen(testGenericQuantity.getDescriptionText()) == testGenericQuantity.getDescriptionTextMaxSize());
+      TEST_FUNC_END();
+    }
+    static void test_initFromParametersConstructor_unitTextTooLong_expectUnitTextTruncated(void) {
+      TEST_FUNC_START();
+      //arrange
+      util::quantity::QuantityDescriptionId id(3);
+      util::Value value(5);
+      util::Timestamp timestamp = util::getTimestamp();
+      const size_t extraChars = 2;
+      const char descriptionText[] = "description";
+      static const size_t nullTerminatorSize = 1;
+      static const char nullTerminator = '\0';
+      char unit[util::quantity::Quantity::getUnitTextMaxSize() + extraChars];
+      for (size_t i = 0; i < sizeof(unit) - nullTerminatorSize; i++) {
+        unit[i] = (i % 26) + 'a';
+      }
+      unit[sizeof(unit) - nullTerminatorSize] = nullTerminator;
+      //act
+      util::quantity::Generic testGenericQuantity(id, value, unit, timestamp, descriptionText);
+      //assert
+      TEST_ASSERT(strlen(unit) > testGenericQuantity.getUnitTextMaxSize());
+      TEST_ASSERT(!strncmp(testGenericQuantity.getUnitText(), unit, testGenericQuantity.getUnitTextMaxSize() - nullTerminatorSize));
+      TEST_ASSERT(strlen(testGenericQuantity.getUnitText()) == testGenericQuantity.getUnitTextMaxSize());
+      TEST_FUNC_END();
+    }
+    static void test_initFromParametersConstructor_idTextNull_expectEmptyIdText(void) {
+      TEST_FUNC_START();
+      //arrange
+      util::quantity::QuantityDescriptionId id(3);
+      util::Value value(5);
+      const char unit[] = "test";
+      util::Timestamp timestamp = util::getTimestamp();
+      //act
+      util::quantity::Generic testGenericQuantity(id, value, unit, timestamp, nullptr);
+      //assert
+      TEST_ASSERT(testGenericQuantity.validate());
+      TEST_ASSERT(!strlen(testGenericQuantity.getDescriptionText()));
+      TEST_FUNC_END();
+    }
+    static void test_initFromParametersConstructor_unitTextNull_expectEmptyUnitText(void) {
+      TEST_FUNC_START();
+      //arrange
+      util::quantity::QuantityDescriptionId id(3);
+      util::Value value(5);
+      util::Timestamp timestamp = util::getTimestamp();
+      const char descriptionText[] = "description";
+      //act
+      util::quantity::Generic testGenericQuantity(id, value, nullptr, timestamp, descriptionText);
+      //assert
+      TEST_ASSERT(testGenericQuantity.validate());
+      TEST_ASSERT(!strlen(testGenericQuantity.getUnitText()));
+      TEST_FUNC_END();
+    }
+    static void test_constructors(void) {
       test_copyConstructor_copyFromGenericQuantity_expectSameValues();
       test_copyConstructor_copyFromNoninitialisedQuantity_expectDefaultData();
+      test_initFromParametersConstructor_idTextTooLong_expectIdTextTruncated();
+      test_initFromParametersConstructor_unitTextTooLong_expectUnitTextTruncated();
+      test_initFromParametersConstructor_idTextNull_expectEmptyIdText();
+      test_initFromParametersConstructor_unitTextNull_expectEmptyUnitText();
     }
   public:
     static void test_assignment_assignFromGenericToNoninitialisedQuantity_expectSameValues() {
@@ -316,7 +394,7 @@ class TestQuantityAndGeneric {
     static void runTests(void) {
       test_validate();
       test_accessors();
-      test_copyConstructor();
+      test_constructors();
       test_assignment();
     }
 };
@@ -772,12 +850,31 @@ class TestQuantityIntrospectionReflection {
       TEST_ASSERT(testClassVsObjectMatchMatrix == referenceClassVsObjectMatchMatrix);
       TEST_FUNC_END();
     }
-    static void testCopiedObjectTypeMatch(void) {//TODO
+    static void testCopiedObjectTypeMatch(void) {
       TEST_FUNC_START();
       //arrange
+      util::quantity::Generic testGeneric(0, 1, "test");
+      util::quantity::Dimensionless testDimensionless(1, 2, util::quantity::Dimensionless::Unit::NONE);
+      util::quantity::Generic testGenericCopy(testGeneric);
+      util::quantity::Dimensionless testDimensionlessCopy(testDimensionless);
+      util::quantity::Quantity * testGenericQuantity = &testGeneric;
+      util::quantity::Quantity * testDimensionlessQuantity = &testDimensionless;
+      util::quantity::Quantity testQuantity(*testGenericQuantity);
       //act
+      boolean genericCopyTest = (testGenericCopy.INTROSPECT_OBJECT() == INTROSPECT_CLASS(util::quantity::Generic));
+      boolean dimensionlessCopyTest = (testDimensionlessCopy.INTROSPECT_OBJECT() == INTROSPECT_CLASS(util::quantity::Dimensionless));
+      boolean genericObjectTest = (testGenericQuantity->INTROSPECT_OBJECT() == INTROSPECT_CLASS(util::quantity::Generic));
+      boolean dimensionlessObjectTest = (testDimensionlessQuantity->INTROSPECT_OBJECT() == INTROSPECT_CLASS(util::quantity::Dimensionless));
+      boolean quantityObjectTest = (testQuantity.INTROSPECT_OBJECT() == INTROSPECT_CLASS(util::quantity::Quantity));
       //assert
-      TEST_ASSERT(true);
+      TEST_ASSERT(INTROSPECT_CLASS(util::quantity::Quantity) != INTROSPECT_CLASS(util::quantity::Generic));
+      TEST_ASSERT(INTROSPECT_CLASS(util::quantity::Quantity) != INTROSPECT_CLASS(util::quantity::Dimensionless));
+      TEST_ASSERT(INTROSPECT_CLASS(util::quantity::Generic) != INTROSPECT_CLASS(util::quantity::Dimensionless));
+      TEST_ASSERT(genericCopyTest);
+      TEST_ASSERT(dimensionlessCopyTest);
+      TEST_ASSERT(genericObjectTest);
+      TEST_ASSERT(dimensionlessObjectTest);
+      TEST_ASSERT(quantityObjectTest);
       TEST_FUNC_END();
     }
     static void testIntrospection(void) {
@@ -787,25 +884,117 @@ class TestQuantityIntrospectionReflection {
       testCopiedObjectTypeMatch();
     }
   public:
-    static void testConcreteClassReflection(void) {//TODO
+    static void testReflectionGeneric(void) {
       TEST_FUNC_START();
       //arrange
+      util::quantity::QuantityDescriptionId id(3);
+      util::Value value(5);
+      const char unit[] = "gnrc";
+      util::Timestamp timestamp = util::getTimestamp();
+      const char descriptionText[] = "generic";
+      util::quantity::Generic testGeneric(id, value, unit, timestamp, descriptionText);
+      util::quantity::Quantity * testQuantity = &testGeneric;
       //act
+      util::quantity::Generic testReflected(testQuantity);
+      util::quantity::Dimensionless testReflectedOther1(testQuantity);
+      util::quantity::Temperature   testReflectedOther2(testQuantity);
       //assert
-      TEST_ASSERT(true);
+      TEST_ASSERT(testReflected.validate());
+      TEST_ASSERT(testReflected.getDescriptionId() == id);
+      TEST_ASSERT(testReflected.getTimestamp() == timestamp);
+      TEST_ASSERT(testReflected.getValue() == value);
+      TEST_ASSERT(!strcmp(testReflected.getUnitText(), unit));
+      TEST_ASSERT(!strcmp(testReflected.getDescriptionText(), descriptionText));
+      TEST_ASSERT(!testReflectedOther1.validate());
+      TEST_ASSERT(!testReflectedOther2.validate());
       TEST_FUNC_END();
     }
-    static void testAttemptWrongTypeReflection(void) {//TODO
+    static void testReflectionDimensionless(void) {
       TEST_FUNC_START();
       //arrange
+      util::quantity::QuantityDescriptionId id(3);
+      util::Value value(5);
+      util::quantity::Dimensionless::Unit unit = util::quantity::Dimensionless::Unit::NONE;
+      char referenceUnitText[util::quantity::Quantity::getUnitTextMaxSize()];
+      strcpy (referenceUnitText, util::quantity::Dimensionless::getUnitTextByUnit(unit));
+      util::Timestamp timestamp = util::getTimestamp();
+      const char descriptionText[] = "dimensionless";
+      util::quantity::Dimensionless testDimensionless(id, value, unit, timestamp, descriptionText);
+      util::quantity::Quantity * testQuantity = &testDimensionless;
       //act
+      util::quantity::Dimensionless testReflected(testQuantity);
+      util::quantity::Generic       testReflectedOther1(testQuantity);
+      util::quantity::Temperature   testReflectedOther2(testQuantity);
       //assert
-      TEST_ASSERT(true);
+      TEST_ASSERT(testReflected.validate());
+      TEST_ASSERT(testReflected.getDescriptionId() == id);
+      TEST_ASSERT(testReflected.getTimestamp() == timestamp);
+      TEST_ASSERT(testReflected.getValue() == value);
+      TEST_ASSERT(!strcmp(testReflected.getUnitText(), referenceUnitText));
+      TEST_ASSERT(!strcmp(testReflected.getDescriptionText(), descriptionText));
+      TEST_ASSERT(!testReflectedOther1.validate());
+      TEST_ASSERT(!testReflectedOther2.validate());
+      TEST_FUNC_END();
+    }
+    static void testReflectionTemperature(void) {
+      TEST_FUNC_START();
+      //arrange
+      util::quantity::QuantityDescriptionId id(3);
+      util::Value value(5);
+      util::quantity::Temperature::Unit unit = util::quantity::Temperature::Unit::CELSIUS;
+      char referenceUnitText[util::quantity::Quantity::getUnitTextMaxSize()];
+      strcpy (referenceUnitText, util::quantity::Temperature::getUnitTextByUnit(unit));
+      util::Timestamp timestamp = util::getTimestamp();
+      const char descriptionText[] = "temperature";
+      util::quantity::Temperature testTemperature(id, value, unit, timestamp, descriptionText);
+      util::quantity::Quantity * testQuantity = &testTemperature;
+      //act
+      util::quantity::Temperature testReflected(testQuantity);
+      util::quantity::Generic       testReflectedOther1(testQuantity);
+      util::quantity::Dimensionless testReflectedOther2(testQuantity);
+      //assert
+      TEST_ASSERT(testReflected.validate());
+      TEST_ASSERT(testReflected.getDescriptionId() == id);
+      TEST_ASSERT(testReflected.getTimestamp() == timestamp);
+      TEST_ASSERT(testReflected.getValue() == value);
+      TEST_ASSERT(!strcmp(testReflected.getUnitText(), referenceUnitText));
+      TEST_ASSERT(!strcmp(testReflected.getDescriptionText(), descriptionText));
+      TEST_ASSERT(!testReflectedOther1.validate());
+      TEST_ASSERT(!testReflectedOther2.validate());
+      TEST_FUNC_END();
+    }
+    static void testReflection_sourceModified_expectReflectedValueNotModified(void) {
+      TEST_FUNC_START();
+      //arrange
+      util::quantity::QuantityDescriptionId id(3);
+      util::Value value(5);
+      util::quantity::Dimensionless::Unit unit = util::quantity::Dimensionless::Unit::NONE;
+      char referenceUnitText[util::quantity::Quantity::getUnitTextMaxSize()];
+      strcpy (referenceUnitText, util::quantity::Dimensionless::getUnitTextByUnit(unit));
+      util::Timestamp timestamp = util::getTimestamp();
+      const char descriptionText[] = "dimensionless";
+      util::quantity::Dimensionless testDimensionless(id, value, unit, timestamp, descriptionText);
+      util::quantity::Quantity * testQuantity = &testDimensionless;
+      util::quantity::Dimensionless testReflected(testQuantity);
+      util::quantity::Dimensionless::Unit unitConverted = util::quantity::Dimensionless::Unit::PERCENT;
+      char referenceUnitConvertedText[util::quantity::Quantity::getUnitTextMaxSize()];
+      strcpy (referenceUnitConvertedText, util::quantity::Dimensionless::getUnitTextByUnit(unitConverted));
+      //act
+      testReflected.convertToUnit(unitConverted);
+      //assert
+      TEST_ASSERT(testDimensionless.validate());
+      TEST_ASSERT(testReflected.validate());
+      TEST_ASSERT(testDimensionless.getValue() == value);
+      TEST_ASSERT(testDimensionless.getValue() != testReflected.getValue());
+      TEST_ASSERT(!strcmp(testDimensionless.getUnitText(), referenceUnitText));
+      TEST_ASSERT(!strcmp(testReflected.getUnitText(), referenceUnitConvertedText));
       TEST_FUNC_END();
     }
     static void testReflection(void) {
-      testConcreteClassReflection();
-      testAttemptWrongTypeReflection();
+      testReflectionGeneric();
+      testReflectionDimensionless();
+      testReflectionTemperature();
+      testReflection_sourceModified_expectReflectedValueNotModified();
     }
 
   public:

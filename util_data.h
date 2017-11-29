@@ -62,34 +62,21 @@ struct TypeSelect<true, T1, T2> {
   public: \
   static const TypeId classType = CLASS_TYPE
 
+#define INTROSPECT_THIS_CLASS() classType
+
 #define INTROSPECTED_BASE \
   public: \
   typedef decltype(INTROSPECTED_CLASS_TYPE_AUTO()) TypeId; \
   INTROSPECTED_SET_CLASS_TYPE (INTROSPECTED_CLASS_TYPE_AUTO()); \
   inline TypeId getObjectType(void) const {return (objectType);} \
   protected: \
-  TypeId objectType = classType
+  TypeId objectType = INTROSPECT_THIS_CLASS()
 
-#define INTROSPECTED_SET_OBJECT_TYPE() objectType = classType
+#define INTROSPECTED_SET_OBJECT_TYPE() objectType = INTROSPECT_THIS_CLASS()
 
-#define INTROSPECTED_COPY(other) this->objectType = other.objectType
-
-#define INTROSPECT_CLASS(T) T::classType
+#define INTROSPECT_CLASS(T) T::INTROSPECT_THIS_CLASS()
 
 #define INTROSPECT_OBJECT() getObjectType()
-
-#define INTROSPECT_OBJECT_THIS() this->getObjectType()
-
-#define REFLECTED_BASE \
-  public: \
-  template <typename T> boolean reflect (T &destination) const { \
-    if (INTROSPECT_CLASS(T) != INTROSPECT_OBJECT_THIS()) return(false); \
-    T * reinterpretThis = reinterpret_cast<T*>(this); \
-    destination = *reinterpretThis; \
-    return (true); \
-  }
-
-#define REFLECT(T,destination) reflect<T>(destination)
 
 namespace arrays {
 
@@ -1349,8 +1336,7 @@ namespace quantity {
 /// handled in descendant classes. Obtaining value and unit of the quantity via getter methods
 /// will return setValue and setUnit.
 /// @par The class has introspection mechanism allowing to identify concrete type of object,
-/// even if the object is represented as a pointer to base class type. It also has a basic
-/// reflection mechanish, allowing to reconstruct the concrete class from basic class pointer.
+/// even if the object is represented as a pointer to base class type.
 
 template <typename ValueType, typename TimestampType, typename UnitBaseType, typename DescriptionIdType, size_t DescriptionTextSize, size_t UnitTextSize>
 class TemplateQuantity {
@@ -1361,11 +1347,12 @@ class TemplateQuantity {
     typedef DescriptionIdType DescriptionId;
   public:
     TemplateQuantity() {} ///< @brief Default constructor, leaves object unitialised
-    TemplateQuantity(TemplateQuantity<ValueType, Timestamp, UnitBase, DescriptionId, DescriptionTextSize, UnitTextSize> &other) {
+    TemplateQuantity(const TemplateQuantity<ValueType, Timestamp, UnitBase, DescriptionId, DescriptionTextSize, UnitTextSize> &other) {
       /// @brief Initialises the object by copying data from other object
       /// @details Data copying is only possible is the "other" object is initialised
       /// @param other Object to copy data from
       initFromOther(other);
+      INTROSPECTED_SET_OBJECT_TYPE();
     }
   protected:
     TemplateQuantity(DescriptionId descriptionId,
@@ -1384,6 +1371,7 @@ class TemplateQuantity {
       /// @param descriptionText Human-readable form of descriptionId parameter (if available)
       /// @details This constructor is reserved for use by descendant classes
       init(descriptionId, value, unit, unitText, timestamp, descriptionText);
+      INTROSPECTED_SET_OBJECT_TYPE();
     }
   public:
     inline boolean validate(void) const {
@@ -1445,6 +1433,8 @@ class TemplateQuantity {
                         const char * unitText = nullptr,
                         Timestamp timestamp = 0,
                         const char * descriptionText = nullptr);
+    inline boolean initFromOther(const TemplateQuantity<ValueType, Timestamp, UnitBase, DescriptionId, DescriptionTextSize, UnitTextSize> &other);
+  protected:
     inline boolean setConvertedValue(Value value,
                                      UnitBase units,
                                      const char * unitText = nullptr);
@@ -1459,7 +1449,6 @@ class TemplateQuantity {
       return (initUnit);
     }
   private:
-    inline boolean initFromOther(const TemplateQuantity<ValueType, Timestamp, UnitBase, DescriptionId, DescriptionTextSize, UnitTextSize> &other);
     inline void setDescriptionText(const char * descriptionText);
     inline void setSetUnitText(const char * descriptionText);
   private:
@@ -1482,7 +1471,6 @@ class TemplateQuantity {
     boolean initComplete = false; ///< whether the initialisation was performed
     //Introspection
     INTROSPECTED_BASE;
-    REFLECTED_BASE;
 };
 
 template <typename ValueType, typename TimestampType, typename UnitBaseType, typename DescriptionIdType, size_t DescriptionTextSize, size_t UnitTextSize>
@@ -1520,15 +1508,14 @@ boolean TemplateQuantity<ValueType, TimestampType, UnitBaseType, DescriptionIdTy
   if (initComplete) return (false);
   if (other.initComplete) {
     descriptionId = other.descriptionId;
-    setDescriptionText(other.descriptionText);
+    strcpy(descriptionText, other.descriptionText);
     timestamp = other.timestamp;
     initValue = other.initValue;
     setUnitsValue = other.setUnitsValue;
     initUnit = other.initUnit;
     setUnit = other.setUnit;
-    setSetUnitText(other.setUnitText);
+    strcpy(setUnitText, other.setUnitText);
     initComplete = true;
-    INTROSPECTED_COPY(other);
   }
   return (true);
 }
@@ -1627,6 +1614,17 @@ class Generic : public Quantity {
     {
       INTROSPECTED_SET_OBJECT_TYPE();
     }
+    Generic (const Generic &other) : Quantity (other) {
+      INTROSPECTED_SET_OBJECT_TYPE();
+    }
+    Generic (const Quantity * other) {
+      if (!other || (other->INTROSPECT_OBJECT() != INTROSPECT_THIS_CLASS())) {
+        INTROSPECTED_SET_OBJECT_TYPE();
+        return;
+      }
+      initFromOther(*other);
+      INTROSPECTED_SET_OBJECT_TYPE();
+    }
 };
 
 //////////////////////////////////////////////////////////////////////
@@ -1663,6 +1661,17 @@ class Dimensionless : public Quantity {
     {
       INTROSPECTED_SET_OBJECT_TYPE();
     }
+    Dimensionless (const Dimensionless &other) : Quantity(other) {
+      INTROSPECTED_SET_OBJECT_TYPE();
+    }
+    Dimensionless (const Quantity * other) {
+      if (!other || (other->INTROSPECT_OBJECT() != INTROSPECT_THIS_CLASS())) {
+        INTROSPECTED_SET_OBJECT_TYPE();
+        return;
+      }
+      initFromOther(*other);
+      INTROSPECTED_SET_OBJECT_TYPE();
+    }
   public:
     boolean convertToUnit(Unit unit);
     static const char * getUnitTextByUnit(Unit unit);
@@ -1697,6 +1706,17 @@ class Temperature : public Quantity {
                  timestamp,
                  descriptionText)
     {
+      INTROSPECTED_SET_OBJECT_TYPE();
+    }
+    Temperature (const Temperature &other) : Quantity(other) {
+      INTROSPECTED_SET_OBJECT_TYPE();
+    }
+    Temperature (const Quantity * other) {
+      if (!other || (other->INTROSPECT_OBJECT() != INTROSPECT_THIS_CLASS())) {
+        INTROSPECTED_SET_OBJECT_TYPE();
+        return;
+      }
+      initFromOther(*other);
       INTROSPECTED_SET_OBJECT_TYPE();
     }
   public:
