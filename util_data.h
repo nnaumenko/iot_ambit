@@ -12,6 +12,7 @@
  *  * arrays: data structures storing multiple units of data
  *  * checksum: checksum calculation
  *  * dsp: digital signal processing
+ *  * quantity: physical quantities
  */
 
 #ifndef UTIL_DATA_H
@@ -53,30 +54,116 @@ struct TypeSelect<true, T1, T2> {
 };
 
 //////////////////////////////////////////////////////////////////////
-// Introspection
+// Ref
+//////////////////////////////////////////////////////////////////////
+
+/// @brief A pointer which also stores memory area (RAM of PROGMEM)
+/// @tparam T Pointer's type (e.g. Ref<int> uses pointer type
+/// const int *)
+/// @warning If pointer is located in RAM, this class does not
+/// guarantee pointer's validity and does not safely handle situations
+/// such as "use-after-delete"; it merely stores a pointer.
+template <typename T>
+class Ref {
+  public:
+    inline Ref(const T * pointer, boolean progmem) {
+      /// @param pointer Pointer itself
+      /// @param progmem True if memory area referenced by pointer is
+      /// located in PROGMEM, false if memory area is located in RAM
+      this->pointer = pointer;
+      this->progmem = progmem;
+    }
+  public:
+    inline boolean pgm(void) const {
+      /// @return true if memory area referenced by pointer is located in
+      /// PROGMEM, false if memory area is located in RAM
+      return (this->progmem);
+    }
+  public:
+    inline explicit operator const T* () const {
+      /// @return Pointer itself; the pointer contains no information
+      /// whether it refers to RAM or PROGMEM; this information is
+      /// obtained via pgm() method
+      return (pointer);
+    }
+    inline operator bool() {
+      /// @return true if pointer is nullptr, false otherwise
+      return (pointer);
+    }
+  public:
+    inline boolean operator == (const Ref<T> &rhs) const {
+      return ((pointer == rhs.pointer) && (progmem == rhs.progmem));
+    }
+  private:
+    const T * pointer = nullptr;  ///< Pointer itself
+    boolean progmem = false;      ///< Is reference located in progmem
+} __attribute__((packed));
+
+//////////////////////////////////////////////////////////////////////
+// StrRef
+//////////////////////////////////////////////////////////////////////
+
+/// @brief Pointer to c-string (const char *) which also stores
+/// c-string's memory area (RAM or PROGMEM)
+class StrRef : public Ref<char> {
+  public:
+    /// @brief Initialise default pointer
+    StrRef() : Ref <char>(nullptr, false) {}
+    /// @brief Initialise from c-string in RAM
+    /// @param Pointer to c-string in RAM
+    StrRef (const char * ramPointer) :
+      Ref<char>(ramPointer, false) {}
+    /// @brief Initialise from c-string in PROGMEM
+    /// @param Pointer to c-string in PROGMEM
+    StrRef (const __FlashStringHelper * progmemPointer) :
+      Ref<char>(reinterpret_cast<const char *>(progmemPointer), false) {}
+  public:
+    void get(char * buffer, size_t bufferSize) {
+      /// @brief Copy cstring referenced by this pointer to a
+      /// specified buffer
+      /// @param buffer Buffer to copy cstring to
+      /// @param bufferSize Size of the buffer in chars
+      if (!static_cast<boolean>(*this)) return;
+      static const size_t nullTerminator = '\0';
+      buffer[bufferSize - sizeof(nullTerminator)] = nullTerminator;
+      if (pgm()) {
+        strncpy_P(buffer, (const char *)*this, bufferSize - sizeof(nullTerminator));
+        return;
+      }
+      strncpy(buffer, (const char *)*this, bufferSize - sizeof(nullTerminator));
+    }
+} __attribute__((packed));
+
+//////////////////////////////////////////////////////////////////////
+// Introspection & basic reflection
 //////////////////////////////////////////////////////////////////////
 
 #define INTROSPECTED_CLASS_TYPE_AUTO() __COUNTER__
 
+#define TYPE_ID uint16_t
+
 #define INTROSPECTED_SET_CLASS_TYPE(CLASS_TYPE) \
   public: \
-  static const TypeId classType = CLASS_TYPE
+  static const TYPE_ID classType = CLASS_TYPE
 
 #define INTROSPECT_THIS_CLASS() classType
 
-#define INTROSPECTED_BASE \
+#define INTROSPECTED_BASE(CLASS_TYPE) \
   public: \
-  typedef decltype(INTROSPECTED_CLASS_TYPE_AUTO()) TypeId; \
-  INTROSPECTED_SET_CLASS_TYPE (INTROSPECTED_CLASS_TYPE_AUTO()); \
-  inline TypeId getObjectType(void) const {return (objectType);} \
+  INTROSPECTED_SET_CLASS_TYPE (CLASS_TYPE); \
+  inline TYPE_ID getObjectType(void) const {return (objectType);} \
   protected: \
-  TypeId objectType = INTROSPECT_THIS_CLASS()
+  TYPE_ID objectType = INTROSPECT_THIS_CLASS()
 
 #define INTROSPECTED_SET_OBJECT_TYPE() objectType = INTROSPECT_THIS_CLASS()
 
 #define INTROSPECT_CLASS(T) T::INTROSPECT_THIS_CLASS()
 
 #define INTROSPECT_OBJECT() getObjectType()
+
+#define VALIDATE_OBJECT_TYPE(OBJECT) ((OBJECT).INTROSPECT_THIS_CLASS() == (OBJECT).INTROSPECT_OBJECT())
+
+#define REFLECT_OBJECT(TYPE,OBJREF) (reinterpret_cast<TYPE *>(OBJREF))
 
 namespace arrays {
 
@@ -534,7 +621,7 @@ class FixedPoint {
     T getValue(size_t decimalPrecision, boolean *status = nullptr) const;
   protected:
     /// @brief Internal value class, created to encapsulate the value and unify value assignment
-    class {
+    class Value {
       public:
         /// @brief Sets value from type T value
         /// @newValue New value of type T, consists of integer and fraction part at this point
@@ -570,7 +657,8 @@ class FixedPoint {
         }
       private:
         T val = {}; ///< Storage for value
-    } value;
+    } __attribute__((packed));
+    Value value;
   protected:
     static const T tZero = static_cast<T>(0); ///< 0 constant of type T
     static const T tOne = static_cast<T>(1);  ///< 1 constant of type T
@@ -579,7 +667,7 @@ class FixedPoint {
     static_assert(FractionBits < (sizeof(T) * 8), "Too many fraction bits");
     //Make sure that more than zero FractionBits are defined (if zero fraction bits required, simply use type T)
     static_assert(FractionBits > 0, "Too few fraction bits");
-};
+} __attribute__((packed));
 
 template <typename T, size_t FractionBits, typename U, T TMinRange, T TMaxRange>
 FixedPoint<T, FractionBits, U, TMinRange, TMaxRange>::FixedPoint(T value, size_t decimalsPrecision) {
@@ -755,7 +843,7 @@ static const Value ValuePi = Value(314159265, 8);
 /// @par Reserved for the case when Value is a Plain-Old-Data type (e.g. float) and does not have methods
 /// @param value Value to check
 /// @return True if value is overflown, false if value is a regular number
-inline boolean overflow(const Value &value) {
+inline boolean overflow(const Value & value) {
   return (value.overflow());
 }
 
@@ -765,7 +853,7 @@ inline boolean overflow(const Value &value) {
 /// @par Reserved for the case when Value is a Plain-Old-Data type (e.g. float) and does not have methods
 /// @param value Value
 /// @return Converted value or zero if conversion failed
-inline ValueBase getValue(const Value &value, size_t decimals, boolean *status = nullptr) {
+inline ValueBase getValue(const Value & value, size_t decimals, boolean *status = nullptr) {
   return (value.getValue(decimals, status));
 }
 
@@ -1282,54 +1370,62 @@ enum class FilterType {
 namespace quantity {
 
 //////////////////////////////////////////////////////////////////////
-// TemplateQuantity
+// Quantity
 //////////////////////////////////////////////////////////////////////
 
 /// @brief A templated/configurable class representing physical quantity, such as temperature,
 /// humidity, pressure, luminance, etc.
-/// @tparam ValueType Type representing the physical quantity's numeric value
-/// @tparam TimestampType Type representing timestamp (a moment when quantity's value was
-/// measured)
-/// @tparam UnitBaseType Base type defining for enums representing measurement units
-/// @tparam DescriptionIdType Type for description identifiers
-/// @tparam DescriptionTextSize Size of description text (in chars) stored in TemplateQuantity
-/// @tparam UnitTextSize Size of measurement unit text (in chars) stored in TemplateQuantity
 /// @details Every Quantity object has the following properties:
 ///
-/// * WHAT does the quantity represent
+/// * WHAT does the quantity represent?
 ///
-/// * WHEN the quantity was measured
+/// * WHEN the quantity was measured?
 ///
-/// * HOW MUCH is the numerical measurement result
+/// * HOW MUCH is the numerical measurement result?
 ///
-/// * IN WHICH UNITS the measurement result is represented
+/// * IN WHICH UNITS the measurement result is represented?
+///
+/// * IS the measurement result valid?
+///
+/// * IN WHICH RANGE can measurement results possibly be?
 ///
 /// @par For example consider the following physical quantity:
-/// @par     "outdoors temperature (id=12) is 10.25 degrees Celsius as measured at 15381
-/// milliseconds from startup"
+/// @par     "outdoors temperature (id = 12) is 10.25 degrees Celsius as measured at 15381
+/// milliseconds from startup, measured in range -50 to 125 degrees Celsius"
 /// @par It will be represented as follows:
-/// @par     "outdoors temperature, id=12":
-/// @par     descriptionText = "outdoors temperature"
-/// @par     descriptionId = 12
+/// @par     "outdoors temperature (identifier 12, group 3)":
+/// @par     id = 12
+/// @par     idGroup = 3
 /// @par     "measured at 15381 milliseconds from startup"
 /// @par     timestamp = 15381
 /// @par     "the measurement result was 10.25"
 /// @par     value = 10.25
 /// @par     "the result is in degrees Celsius"
 /// @par     unitText = "C"
+/// @par     "the measurement result is valid (no error occured while getting data
+/// from sensor)"
+/// @par     valid = true
+/// @par     "measured in range -50 to 125 degrees Celsius"
+/// @par     minRange = -50
+/// @par     maxRange = 125
+/// Acceptable range for the value is optional and can be omitted. If the range is specified,
+/// the values outside of this range will be clamped to high or low limit.
 /// @par This is the basic class, intended to be inherited by concrete physical quantity
 /// classes. It was designed not to make use of virtual methods. The descendant classes
-/// are expected to set basic class' fields (via setters).
+/// are able to set some of the fields (via setters).
 /// @par The quantity can be printed or passed to external systems even without knowing its
 /// concrete type, by acquiring the field values via getters.
-/// @par The object of this class is intended to be initialised either by constructor
+/// @par The object of this class is intended to be initialised only by constructor
 /// (protected and reserved for use by descendant classes) or by copy constructor from another
-/// quantity. Also quantity can be left uninitialised (by using default constructor) and then
-/// it can be set by assignment operator. A validate() method can be used to evaluate whether
-/// the class was initialised.
-/// @par Once the object was initialised (by setting its values OR by copy constructor OR by
-/// assignment), it cannot be changed otherwise than converting it to other units. The
-/// conversion must be handled in descendant classes.
+/// quantity. Once initialised, the quantity's information cannot be modified. The numeric
+/// value cannot be modified as well but it can be converted to a different measurement unit.
+/// The conversion is handled by descendant classes.
+/// @par An identifier and identifier group define the meaning of the quantity (location, purpose,
+/// device, etc...). Identifier and identifier group are only stored in this class and are not
+/// processed or checked by its methods. The identifying scheme, uniquenes and other rules are
+/// defined and enforced by the object's creator.
+/// @par A validate() method can be used to evaluate whether the numeric value can be considered
+/// as a valid one.
 /// @par The value and measurment unit used during the initialisation is stored in the object
 /// (initValue and initUnit). When the conversion to other measurment unit is performed, the
 /// setValue and setUnit fields are modified via setter methods. This modification is to be
@@ -1338,247 +1434,157 @@ namespace quantity {
 /// @par The class has introspection mechanism allowing to identify concrete type of object,
 /// even if the object is represented as a pointer to base class type.
 
-template <typename ValueType, typename TimestampType, typename UnitBaseType, typename DescriptionIdType, size_t DescriptionTextSize, size_t UnitTextSize>
-class TemplateQuantity {
+class Quantity {
   public:
-    typedef ValueType Value;
-    typedef TimestampType Timestamp;
-    typedef UnitBaseType UnitBase;
-    typedef DescriptionIdType DescriptionId;
-  public:
-    TemplateQuantity() {} ///< @brief Default constructor, leaves object unitialised
-    TemplateQuantity(const TemplateQuantity<ValueType, Timestamp, UnitBase, DescriptionId, DescriptionTextSize, UnitTextSize> &other) {
-      /// @brief Initialises the object by copying data from other object
-      /// @details Data copying is only possible is the "other" object is initialised
-      /// @param other Object to copy data from
-      initFromOther(other);
-      INTROSPECTED_SET_OBJECT_TYPE();
-    }
+    typedef Value value_t;
+    typedef Timestamp timestamp_t;
+    typedef uint8_t unit_t;
+    typedef uint16_t id_t;
+    typedef StrRef text_t;
   protected:
-    TemplateQuantity(DescriptionId descriptionId,
-                     ValueType value,
-                     UnitBase unit,
-                     const char * unitText = nullptr,
-                     Timestamp timestamp = {},
-                     const char * descriptionText = nullptr) {
-      /// @brief Initialises object by setting its data
-      /// @param descriptionId Identifier describing the physical quantity (location, sensor ID, etc...)
-      /// @param value A numerical value of the physical quantity
-      /// @param unit Identifier of the measurement unit in which value is represented
-      /// @param unitText Human-readable form of unit parameter
-      /// @param timestamp Represents the moment of time when the physical quantity was measured (if
-      /// available)
-      /// @param descriptionText Human-readable form of descriptionId parameter (if available)
-      /// @details This constructor is reserved for use by descendant classes
-      init(descriptionId, value, unit, unitText, timestamp, descriptionText);
-      INTROSPECTED_SET_OBJECT_TYPE();
-    }
+    inline Quantity(id_t id,
+                    id_t idGroup,
+                    value_t value,
+                    unit_t unit,
+                    text_t unitText,
+                    timestamp_t timestamp = {},
+                    boolean valid = true,
+                    value_t minRange = value_t(0),
+                    value_t maxRange = value_t(0));
   public:
     inline boolean validate(void) const {
       /// @brief Checks whether the object was initialised
-      /// @return true if the object is initialised, false otherwise
-      return (initComplete);
+      /// @return true if the value is valid, false otherwise
+      return (valid);
     }
   public:
-    inline DescriptionId getDescriptionId(void) const {
+    inline id_t getId(void) const {
       /// @brief Returns physical quantity identifier (location, sensor ID, etc...)
       /// @returns Physical quantity identifier in numeric form
-      return (descriptionId);
+      return (id);
     }
-    inline Timestamp getTimestamp(void) const {
+    inline id_t getIdGroup(void) const {
+      /// @brief Returns physical quantity identifier group
+      /// @returns Physical quantity group identifier in numeric form
+      return (idGroup);
+    }
+    inline timestamp_t getTimestamp(void) const {
       /// @brief Returns timestamp representing the moment of measurement of
       /// the physical quantity
       /// @returns Timestamp for measurement moment
       return (timestamp);
     }
-    inline Value getValue(void) const {
-      /// @brief Returns physical quantity numeric value
+    inline value_t getValue(void) const {
       /// @return Physical quantity numeric value
-      return (setUnitsValue);
+      return (setUnitValue);
     }
-    inline const char * getUnitText(void) const {
-      /// @brief Returns physical quantity measurement unit in human-readable form
-      /// @return Physical quantity in human-readable form
+    inline text_t PROGMEM getUnitText(void) const {
+      /// @return C-string (in PROGMEM) with physical quantity measurement unit in
+      /// human-readable form or nullptr if human-readable form was not provided
       return (setUnitText);
     }
-    inline const char * getDescriptionText(void) const {
-      /// @brief Returns physical quantity identifier (location, sensor ID, etc...)
-      /// @return Physical quantity identifier in human-readable form
-      return (descriptionText);
+    inline value_t getMinRange(void) {
+      /// @brief Returns minimum range for this quantity (if set)
+      /// @return Minimum range or zero if not set
+      return (setUnitMinRange);
     }
-    inline static size_t getUnitTextMaxSize(void) {
-      /// @return Maximum length of measurment unit cstring
-      static const size_t nullTerminatorSize = 1;
-      return (UnitTextSize - nullTerminatorSize);
-    }
-    inline static size_t getDescriptionTextMaxSize(void) {
-      /// @return Maximum length of description cstring
-      static const size_t nullTerminatorSize = 1;
-      return (DescriptionTextSize - nullTerminatorSize);
-    }
-  public:
-    inline TemplateQuantity<ValueType, Timestamp, UnitBase, DescriptionId, DescriptionTextSize, UnitTextSize>& operator = (
-      const TemplateQuantity<ValueType, Timestamp, UnitBase, DescriptionId, DescriptionTextSize, UnitTextSize> &other)
-    {
-      /// @brief Assignment operator
-      /// @details Assignment is only possible when "this" object
-      /// IS NOT initialised and the "other" object IS initialised
-      initFromOther(other);
-      return (*this);
+    inline value_t getMaxRange(void) {
+      /// @brief Returns minimum range for this quantity (if set)
+      /// @return Minimum range or zero if not set
+      return (setUnitMaxRange);
     }
   protected:
-    inline boolean init(DescriptionId descriptionId,
-                        Value value,
-                        UnitBase unit,
-                        const char * unitText = nullptr,
-                        Timestamp timestamp = 0,
-                        const char * descriptionText = nullptr);
-    inline boolean initFromOther(const TemplateQuantity<ValueType, Timestamp, UnitBase, DescriptionId, DescriptionTextSize, UnitTextSize> &other);
+    boolean setConvertedValue(value_t value,
+                              unit_t units,
+                              text_t unitText = {},
+                              value_t minRange = value_t(0),
+                              value_t maxRange = value_t(0));
   protected:
-    inline boolean setConvertedValue(Value value,
-                                     UnitBase units,
-                                     const char * unitText = nullptr);
-  protected:
-    inline Value getInitValue(void) const {
+    inline value_t getInitValue(void) const {
       /// @return Value used to initialise the object
       return (initValue);
     }
-    inline UnitBase getInitUnit(void) const {
+    inline unit_t getInitUnit(void) const {
       /// @return Measurement unit in numeric form used along with
       /// initValue to initialise the object
       return (initUnit);
     }
-  private:
-    inline void setDescriptionText(const char * descriptionText);
-    inline void setSetUnitText(const char * descriptionText);
+    inline value_t getInitMinRange(void) const {
+      /// @return Minimum range at initialisation (or 0 if not defined)
+      return (initMinRange);
+    }
+    inline value_t getInitMaxRange(void) const {
+      /// @return Maximum range at initialisation (or 0 if not defined)
+      return (initMaxRange);
+    }
   private:
     //Essential components of the quantity
     //As an example the following physical quantity will be used:
     //"outdoors temperature (id=12) is 10.25 degrees Celsius as measured at 15381 milliseconds from startup"
-    //WHAT does the quantity represent, e.g. "outdoors temperature, id=12"
-    DescriptionId descriptionId = 0;                  ///< description id
-    char descriptionText[DescriptionTextSize] = {};   ///< description in human-readable form
+    //WHAT does the quantity represent, e.g. "outdoors temperature, id=12, group=3"
+    id_t id {};                         ///< Identifier
+    id_t idGroup {};                    ///< Identifier group
     //WHEN the quantity was measured, e.g. "at 15381 milliseconds from startup"
-    Timestamp timestamp = {};
+    timestamp_t timestamp {};           ///< Timestamp at the moment of measurement
     //HOW MUCH is the numerical measurement result, e.g. "10.25"
-    Value initValue = {};                             ///< value when initialised, expressed in initUnits
-    Value setUnitsValue = {};                         ///< initValue converted from initUnits to setUnits
+    value_t initValue {};               ///< Value when initialised, expressed in initUnits
+    value_t setUnitValue {};            ///< initValue converted from initUnits to setUnits
     //In WHICH UNITS the measurement result is represented, e.g. in degrees Celsius
-    UnitBase initUnit;                                ///< unit when initialised
-    UnitBase setUnit;                                 ///< unit to convert value to
-    char setUnitText[UnitTextSize] = {};              ///< units in human-readable form
+    unit_t initUnit {};                 ///< measurment unit when initialised
+    unit_t setUnit {};                  ///< measurment unit in which setUnitValue is expressed
+    text_t setUnitText;                 ///< setUnit in human-readable form
+    //IS the numerical result valid (true/false)
+    boolean valid = false;              ///< if false, the value of setUnitValue must be disregarded
+    //IN WHICH RANGE can measurement results possibly be
+    value_t initMinRange {};            ///< minimum range in initUnit units
+    value_t initMaxRange {};            ///< maximum range in initUnit units
+    value_t setUnitMinRange {};        ///< minimum range in setUnit units
+    value_t setUnitMaxRange {};        ///< maximum range in setUnit units
   private:
-    boolean initComplete = false; ///< whether the initialisation was performed
     //Introspection
-    INTROSPECTED_BASE;
-};
+    INTROSPECTED_BASE(INTROSPECTED_CLASS_TYPE_AUTO());
+} __attribute__((packed));
 
-template <typename ValueType, typename TimestampType, typename UnitBaseType, typename DescriptionIdType, size_t DescriptionTextSize, size_t UnitTextSize>
-boolean TemplateQuantity<ValueType, TimestampType, UnitBaseType, DescriptionIdType, DescriptionTextSize, UnitTextSize>::init(
-  DescriptionId descriptionId,
-  Value value,
-  UnitBase unit,
-  const char * unitText,
-  Timestamp timestamp,
-  const char * descriptionText)
-{
-  /// @brief Initialise the fields with values provided as parameters
-  /// @details Init is only possible if "this" object is not yet initialised
-  if (initComplete) return (false);
-  this->descriptionId = descriptionId;
-  setDescriptionText(descriptionText);
+Quantity::Quantity(id_t id,
+                   id_t idGroup,
+                   value_t value,
+                   unit_t unit,
+                   text_t unitText,
+                   timestamp_t timestamp,
+                   boolean valid,
+                   value_t minRange,
+                   value_t maxRange) {
+  /// @brief Initialises object by setting its data
+  /// @param id Identifier (designation) of the physical quantity (location, sensor ID, etc...)
+  /// @param idGroup Group to which id belongs
+  /// @param value A numerical value of the physical quantity
+  /// @param unit Identifier of the measurement unit in which value is represented
+  /// @param unitText Human-readable form of unit parameter
+  /// @param timestamp Represents the moment of time when the physical quantity was measured (if
+  /// available)
+  /// @param valid False if value is invalid (e.g. error occured during measurement), true otherwise
+  /// @param minRange Minimum possible value
+  /// @param minRange Maximum possible value
+  /// @details This constructor is reserved for use by descendant classes
+  INTROSPECTED_SET_OBJECT_TYPE();
+  this->id = id;
+  this->idGroup = idGroup;
   this->timestamp = timestamp;
   this->initValue = value;
-  this->setUnitsValue = value;
   this->initUnit = unit;
   this->setUnit = unit;
-  setSetUnitText(unitText);
-  initComplete = true;
-  return (true);
-}
-
-template <typename ValueType, typename TimestampType, typename UnitBaseType, typename DescriptionIdType, size_t DescriptionTextSize, size_t UnitTextSize>
-boolean TemplateQuantity<ValueType, TimestampType, UnitBaseType, DescriptionIdType, DescriptionTextSize, UnitTextSize>::initFromOther(
-  const TemplateQuantity<ValueType, TimestampType, UnitBaseType, DescriptionIdType, DescriptionTextSize, UnitTextSize> &other)
-{
-  /// @brief Initialise the fields from "other" object
-  /// @param other Object to copy data from
-  /// @details Init is only possible if "this" object is not yet initialised and
-  /// the "other" object is initialised
-  if (initComplete) return (false);
-  if (other.initComplete) {
-    descriptionId = other.descriptionId;
-    strcpy(descriptionText, other.descriptionText);
-    timestamp = other.timestamp;
-    initValue = other.initValue;
-    setUnitsValue = other.setUnitsValue;
-    initUnit = other.initUnit;
-    setUnit = other.setUnit;
-    strcpy(setUnitText, other.setUnitText);
-    initComplete = true;
+  this->setUnitText = unitText;
+  this->valid = valid;
+  this->initMinRange = minRange;
+  this->initMaxRange = maxRange;
+  this->setUnitMinRange = this->initMinRange;
+  this->setUnitMaxRange = this->initMaxRange;
+  if ((this->initMinRange != value_t(0)) || (this->initMaxRange != value_t(0))) {
+    if (this->initValue < this->initMinRange) this->initValue = minRange;
+    if (this->initValue > this->initMaxRange) this->initValue = maxRange;
   }
-  return (true);
+  this->setUnitValue = initValue;
 }
-
-template <typename ValueType, typename TimestampType, typename UnitBaseType, typename DescriptionIdType, size_t DescriptionTextSize, size_t UnitTextSize>
-boolean TemplateQuantity<ValueType, TimestampType, UnitBaseType, DescriptionIdType, DescriptionTextSize, UnitTextSize>::setConvertedValue(
-  Value value,
-  UnitBase units,
-  const char * unitText)
-{
-  /// @brief Sets converted value and measurement units (accessible via public getter methods)
-  /// @param value Value converted into units
-  /// @param units Measurement units in numeric form
-  /// @param unitText Measurement units in human-readable form
-  if (!initComplete) return (false);
-  setUnitsValue = value;
-  setUnit = units;
-  setSetUnitText(unitText);
-  return (true);
-}
-
-template <typename ValueType, typename TimestampType, typename UnitBaseType, typename DescriptionIdType, size_t DescriptionTextSize, size_t UnitTextSize>
-void TemplateQuantity<ValueType, TimestampType, UnitBaseType, DescriptionIdType, DescriptionTextSize, UnitTextSize>::setDescriptionText(const char * descriptionText) {
-  static const size_t nullTerminatorSize = 1;
-  static const char nullTerminator = '\0';
-  /// @brief Sets description in human-readable form
-  /// @param descriptionText A cstring located in RAM which contains
-  /// the description in human-readable form
-  if (!descriptionText) {
-    this->descriptionText[0] = nullTerminator;
-    return;
-  }
-  memset(this->descriptionText, nullTerminator, DescriptionTextSize);
-  strncpy(this->descriptionText, descriptionText, DescriptionTextSize - nullTerminatorSize);
-}
-
-template <typename ValueType, typename TimestampType, typename UnitBaseType, typename DescriptionIdType, size_t DescriptionTextSize, size_t UnitTextSize>
-void TemplateQuantity<ValueType, TimestampType, UnitBaseType, DescriptionIdType, DescriptionTextSize, UnitTextSize>::setSetUnitText(const char * unitText) {
-  /// @brief Sets measurment unit in human-readable form
-  /// @param descriptionText A cstring located in RAM which contains
-  /// the measurment unit in human-readable form
-  static const size_t nullTerminatorSize = 1;
-  static const char nullTerminator = '\0';
-  if (!unitText) {
-    this->setUnitText[0] = nullTerminator;
-    return;
-  }
-  memset(this->setUnitText, nullTerminator, UnitTextSize);
-  strncpy(this->setUnitText, unitText, UnitTextSize - nullTerminatorSize);
-}
-
-//////////////////////////////////////////////////////////////////////
-// Quantity
-//////////////////////////////////////////////////////////////////////
-
-typedef uint8_t QuantityUnitBase;
-typedef uint16_t QuantityDescriptionId;
-
-static const char DescriptionTextSize = 32;
-static const char UnitTextSize = 6;
-
-///@brief Base class for concrete physical quantity classes
-using Quantity = TemplateQuantity<Value, Timestamp, QuantityUnitBase, QuantityDescriptionId, DescriptionTextSize, UnitTextSize>;
 
 //////////////////////////////////////////////////////////////////////
 // Generic Quantity
@@ -1595,34 +1601,29 @@ using Quantity = TemplateQuantity<Value, Timestamp, QuantityUnitBase, QuantityDe
 class Generic : public Quantity {
   public:
     ///@brief Measurement unit: only GENERIC is avaiable
-    enum class Unit : UnitBase {
+    enum class Unit : unit_t {
       GENERIC,
     };
     INTROSPECTED_SET_CLASS_TYPE(INTROSPECTED_CLASS_TYPE_AUTO());
   public:
-    Generic (Quantity::DescriptionId descriptionId,
-             Quantity::Value value,
-             const char * genericUnitText,
-             Quantity::Timestamp timestamp = {},
-             const char * descriptionText = nullptr)
-      : Quantity(descriptionId,
+    inline Generic (id_t id,
+                    id_t idGroup,
+                    value_t value,
+                    text_t genericUnitText,
+                    timestamp_t timestamp = {},
+                    boolean valid = true,
+                    value_t minRange = {},
+                    value_t maxRange = {})
+      : Quantity(id,
+                 idGroup,
                  value,
-                 static_cast<UnitBase>(Unit::GENERIC),
+                 static_cast<unit_t>(Unit::GENERIC),
                  genericUnitText,
                  timestamp,
-                 descriptionText)
+                 valid,
+                 minRange,
+                 maxRange)
     {
-      INTROSPECTED_SET_OBJECT_TYPE();
-    }
-    Generic (const Generic &other) : Quantity (other) {
-      INTROSPECTED_SET_OBJECT_TYPE();
-    }
-    Generic (const Quantity * other) {
-      if (!other || (other->INTROSPECT_OBJECT() != INTROSPECT_THIS_CLASS())) {
-        INTROSPECTED_SET_OBJECT_TYPE();
-        return;
-      }
-      initFromOther(*other);
       INTROSPECTED_SET_OBJECT_TYPE();
     }
 };
@@ -1640,41 +1641,36 @@ class Generic : public Quantity {
 /// @par Conversion from NONE to PERCENT multiplies the value by 100%
 class Dimensionless : public Quantity {
   public:
-    enum class Unit : UnitBase {
+    enum class Unit : unit_t {
       NONE,     ///< Used for truly dimensionless qunatity such as factor
       PERCENT,  ///< Used for percentages
     };
   public:
     INTROSPECTED_SET_CLASS_TYPE(INTROSPECTED_CLASS_TYPE_AUTO());
   public:
-    Dimensionless (Quantity::DescriptionId descriptionId,
-                   Quantity::Value value,
-                   Unit unit,
-                   Quantity::Timestamp timestamp = {},
-                   const char * descriptionText = nullptr)
-      : Quantity(descriptionId,
+    inline Dimensionless (id_t id,
+                          id_t idGroup,
+                          value_t value,
+                          Unit unit,
+                          timestamp_t timestamp = {},
+                          boolean valid = true,
+                          value_t minRange = {},
+                          value_t maxRange = {})
+      : Quantity(id,
+                 idGroup,
                  value,
-                 static_cast<UnitBase>(unit),
+                 static_cast<unit_t>(unit),
                  getUnitTextByUnit(unit),
                  timestamp,
-                 descriptionText)
+                 valid,
+                 minRange,
+                 maxRange)
     {
       INTROSPECTED_SET_OBJECT_TYPE();
     }
-    Dimensionless (const Dimensionless &other) : Quantity(other) {
-      INTROSPECTED_SET_OBJECT_TYPE();
-    }
-    Dimensionless (const Quantity * other) {
-      if (!other || (other->INTROSPECT_OBJECT() != INTROSPECT_THIS_CLASS())) {
-        INTROSPECTED_SET_OBJECT_TYPE();
-        return;
-      }
-      initFromOther(*other);
-      INTROSPECTED_SET_OBJECT_TYPE();
-    }
   public:
-    boolean convertToUnit(Unit unit);
-    static const char * getUnitTextByUnit(Unit unit);
+    boolean convertToUnit(Dimensionless::Unit unit);
+    static text_t getUnitTextByUnit(Dimensionless::Unit unit);
 };
 
 
@@ -1687,44 +1683,39 @@ class Temperature : public Quantity {
     /// @details The avaialble measurment units are CELSIUS and FAHRENHEIT,
     /// representing degrees Celsius and degrees Fahrenheit respectively
   public:
-    enum class Unit : UnitBase {
+    enum class Unit : unit_t {
       CELSIUS,      ///< Degrees Celsius
       FAHRENHEIT,   ///< Degrees Fahrenheit
     };
   public:
     INTROSPECTED_SET_CLASS_TYPE(INTROSPECTED_CLASS_TYPE_AUTO());
   public:
-    Temperature (Quantity::DescriptionId descriptionId,
-                 Quantity::Value value,
-                 Unit unit,
-                 Quantity::Timestamp timestamp = {},
-                 const char * descriptionText = nullptr)
-      : Quantity(descriptionId,
+    inline Temperature (id_t id,
+                        id_t idGroup,
+                        value_t value,
+                        Unit unit,
+                        timestamp_t timestamp = {},
+                        boolean valid = true,
+                        value_t minRange = {},
+                        value_t maxRange = {})
+      : Quantity(id,
+                 idGroup,
                  value,
-                 static_cast<UnitBase>(unit),
+                 static_cast<unit_t>(unit),
                  getUnitTextByUnit(unit),
                  timestamp,
-                 descriptionText)
+                 valid,
+                 minRange,
+                 maxRange)
     {
       INTROSPECTED_SET_OBJECT_TYPE();
     }
-    Temperature (const Temperature &other) : Quantity(other) {
-      INTROSPECTED_SET_OBJECT_TYPE();
-    }
-    Temperature (const Quantity * other) {
-      if (!other || (other->INTROSPECT_OBJECT() != INTROSPECT_THIS_CLASS())) {
-        INTROSPECTED_SET_OBJECT_TYPE();
-        return;
-      }
-      initFromOther(*other);
-      INTROSPECTED_SET_OBJECT_TYPE();
-    }
   public:
-    boolean convertToUnit(Unit unit);
-    static const char * getUnitTextByUnit(Unit unit);
+    boolean convertToUnit(Temperature::Unit unit);
+    static text_t getUnitTextByUnit(Temperature::Unit unit);
   private:
-    static Quantity::Value celsiusToFahrenheit(Quantity::Value celsiusValue);
-    static Quantity::Value fahrenheitToCelsius(Quantity::Value fahrenheitValue);
+    static value_t celsiusToFahrenheit(value_t celsiusValue);
+    static value_t fahrenheitToCelsius(value_t fahrenheitValue);
 };
 
 }; //namespace quantity

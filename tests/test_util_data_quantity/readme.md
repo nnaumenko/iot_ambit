@@ -23,33 +23,21 @@ The following is expected in serial monitor window:
     
     Test function started: static void TestQuantityAndGeneric::test_validate_genericQuantity_expectTrue(), file test_util_data_quantity.ino
     PASSED
-    Test function started: static void TestQuantityAndGeneric::test_validate_noninitialisedQuantity_expectFalse(), file test_util_data_quantity.ino
+    Test function started: static void TestQuantityAndGeneric::test_validate_genericQuantityInvalidValue_expectFalse(), file test_util_data_quantity.ino
     PASSED
     Test function started: static void TestQuantityAndGeneric::test_accessors_getGenericQuantityData_expectCorrectValues(), file test_util_data_quantity.ino
-    PASSED
-    Test function started: static void TestQuantityAndGeneric::test_accessors_getNoninitialisedQuantityData_expectDefaultValues(), file test_util_data_quantity.ino
     PASSED
     Test function started: static void TestQuantityAndGeneric::test_accessors_getGenericAsQuantityData_expectCorrectValues(), file test_util_data_quantity.ino
     PASSED
     Test function started: static void TestQuantityAndGeneric::test_copyConstructor_copyFromGenericQuantity_expectSameValues(), file test_util_data_quantity.ino
     PASSED
-    Test function started: static void TestQuantityAndGeneric::test_copyConstructor_copyFromNoninitialisedQuantity_expectDefaultData(), file test_util_data_quantity.ino
-    PASSED
-    Test function started: static void TestQuantityAndGeneric::test_initFromParametersConstructor_idTextTooLong_expectIdTextTruncated(), file test_util_data_quantity.ino
-    PASSED
-    Test function started: static void TestQuantityAndGeneric::test_initFromParametersConstructor_unitTextTooLong_expectUnitTextTruncated(), file test_util_data_quantity.ino
-    PASSED
-    Test function started: static void TestQuantityAndGeneric::test_initFromParametersConstructor_idTextNull_expectEmptyIdText(), file test_util_data_quantity.ino
-    PASSED
     Test function started: static void TestQuantityAndGeneric::test_initFromParametersConstructor_unitTextNull_expectEmptyUnitText(), file test_util_data_quantity.ino
     PASSED
-    Test function started: static void TestQuantityAndGeneric::test_assignment_assignFromGenericToNoninitialisedQuantity_expectSameValues(), file test_util_data_quantity.ino
+    Test function started: static void TestQuantityAndGeneric::test_initFromParametersConstructor_valueExceedsMinRange_expectValueLimitedToMinRange(), file test_util_data_quantity.ino
     PASSED
-    Test function started: static void TestQuantityAndGeneric::test_assignment_assignToAlreadyInitialisedQuantity_expectDataNotCopied(), file test_util_data_quantity.ino
+    Test function started: static void TestQuantityAndGeneric::test_initFromParametersConstructor_valueExceedsMaxRange_expectValueLimitedToMaxRange(), file test_util_data_quantity.ino
     PASSED
-    Test function started: static void TestQuantityAndGeneric::test_assignment_assignFromNoninitialisedQuantity_expectDefaultData(), file test_util_data_quantity.ino
-    PASSED
-    Test function started: static void TestQuantityAndGeneric::test_assignment_assignFromNoninitialisedQuantityToAlreadyInitialisedQuantity_expectDataNotCopied(), file test_util_data_quantity.ino
+    Test function started: static void TestQuantityAndGeneric::test_assignment_assignFromGenericToGeneric_expectSameValues(), file test_util_data_quantity.ino
     PASSED
     Test function started: static void TestDimensionless::init_DimensionlessQuantity_expectCorrectData(), file test_util_data_quantity.ino
     PASSED
@@ -77,12 +65,16 @@ The following is expected in serial monitor window:
     PASSED
     Test function started: static void TestQuantityIntrospectionReflection::testReflectionTemperature(), file test_util_data_quantity.ino
     PASSED
-    Test function started: static void TestQuantityIntrospectionReflection::testReflection_sourceModified_expectReflectedValueNotModified(), file test_util_data_quantity.ino
-    PASSED
+    sizeof(util::quantity::Quantity) 42
+    sizeof(util::quantity::Generic) 42
+    sizeof(util::quantity::Dimensionless) 42
+    sizeof(util::quantity::Temperature) 42
     
     ---------------- TESTING FINISHED ---------------
-    Test functions passed: 29
+    Test functions passed: 22
     Test functions failed: 0
+
+Note: class sizes are for reference only.
 
 # Failed tests
 

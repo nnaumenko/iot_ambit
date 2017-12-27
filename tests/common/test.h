@@ -21,6 +21,8 @@
 #define TEST_PRINTLN(text) TEST_STREAM.println(F(#text))
 #define TEST_PRINT(text) TEST_STREAM.print(F(#text))
 
+#define TEST_PRINTLN_DATA(data) {TEST_STREAM.print(F(#data));TEST_STREAM.print(' ');TEST_STREAM.println(data);}
+
 #define TEST_BEGIN() do{TEST_STREAM.println("\n---------------- TESTING STARTED ----------------\n");} while(0)
 #define TEST_END() do{TEST_STREAM.print("\n---------------- TESTING FINISHED ---------------\nTest functions passed: ");TEST_STREAM.println(__testsPassed__);TEST_STREAM.print("Test functions failed: "); TEST_STREAM.println(__testsFailed__); yield();} while(0)
 

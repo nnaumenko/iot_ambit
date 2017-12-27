@@ -4,9 +4,9 @@
 
 #include "util_data.h"
 
-util::Value absDiff(util::Value v1, util::Value v2) {
-  util::Value diff = v1 - v2;
-  if (diff < util::Value(0)) diff *= util::Value(-1);
+util::quantity::Quantity::value_t absDiff(util::quantity::Quantity::value_t v1, util::quantity::Quantity::value_t v2) {
+  util::quantity::Quantity::value_t diff = v1 - v2;
+  if (diff < util::quantity::Quantity::value_t(0)) diff *= util::quantity::Quantity::value_t(-1);
   return (diff);
 }
 
@@ -15,380 +15,260 @@ class TestQuantityAndGeneric {
     static void test_validate_genericQuantity_expectTrue(void) {
       TEST_FUNC_START();
       //arrange
-      util::quantity::QuantityDescriptionId id(3);
-      util::Value value(5);
-      const char unit[] = "test";
-      util::Timestamp timestamp = util::getTimestamp();
-      const char descriptionText[] = "description";
-      util::quantity::Generic testGenericQuantity(id, value, unit, timestamp, descriptionText);
+      util::quantity::Quantity::id_t id(3);
+      util::quantity::Quantity::id_t idGroup(4);
+      util::quantity::Quantity::value_t value(5);
+      util::quantity::Quantity::text_t unit("test");
+      util::quantity::Quantity::timestamp_t timestamp = util::getTimestamp();
+      util::quantity::Generic testGenericQuantity(id, idGroup, value, unit, timestamp);
       //act
       boolean validationResult = testGenericQuantity.validate();
       //assert
       TEST_ASSERT(validationResult);
       TEST_FUNC_END();
     }
-    static void test_validate_noninitialisedQuantity_expectFalse(void) {
+    static void test_validate_genericQuantityInvalidValue_expectFalse(void) {
       TEST_FUNC_START();
       //arrange
-      util::quantity::Quantity testQuantity;
+      util::quantity::Quantity::id_t id(3);
+      util::quantity::Quantity::id_t idGroup(4);
+      util::quantity::Quantity::value_t value(5);
+      util::quantity::Quantity::text_t unit("test");
+      util::quantity::Quantity::timestamp_t timestamp = util::getTimestamp();
+      boolean valueValid = false;
+      util::quantity::Generic testGenericQuantity(id, idGroup, value, unit, timestamp, valueValid);
       //act
-      boolean validationResult = testQuantity.validate();
+      boolean validationResult = testGenericQuantity.validate();
       //assert
       TEST_ASSERT(!validationResult);
       TEST_FUNC_END();
     }
     static void test_validate(void) {
       test_validate_genericQuantity_expectTrue();
-      test_validate_noninitialisedQuantity_expectFalse();
+      test_validate_genericQuantityInvalidValue_expectFalse();
     }
   public:
     static void test_accessors_getGenericQuantityData_expectCorrectValues(void) {
       TEST_FUNC_START();
       //arrange
-      util::quantity::QuantityDescriptionId id(3);
-      util::Value value(5);
-      const char unit[] = "test";
-      util::Timestamp timestamp = util::getTimestamp();
-      const char descriptionText[] = "description";
-      util::quantity::Generic testGenericQuantity(id, value, unit, timestamp, descriptionText);
+      util::quantity::Quantity::id_t id(3);
+      util::quantity::Quantity::id_t idGroup(4);
+      util::quantity::Quantity::value_t value(5);
+      util::quantity::Quantity::text_t unit("test");
+      util::quantity::Quantity::timestamp_t timestamp = util::getTimestamp();
+      util::quantity::Quantity::value_t minRange(0);
+      util::quantity::Quantity::value_t maxRange(100);
+      const boolean valueValid = true;
+      util::quantity::Generic testGenericQuantity(id, idGroup, value, unit, timestamp, valueValid, minRange, maxRange);
       //act
       boolean validationResult = testGenericQuantity.validate();
-      util::quantity::QuantityDescriptionId resultId = testGenericQuantity.getDescriptionId();
-      util::Timestamp resultTimestamp = testGenericQuantity.getTimestamp();
-      util::Value resultValue = testGenericQuantity.getValue();
-      const char * resultUnit = testGenericQuantity.getUnitText();
-      const char * resultDescriptionText = testGenericQuantity.getDescriptionText();
+      util::quantity::Quantity::id_t resultId = testGenericQuantity.getId();
+      util::quantity::Quantity::id_t resultIdGroup = testGenericQuantity.getIdGroup();
+      util::quantity::Quantity::timestamp_t resultTimestamp = testGenericQuantity.getTimestamp();
+      util::quantity::Quantity::value_t resultValue = testGenericQuantity.getValue();
+      util::quantity::Quantity::text_t resultUnit = testGenericQuantity.getUnitText();
+      util::quantity::Quantity::value_t resultMinRange = testGenericQuantity.getMinRange();
+      util::quantity::Quantity::value_t resultMaxRange = testGenericQuantity.getMaxRange();
       //assert
       TEST_ASSERT(validationResult);
       TEST_ASSERT(id == resultId);
+      TEST_ASSERT(idGroup == resultIdGroup);
       TEST_ASSERT(resultTimestamp == timestamp);
       TEST_ASSERT(resultValue == value);
-      TEST_ASSERT(!strcmp(unit, resultUnit));
-      TEST_ASSERT(!strcmp(descriptionText, resultDescriptionText));
-      TEST_FUNC_END();
-    }
-    static void test_accessors_getNoninitialisedQuantityData_expectDefaultValues(void) {
-      TEST_FUNC_START();
-      //arrange
-      util::quantity::Quantity testQuantity;
-      //act
-      boolean validationResult = testQuantity.validate();
-      util::quantity::QuantityDescriptionId resultId = testQuantity.getDescriptionId();
-      util::Timestamp resultTimestamp = testQuantity.getTimestamp();
-      util::Value resultValue = testQuantity.getValue();
-      const char * resultUnit = testQuantity.getUnitText();
-      const char * resultDescriptionText = testQuantity.getDescriptionText();
-      //assert
-      TEST_ASSERT(!validationResult);
-      TEST_ASSERT(!resultId);
-      TEST_ASSERT(!resultTimestamp);
-      TEST_ASSERT(resultValue == util::Value());
-      TEST_ASSERT(!strlen(resultUnit));
-      TEST_ASSERT(!strlen(resultDescriptionText));
+      TEST_ASSERT(unit == resultUnit);
+      TEST_ASSERT(resultMinRange == minRange);
+      TEST_ASSERT(resultMaxRange == maxRange);
       TEST_FUNC_END();
     }
     static void test_accessors_getGenericAsQuantityData_expectCorrectValues(void) {
       TEST_FUNC_START();
       //arrange
-      util::quantity::QuantityDescriptionId id(3);
-      util::Value value(5);
-      const char unit[] = "test";
-      util::Timestamp timestamp = util::getTimestamp();
-      const char descriptionText[] = "description";
-      util::quantity::Generic testGenericQuantity(id, value, unit, timestamp, descriptionText);
+      util::quantity::Quantity::id_t id(3);
+      util::quantity::Quantity::id_t idGroup(4);
+      util::quantity::Quantity::value_t value(5);
+      util::quantity::Quantity::text_t unit("test");
+      util::quantity::Quantity::timestamp_t timestamp = util::getTimestamp();
+      util::quantity::Quantity::value_t minRange(0);
+      util::quantity::Quantity::value_t maxRange(100);
+      const boolean valueValid = true;
+      util::quantity::Generic testGenericQuantity(id, idGroup, value, unit, timestamp, valueValid, minRange, maxRange);
       util::quantity::Quantity * testQuantity = &testGenericQuantity;
       //act
       boolean validationResult = testQuantity->validate();
-      util::quantity::QuantityDescriptionId resultId = testQuantity->getDescriptionId();
-      util::Timestamp resultTimestamp = testQuantity->getTimestamp();
-      util::Value resultValue = testQuantity->getValue();
-      const char * resultUnit = testQuantity->getUnitText();
-      const char * resultDescriptionText = testQuantity->getDescriptionText();
+      util::quantity::Quantity::id_t resultId = testQuantity->getId();
+      util::quantity::Quantity::id_t resultIdGroup = testQuantity->getIdGroup();
+      util::quantity::Quantity::timestamp_t resultTimestamp = testQuantity->getTimestamp();
+      util::quantity::Quantity::value_t resultValue = testQuantity->getValue();
+      util::quantity::Quantity::text_t resultUnit = testQuantity->getUnitText();
+      util::quantity::Quantity::value_t resultMinRange = testQuantity->getMinRange();
+      util::quantity::Quantity::value_t resultMaxRange = testQuantity->getMaxRange();
       //assert
       TEST_ASSERT(validationResult);
       TEST_ASSERT(id == resultId);
+      TEST_ASSERT(idGroup == resultIdGroup);
       TEST_ASSERT(resultTimestamp == timestamp);
       TEST_ASSERT(resultValue == value);
-      TEST_ASSERT(!strcmp(unit, resultUnit));
-      TEST_ASSERT(!strcmp(descriptionText, resultDescriptionText));
+      TEST_ASSERT(unit == resultUnit);
+      TEST_ASSERT(resultMinRange == minRange);
+      TEST_ASSERT(resultMaxRange == maxRange);
       TEST_FUNC_END();
     }
     static void test_accessors(void) {
       test_accessors_getGenericQuantityData_expectCorrectValues();
-      test_accessors_getNoninitialisedQuantityData_expectDefaultValues();
       test_accessors_getGenericAsQuantityData_expectCorrectValues();
     }
   public:
     static void test_copyConstructor_copyFromGenericQuantity_expectSameValues(void) {
       TEST_FUNC_START();
       //arrange
-      util::quantity::QuantityDescriptionId id(3);
-      util::Value value(5);
-      const char unit[] = "test";
-      util::Timestamp timestamp = util::getTimestamp();
-      const char descriptionText[] = "description";
-      util::quantity::Generic testGenericQuantitySource(id, value, unit, timestamp, descriptionText);
+      util::quantity::Quantity::id_t id(3);
+      util::quantity::Quantity::id_t idGroup(4);
+      util::quantity::Quantity::value_t value(5);
+      util::quantity::Quantity::text_t unit("test");
+      util::quantity::Quantity::timestamp_t timestamp = util::getTimestamp();
+      util::quantity::Quantity::value_t minRange(0);
+      util::quantity::Quantity::value_t maxRange(100);
+      const boolean valueValid = true;
+      util::quantity::Generic testGenericQuantitySource(id, idGroup, value, unit, timestamp, valueValid, minRange, maxRange);
       //act
       util::quantity::Generic testGenericQuantity(testGenericQuantitySource);
       //assert
       boolean validationResultSrc = testGenericQuantitySource.validate();
       boolean validationResultDst = testGenericQuantity.validate();
-      util::quantity::QuantityDescriptionId resultIdSrc = testGenericQuantitySource.getDescriptionId();
-      util::quantity::QuantityDescriptionId resultIdDst = testGenericQuantity.getDescriptionId();
-      util::Timestamp resultTimestampSrc = testGenericQuantitySource.getTimestamp();
-      util::Timestamp resultTimestampDst = testGenericQuantity.getTimestamp();
-      util::Value resultValueSrc = testGenericQuantitySource.getValue();
-      util::Value resultValueDst = testGenericQuantity.getValue();
-      const char * resultUnitSrc = testGenericQuantitySource.getUnitText();
-      const char * resultUnitDst = testGenericQuantity.getUnitText();
-      const char * resultDescriptionTextSrc = testGenericQuantitySource.getDescriptionText();
-      const char * resultDescriptionTextDst = testGenericQuantity.getDescriptionText();
+      util::quantity::Quantity::id_t resultIdSrc = testGenericQuantitySource.getId();
+      util::quantity::Quantity::id_t resultIdDst = testGenericQuantity.getId();
+      util::quantity::Quantity::id_t resultIdGroupSrc = testGenericQuantitySource.getIdGroup();
+      util::quantity::Quantity::id_t resultIdGroupDst = testGenericQuantity.getIdGroup();
+      util::quantity::Quantity::timestamp_t resultTimestampSrc = testGenericQuantitySource.getTimestamp();
+      util::quantity::Quantity::timestamp_t resultTimestampDst = testGenericQuantity.getTimestamp();
+      util::quantity::Quantity::value_t resultValueSrc = testGenericQuantitySource.getValue();
+      util::quantity::Quantity::value_t resultValueDst = testGenericQuantity.getValue();
+      util::quantity::Quantity::text_t resultUnitSrc = testGenericQuantitySource.getUnitText();
+      util::quantity::Quantity::text_t resultUnitDst = testGenericQuantity.getUnitText();
+      util::quantity::Quantity::value_t resultMinRangeSrc = testGenericQuantitySource.getMinRange();
+      util::quantity::Quantity::value_t resultMinRangeDst = testGenericQuantity.getMinRange();
+      util::quantity::Quantity::value_t resultMaxRangeSrc = testGenericQuantitySource.getMaxRange();
+      util::quantity::Quantity::value_t resultMaxRangeDst = testGenericQuantity.getMaxRange();
       TEST_ASSERT(validationResultSrc);
       TEST_ASSERT(validationResultDst);
       TEST_ASSERT(resultIdSrc == resultIdDst);
+      TEST_ASSERT(resultIdGroupSrc == resultIdGroupDst);
       TEST_ASSERT(resultTimestampSrc == resultTimestampDst);
       TEST_ASSERT(resultValueSrc == resultValueDst);
-      TEST_ASSERT(!strcmp(resultUnitSrc, resultUnitDst));
-      TEST_ASSERT(!strcmp(resultDescriptionTextSrc, resultDescriptionTextDst));
-      TEST_FUNC_END();
-    }
-    static void test_copyConstructor_copyFromNoninitialisedQuantity_expectDefaultData(void) {
-      TEST_FUNC_START();
-      //arrange
-      util::quantity::Quantity testQuantitySource;
-      //act
-      util::quantity::Quantity testQuantity(testQuantitySource);
-      //assert
-      boolean validationResult = testQuantity.validate();
-      util::quantity::QuantityDescriptionId resultId = testQuantity.getDescriptionId();
-      util::Timestamp resultTimestamp = testQuantity.getTimestamp();
-      util::Value resultValue = testQuantity.getValue();
-      const char * resultUnit = testQuantity.getUnitText();
-      const char * resultDescriptionText = testQuantity.getDescriptionText();
-      TEST_ASSERT(!validationResult);
-      TEST_ASSERT(!resultId);
-      TEST_ASSERT(!resultTimestamp);
-      TEST_ASSERT(resultValue == util::Value());
-      TEST_ASSERT(!strlen(resultUnit));
-      TEST_ASSERT(!strlen(resultDescriptionText));
-      TEST_FUNC_END();
-    }
-    static void test_initFromParametersConstructor_idTextTooLong_expectIdTextTruncated(void) {
-      TEST_FUNC_START();
-      //arrange
-      util::quantity::QuantityDescriptionId id(3);
-      util::Value value(5);
-      const char unit[] = "test";
-      util::Timestamp timestamp = util::getTimestamp();
-      const size_t extraChars = 2;
-      char descriptionText[util::quantity::Quantity::getDescriptionTextMaxSize() + extraChars];
-      static const size_t nullTerminatorSize = 1;
-      static const char nullTerminator = '\0';
-      for (size_t i = 0; i < sizeof(descriptionText) - nullTerminatorSize; i++) {
-        descriptionText[i] = (i % 26) + 'a';
-      }
-      descriptionText[sizeof(descriptionText) - nullTerminatorSize] = nullTerminator;
-      //act
-      util::quantity::Generic testGenericQuantity(id, value, unit, timestamp, descriptionText);
-      //assert
-      TEST_ASSERT(strlen(descriptionText) > testGenericQuantity.getDescriptionTextMaxSize());
-      TEST_ASSERT(!strncmp(testGenericQuantity.getDescriptionText(), descriptionText, testGenericQuantity.getDescriptionTextMaxSize() - nullTerminatorSize));
-      TEST_ASSERT(strlen(testGenericQuantity.getDescriptionText()) == testGenericQuantity.getDescriptionTextMaxSize());
-      TEST_FUNC_END();
-    }
-    static void test_initFromParametersConstructor_unitTextTooLong_expectUnitTextTruncated(void) {
-      TEST_FUNC_START();
-      //arrange
-      util::quantity::QuantityDescriptionId id(3);
-      util::Value value(5);
-      util::Timestamp timestamp = util::getTimestamp();
-      const size_t extraChars = 2;
-      const char descriptionText[] = "description";
-      static const size_t nullTerminatorSize = 1;
-      static const char nullTerminator = '\0';
-      char unit[util::quantity::Quantity::getUnitTextMaxSize() + extraChars];
-      for (size_t i = 0; i < sizeof(unit) - nullTerminatorSize; i++) {
-        unit[i] = (i % 26) + 'a';
-      }
-      unit[sizeof(unit) - nullTerminatorSize] = nullTerminator;
-      //act
-      util::quantity::Generic testGenericQuantity(id, value, unit, timestamp, descriptionText);
-      //assert
-      TEST_ASSERT(strlen(unit) > testGenericQuantity.getUnitTextMaxSize());
-      TEST_ASSERT(!strncmp(testGenericQuantity.getUnitText(), unit, testGenericQuantity.getUnitTextMaxSize() - nullTerminatorSize));
-      TEST_ASSERT(strlen(testGenericQuantity.getUnitText()) == testGenericQuantity.getUnitTextMaxSize());
-      TEST_FUNC_END();
-    }
-    static void test_initFromParametersConstructor_idTextNull_expectEmptyIdText(void) {
-      TEST_FUNC_START();
-      //arrange
-      util::quantity::QuantityDescriptionId id(3);
-      util::Value value(5);
-      const char unit[] = "test";
-      util::Timestamp timestamp = util::getTimestamp();
-      //act
-      util::quantity::Generic testGenericQuantity(id, value, unit, timestamp, nullptr);
-      //assert
-      TEST_ASSERT(testGenericQuantity.validate());
-      TEST_ASSERT(!strlen(testGenericQuantity.getDescriptionText()));
+      TEST_ASSERT(resultUnitSrc == resultUnitDst);
+      TEST_ASSERT(resultMinRangeSrc == resultMinRangeDst);
+      TEST_ASSERT(resultMaxRangeSrc == resultMaxRangeDst);
       TEST_FUNC_END();
     }
     static void test_initFromParametersConstructor_unitTextNull_expectEmptyUnitText(void) {
       TEST_FUNC_START();
       //arrange
-      util::quantity::QuantityDescriptionId id(3);
-      util::Value value(5);
-      util::Timestamp timestamp = util::getTimestamp();
-      const char descriptionText[] = "description";
+      util::quantity::Quantity::id_t id(3);
+      util::quantity::Quantity::id_t idGroup(4);
+      util::quantity::Quantity::value_t value(5);
+      util::quantity::Quantity::timestamp_t timestamp = util::getTimestamp();
+      util::quantity::Quantity::text_t emptyUnitText;
       //act
-      util::quantity::Generic testGenericQuantity(id, value, nullptr, timestamp, descriptionText);
+      util::quantity::Generic testGenericQuantity(id, idGroup, value, emptyUnitText, timestamp);
       //assert
       TEST_ASSERT(testGenericQuantity.validate());
-      TEST_ASSERT(!strlen(testGenericQuantity.getUnitText()));
+      TEST_ASSERT(!testGenericQuantity.getUnitText());
+      TEST_FUNC_END();
+    }
+    static void test_initFromParametersConstructor_valueExceedsMinRange_expectValueLimitedToMinRange() {
+      TEST_FUNC_START();
+      //arrange
+      util::quantity::Quantity::id_t id(3);
+      util::quantity::Quantity::id_t idGroup(4);
+      util::quantity::Quantity::value_t value(5);
+      util::quantity::Quantity::text_t unit("test");
+      util::quantity::Quantity::timestamp_t timestamp = util::getTimestamp();
+      util::quantity::Quantity::value_t minRange(10);
+      util::quantity::Quantity::value_t maxRange(100);
+      const boolean valueValid = true;
+      util::quantity::Generic testGenericQuantity(id, idGroup, value, unit, timestamp, valueValid, minRange, maxRange);
+      //act
+      boolean validationResult = testGenericQuantity.validate();
+      util::quantity::Quantity::value_t resultValue = testGenericQuantity.getValue();
+      util::quantity::Quantity::value_t resultMinRange = testGenericQuantity.getMinRange();
+      //assert
+      TEST_ASSERT(validationResult);
+      TEST_ASSERT(resultValue == resultMinRange);
+      TEST_FUNC_END();
+    }
+    static void test_initFromParametersConstructor_valueExceedsMaxRange_expectValueLimitedToMaxRange() {
+      TEST_FUNC_START();
+      //arrange
+      util::quantity::Quantity::id_t id(3);
+      util::quantity::Quantity::id_t idGroup(4);
+      util::quantity::Quantity::value_t value(105);
+      util::quantity::Quantity::text_t unit("test");
+      util::quantity::Quantity::timestamp_t timestamp = util::getTimestamp();
+      util::quantity::Quantity::value_t minRange(0);
+      util::quantity::Quantity::value_t maxRange(100);
+      const boolean valueValid = true;
+      util::quantity::Generic testGenericQuantity(id, idGroup, value, unit, timestamp, valueValid, minRange, maxRange);
+      //act
+      boolean validationResult = testGenericQuantity.validate();
+      util::quantity::Quantity::value_t resultValue = testGenericQuantity.getValue();
+      util::quantity::Quantity::value_t resultMaxRange = testGenericQuantity.getMaxRange();
+      //assert
+      TEST_ASSERT(validationResult);
+      TEST_ASSERT(resultValue == resultMaxRange);
       TEST_FUNC_END();
     }
     static void test_constructors(void) {
       test_copyConstructor_copyFromGenericQuantity_expectSameValues();
-      test_copyConstructor_copyFromNoninitialisedQuantity_expectDefaultData();
-      test_initFromParametersConstructor_idTextTooLong_expectIdTextTruncated();
-      test_initFromParametersConstructor_unitTextTooLong_expectUnitTextTruncated();
-      test_initFromParametersConstructor_idTextNull_expectEmptyIdText();
       test_initFromParametersConstructor_unitTextNull_expectEmptyUnitText();
+      test_initFromParametersConstructor_valueExceedsMinRange_expectValueLimitedToMinRange();
+      test_initFromParametersConstructor_valueExceedsMaxRange_expectValueLimitedToMaxRange();
     }
   public:
-    static void test_assignment_assignFromGenericToNoninitialisedQuantity_expectSameValues() {
+    static void test_assignment_assignFromGenericToGeneric_expectSameValues() {
       TEST_FUNC_START();
       //arrange
-      util::quantity::QuantityDescriptionId id(3);
-      util::Value value(5);
-      const char unit[] = "test";
-      util::Timestamp timestamp = util::getTimestamp();
-      const char descriptionText[] = "description";
-      util::quantity::Generic testGenericQuantity(id, value, unit, timestamp, descriptionText);
-      util::quantity::Quantity testQuantity;
+      util::quantity::Quantity::id_t id(3);
+      util::quantity::Quantity::id_t idGroup(4);
+      util::quantity::Quantity::value_t value(5);
+      util::quantity::Quantity::value_t minRange(1);
+      util::quantity::Quantity::value_t maxRange(100);
+      util::quantity::Quantity::text_t unit("test");
+      util::quantity::Quantity::timestamp_t timestamp = util::getTimestamp();
+      boolean validity = true;
+      util::quantity::Generic testSrc(id, idGroup, value, unit, timestamp, validity, minRange, maxRange);
+      util::quantity::Generic testDst(1, 2, 3, util::StrRef("123"));
       //act
-      testQuantity = testGenericQuantity;
+      testDst = testSrc;
       //assert
-      boolean validationResultSrc = testGenericQuantity.validate();
-      boolean validationResultDst = testQuantity.validate();
-      util::quantity::QuantityDescriptionId resultIdSrc = testGenericQuantity.getDescriptionId();
-      util::quantity::QuantityDescriptionId resultIdDst = testQuantity.getDescriptionId();
-      util::Timestamp resultTimestampSrc = testGenericQuantity.getTimestamp();
-      util::Timestamp resultTimestampDst = testQuantity.getTimestamp();
-      util::Value resultValueSrc = testGenericQuantity.getValue();
-      util::Value resultValueDst = testQuantity.getValue();
-      const char * resultUnitSrc = testGenericQuantity.getUnitText();
-      const char * resultUnitDst = testQuantity.getUnitText();
-      const char * resultDescriptionTextSrc = testGenericQuantity.getDescriptionText();
-      const char * resultDescriptionTextDst = testQuantity.getDescriptionText();
+      boolean validationResultSrc = testSrc.validate();
+      boolean validationResultDst = testDst.validate();
+      util::quantity::Quantity::id_t resultIdSrc = testSrc.getId();
+      util::quantity::Quantity::id_t resultIdDst = testDst.getId();
+      util::quantity::Quantity::id_t resultIdGroupSrc = testSrc.getIdGroup();
+      util::quantity::Quantity::id_t resultIdGroupDst = testDst.getIdGroup();
+      util::quantity::Quantity::timestamp_t resultTimestampSrc = testSrc.getTimestamp();
+      util::quantity::Quantity::timestamp_t resultTimestampDst = testDst.getTimestamp();
+      util::quantity::Quantity::value_t resultValueSrc = testSrc.getValue();
+      util::quantity::Quantity::value_t resultValueDst = testDst.getValue();
+      util::quantity::Quantity::text_t resultUnitSrc = testSrc.getUnitText();
+      util::quantity::Quantity::text_t resultUnitDst = testDst.getUnitText();
+      util::quantity::Quantity::value_t resultMinRangeSrc = testSrc.getMinRange();
+      util::quantity::Quantity::value_t resultMinRangeDst = testDst.getMinRange();
+      util::quantity::Quantity::value_t resultMaxRangeSrc = testSrc.getMaxRange();
+      util::quantity::Quantity::value_t resultMaxRangeDst = testDst.getMaxRange();
       TEST_ASSERT(validationResultSrc);
       TEST_ASSERT(validationResultDst);
       TEST_ASSERT(resultIdSrc == resultIdDst);
+      TEST_ASSERT(resultIdGroupSrc == resultIdGroupDst);
       TEST_ASSERT(resultTimestampSrc == resultTimestampDst);
       TEST_ASSERT(resultValueSrc == resultValueDst);
-      TEST_ASSERT(!strcmp(resultUnitSrc, resultUnitDst));
-      TEST_ASSERT(!strcmp(resultDescriptionTextSrc, resultDescriptionTextDst));
-      TEST_FUNC_END();
-    }
-    static void test_assignment_assignToAlreadyInitialisedQuantity_expectDataNotCopied() {
-      TEST_FUNC_START();
-      //arrange
-      util::quantity::QuantityDescriptionId id1(3);
-      util::Value value1(5);
-      const char unit1[] = "test";
-      util::Timestamp timestamp1 = util::getTimestamp();
-      const char descriptionText1[] = "description";
-      util::quantity::Generic testGenericQuantity1(id1, value1, unit1, timestamp1, descriptionText1);
-      util::quantity::QuantityDescriptionId id2(4);
-      util::Value value2(6);
-      delay(2);//makes sure that testGenericQuantity1 and testGenericQuantity2 timestamps are not the same
-      const char unit2[] = "unit";
-      util::Timestamp timestamp2 = util::getTimestamp();
-      const char descriptionText2[] = "descrText";
-      util::quantity::Generic testGenericQuantity2(id2, value2, unit2, timestamp2, descriptionText2);
-      //act
-      testGenericQuantity1 = testGenericQuantity2;
-      //assert
-      boolean validationResult1 = testGenericQuantity1.validate();
-      boolean validationResult2 = testGenericQuantity2.validate();
-      util::quantity::QuantityDescriptionId resultId1 = testGenericQuantity1.getDescriptionId();
-      util::Timestamp resultTimestamp1 = testGenericQuantity1.getTimestamp();
-      util::Value resultValue1 = testGenericQuantity1.getValue();
-      const char * resultUnit1 = testGenericQuantity1.getUnitText();
-      const char * resultDescriptionText1 = testGenericQuantity1.getDescriptionText();
-      //Make sure both Quantities are initialised
-      TEST_ASSERT(validationResult1);
-      TEST_ASSERT(validationResult2);
-      //Make sure all data from two Quantities are different
-      TEST_ASSERT(id1 != id2);
-      TEST_ASSERT(timestamp1 != timestamp2);
-      TEST_ASSERT(value1 != value2);
-      TEST_ASSERT(strcmp(unit1, unit2));
-      TEST_ASSERT(strcmp(descriptionText1, descriptionText2));
-      //Make sure no data were copied during assignment
-      TEST_ASSERT(resultId1 == id1);
-      TEST_ASSERT(resultTimestamp1 == timestamp1);
-      TEST_ASSERT(resultValue1 == value1);
-      TEST_ASSERT(!strcmp(resultUnit1, unit1));
-      TEST_ASSERT(!strcmp(resultDescriptionText1, descriptionText1));
-      //
-      TEST_FUNC_END();
-    }
-    static void test_assignment_assignFromNoninitialisedQuantity_expectDefaultData() {
-      TEST_FUNC_START();
-      //arrange
-      util::quantity::Quantity testQuantitySource;
-      util::quantity::Quantity testQuantity;
-      //act
-      testQuantity = testQuantitySource;
-      //assert
-      boolean validationResult = testQuantity.validate();
-      util::quantity::QuantityDescriptionId resultId = testQuantity.getDescriptionId();
-      util::Timestamp resultTimestamp = testQuantity.getTimestamp();
-      util::Value resultValue = testQuantity.getValue();
-      const char * resultUnit = testQuantity.getUnitText();
-      const char * resultDescriptionText = testQuantity.getDescriptionText();
-      TEST_ASSERT(!validationResult);
-      TEST_ASSERT(!resultId);
-      TEST_ASSERT(!resultTimestamp);
-      TEST_ASSERT(resultValue == util::Value());
-      TEST_ASSERT(!strlen(resultUnit));
-      TEST_ASSERT(!strlen(resultDescriptionText));
-      TEST_FUNC_END();
-    }
-    static void test_assignment_assignFromNoninitialisedQuantityToAlreadyInitialisedQuantity_expectDataNotCopied() {
-      TEST_FUNC_START();
-      //arrange
-      util::quantity::QuantityDescriptionId id(3);
-      util::Value value(5);
-      const char unit[] = "test";
-      util::Timestamp timestamp = util::getTimestamp();
-      const char descriptionText[] = "description";
-      util::quantity::Generic testGenericQuantitySource(id, value, unit, timestamp, descriptionText);
-      util::quantity::Quantity * testGenericQuantity = &testGenericQuantitySource;
-      util::quantity::Quantity testNonititialisedQuantity;
-      //act
-      *testGenericQuantity = testNonititialisedQuantity;
-      //assert
-      boolean validationResult = testGenericQuantity->validate();
-      util::quantity::QuantityDescriptionId resultId = testGenericQuantity->getDescriptionId();
-      util::Timestamp resultTimestamp = testGenericQuantity->getTimestamp();
-      util::Value resultValue = testGenericQuantity->getValue();
-      const char * resultUnit = testGenericQuantity->getUnitText();
-      const char * resultDescriptionText = testGenericQuantity->getDescriptionText();
-      TEST_ASSERT(validationResult);
-      TEST_ASSERT(resultId == id);
-      TEST_ASSERT(resultTimestamp == timestamp);
-      TEST_ASSERT(resultValue == value);
-      TEST_ASSERT(!strcmp(resultUnit, unit));
-      TEST_ASSERT(!strcmp(resultDescriptionText, descriptionText));
+      TEST_ASSERT(resultUnitSrc == resultUnitDst);
+      TEST_ASSERT(resultMinRangeSrc == resultMinRangeDst);
+      TEST_ASSERT(resultMaxRangeSrc == resultMaxRangeDst);
       TEST_FUNC_END();
     }
     static void test_assignment(void) {
-      test_assignment_assignFromGenericToNoninitialisedQuantity_expectSameValues();
-      test_assignment_assignToAlreadyInitialisedQuantity_expectDataNotCopied();
-      test_assignment_assignFromNoninitialisedQuantity_expectDefaultData();
-      test_assignment_assignFromNoninitialisedQuantityToAlreadyInitialisedQuantity_expectDataNotCopied();
+      test_assignment_assignFromGenericToGeneric_expectSameValues();
     }
   public:
     static void runTests(void) {
@@ -404,26 +284,29 @@ class TestDimensionless {
     static void init_DimensionlessQuantity_expectCorrectData(void) {
       TEST_FUNC_START();
       //arrange
-      util::quantity::QuantityDescriptionId id(3);
-      util::Value value(5);
+      util::quantity::Quantity::id_t id(3);
+      util::quantity::Quantity::id_t idGroup(4);
+      util::quantity::Quantity::value_t value(5);
       util::quantity::Dimensionless::Unit unit = util::quantity::Dimensionless::Unit::NONE;
-      util::Timestamp timestamp = util::getTimestamp();
-      const char descriptionText[] = "description";
+      util::quantity::Quantity::timestamp_t timestamp = util::getTimestamp();
+      util::quantity::Quantity::value_t minRange(1);
+      util::quantity::Quantity::value_t maxRange(100);
+      boolean validity = true;
       //act
-      util::quantity::Dimensionless testDimensionlessQuantity(id, value, unit, timestamp, descriptionText);
+      util::quantity::Dimensionless testDimensionlessQuantity(id, idGroup, value, unit, timestamp, validity, minRange, maxRange);
       //assert
       boolean validationResult = testDimensionlessQuantity.validate();
-      util::quantity::QuantityDescriptionId resultId = testDimensionlessQuantity.getDescriptionId();
-      util::Timestamp resultTimestamp = testDimensionlessQuantity.getTimestamp();
-      util::Value resultValue = testDimensionlessQuantity.getValue();
-      const char * resultUnit = testDimensionlessQuantity.getUnitText();
-      const char * resultDescriptionText = testDimensionlessQuantity.getDescriptionText();
+      util::quantity::Quantity::id_t resultId = testDimensionlessQuantity.getId();
+      util::quantity::Quantity::id_t resultIdGroup = testDimensionlessQuantity.getIdGroup();
+      util::quantity::Quantity::timestamp_t resultTimestamp = testDimensionlessQuantity.getTimestamp();
+      util::quantity::Quantity::value_t resultValue = testDimensionlessQuantity.getValue();
+      util::quantity::Quantity::text_t resultUnit = testDimensionlessQuantity.getUnitText();
       TEST_ASSERT(validationResult);
       TEST_ASSERT(id == resultId);
+      TEST_ASSERT(idGroup == resultIdGroup);
       TEST_ASSERT(resultTimestamp == timestamp);
       TEST_ASSERT(resultValue == value);
-      TEST_ASSERT(!strcmp(util::quantity::Dimensionless::getUnitTextByUnit(unit), resultUnit));
-      TEST_ASSERT(!strcmp(descriptionText, resultDescriptionText));
+      TEST_ASSERT(util::quantity::Dimensionless::getUnitTextByUnit(unit) == resultUnit);
       TEST_FUNC_END();
     }
     static void test_init(void) {
@@ -433,79 +316,81 @@ class TestDimensionless {
     static void conversion_convertFromNoneToPercentAndBack_expectCorrectData(void) {
       TEST_FUNC_START();
       //arrange
-      util::quantity::QuantityDescriptionId id(4);
-      util::Value value(1);
+      util::quantity::Quantity::id_t id(4);
+      util::quantity::Quantity::id_t idGroup(5);
+      util::quantity::Quantity::value_t value(1);
       util::quantity::Dimensionless::Unit unit = util::quantity::Dimensionless::Unit::NONE;
-      util::Timestamp timestamp = util::getTimestamp();
-      const char descriptionText[] = "description";
-      util::quantity::Dimensionless testDimensionlessQuantity(id, value, unit, timestamp, descriptionText);
+      util::quantity::Quantity::timestamp_t timestamp = util::getTimestamp();
+      util::quantity::Dimensionless testDimensionlessQuantity(id, idGroup, value, unit, timestamp);
       static const size_t testValuesCount = 3;
-      util::Value result[testValuesCount] = {};
-      static const size_t resultUnitSize = 8;
-      char resultUnit[testValuesCount][resultUnitSize] = {};
-      util::Value referenceResult[testValuesCount] = {util::Value(1), util::Value(100), util::Value(1)};
-      const char referenceResultUnit[testValuesCount][resultUnitSize] = {"", "%", ""};
+      util::quantity::Quantity::value_t result[testValuesCount] = {};
+      util::StrRef resultUnit[testValuesCount] = {};
+      util::quantity::Quantity::value_t referenceResult[testValuesCount] = {util::quantity::Quantity::value_t(1), util::quantity::Quantity::value_t(100), util::quantity::Quantity::value_t(1)};
+      util::StrRef referenceResultUnit[testValuesCount] = {
+        util::quantity::Dimensionless::getUnitTextByUnit(util::quantity::Dimensionless::Unit::NONE),
+        util::quantity::Dimensionless::getUnitTextByUnit(util::quantity::Dimensionless::Unit::PERCENT),
+        util::quantity::Dimensionless::getUnitTextByUnit(util::quantity::Dimensionless::Unit::NONE)
+      };
       size_t countResult = 0;
       size_t countResultUnit = 0;
       //act
       boolean validationResult = testDimensionlessQuantity.validate();
       result[countResult++] = testDimensionlessQuantity.getValue();
-      strcpy(resultUnit[countResultUnit++], testDimensionlessQuantity.getUnitText());
+      resultUnit[countResultUnit++] = testDimensionlessQuantity.getUnitText();
       testDimensionlessQuantity.convertToUnit(util::quantity::Dimensionless::Unit::PERCENT);
       result[countResult++] = testDimensionlessQuantity.getValue();
-      strcpy(resultUnit[countResultUnit++], testDimensionlessQuantity.getUnitText());
+      resultUnit[countResultUnit++] = testDimensionlessQuantity.getUnitText();
       testDimensionlessQuantity.convertToUnit(util::quantity::Dimensionless::Unit::NONE);
       result[countResult++] = testDimensionlessQuantity.getValue();
-      strcpy(resultUnit[countResultUnit++], testDimensionlessQuantity.getUnitText());
+      resultUnit[countResultUnit++] = testDimensionlessQuantity.getUnitText();
       //assert
-      static const size_t nullTerminatorSize = 1;
-      TEST_ASSERT(resultUnitSize >= (util::quantity::Quantity::getUnitTextMaxSize() + nullTerminatorSize));
       TEST_ASSERT(validationResult);
       TEST_ASSERT(result[0] == referenceResult[0]);
-      TEST_ASSERT(!strcmp(resultUnit[0], referenceResultUnit[0]));
+      TEST_ASSERT(resultUnit[0] == referenceResultUnit[0]);
       TEST_ASSERT(result[1] == referenceResult[1]);
-      TEST_ASSERT(!strcmp(resultUnit[1], referenceResultUnit[1]));
+      TEST_ASSERT(resultUnit[1] == referenceResultUnit[1]);
       TEST_ASSERT(result[2] == referenceResult[2]);
-      TEST_ASSERT(!strcmp(resultUnit[2], referenceResultUnit[2]));
+      TEST_ASSERT(resultUnit[2] == referenceResultUnit[2]);
       TEST_FUNC_END();
     }
     static void conversion_convertFromPercentToNoneAndBack_expectCorrectData(void) {
       TEST_FUNC_START();
       //arrange
-      util::quantity::QuantityDescriptionId id(4);
-      util::Value value(200);
+      util::quantity::Quantity::id_t id(4);
+      util::quantity::Quantity::id_t idGroup(5);
+      util::quantity::Quantity::value_t value(200);
       util::quantity::Dimensionless::Unit unit = util::quantity::Dimensionless::Unit::PERCENT;
-      util::Timestamp timestamp = util::getTimestamp();
-      const char descriptionText[] = "description";
-      util::quantity::Dimensionless testDimensionlessQuantity(id, value, unit, timestamp, descriptionText);
+      util::quantity::Quantity::timestamp_t timestamp = util::getTimestamp();
+      util::quantity::Dimensionless testDimensionlessQuantity(id, idGroup, value, unit, timestamp);
       static const size_t testValuesCount = 3;
-      util::Value result[testValuesCount] = {};
-      static const size_t resultUnitSize = 8;
-      char resultUnit[testValuesCount][resultUnitSize] = {};
-      const util::Value referenceResult[testValuesCount] = {util::Value(200), util::Value(2), util::Value(200)};
-      const char referenceResultUnit[testValuesCount][resultUnitSize] = {"%", "", "%"};
+      util::quantity::Quantity::value_t result[testValuesCount] = {};
+      util::StrRef resultUnit[testValuesCount] = {};
+      const util::quantity::Quantity::value_t referenceResult[testValuesCount] = {util::quantity::Quantity::value_t(200), util::quantity::Quantity::value_t(2), util::quantity::Quantity::value_t(200)};
+      util::StrRef referenceResultUnit[testValuesCount] = {
+        util::quantity::Dimensionless::getUnitTextByUnit(util::quantity::Dimensionless::Unit::PERCENT),
+        util::quantity::Dimensionless::getUnitTextByUnit(util::quantity::Dimensionless::Unit::NONE),
+        util::quantity::Dimensionless::getUnitTextByUnit(util::quantity::Dimensionless::Unit::PERCENT)
+      };
       size_t countResult = 0;
       size_t countResultUnit = 0;
       //act
       boolean validationResult = testDimensionlessQuantity.validate();
       result[countResult++] = testDimensionlessQuantity.getValue();
-      strcpy(resultUnit[countResultUnit++], testDimensionlessQuantity.getUnitText());
+      resultUnit[countResultUnit++] = testDimensionlessQuantity.getUnitText();
       testDimensionlessQuantity.convertToUnit(util::quantity::Dimensionless::Unit::NONE);
       result[countResult++] = testDimensionlessQuantity.getValue();
-      strcpy(resultUnit[countResultUnit++], testDimensionlessQuantity.getUnitText());
+      resultUnit[countResultUnit++] = testDimensionlessQuantity.getUnitText();
       testDimensionlessQuantity.convertToUnit(util::quantity::Dimensionless::Unit::PERCENT);
       result[countResult++] = testDimensionlessQuantity.getValue();
-      strcpy(resultUnit[countResultUnit++], testDimensionlessQuantity.getUnitText());
+      resultUnit[countResultUnit++] = testDimensionlessQuantity.getUnitText();
       //assert
-      static const size_t nullTerminatorSize = 1;
-      TEST_ASSERT(resultUnitSize >= (util::quantity::Quantity::getUnitTextMaxSize() + nullTerminatorSize));
       TEST_ASSERT(validationResult);
       TEST_ASSERT(result[0] == referenceResult[0]);
-      TEST_ASSERT(!strcmp(resultUnit[0], referenceResultUnit[0]));
+      TEST_ASSERT(resultUnit[0] == referenceResultUnit[0]);
       TEST_ASSERT(result[1] == referenceResult[1]);
-      TEST_ASSERT(!strcmp(resultUnit[1], referenceResultUnit[1]));
+      TEST_ASSERT(resultUnit[1] == referenceResultUnit[1]);
       TEST_ASSERT(result[2] == referenceResult[2]);
-      TEST_ASSERT(!strcmp(resultUnit[2], referenceResultUnit[2]));
+      TEST_ASSERT(resultUnit[2] == referenceResultUnit[2]);
       TEST_FUNC_END();
     }
     static void test_conversion(void) {
@@ -524,26 +409,26 @@ class TestTemperature {
     static void init_Temperature_expectCorrectData(void) {
       TEST_FUNC_START();
       //arrange
-      util::quantity::QuantityDescriptionId id(3);
-      util::Value value(5);
+      util::quantity::Quantity::id_t id(3);
+      util::quantity::Quantity::id_t idGroup(4);
+      util::quantity::Quantity::value_t value(5);
       util::quantity::Temperature::Unit unit = util::quantity::Temperature::Unit::CELSIUS;
-      util::Timestamp timestamp = util::getTimestamp();
-      const char descriptionText[] = "description";
+      util::quantity::Quantity::timestamp_t timestamp = util::getTimestamp();
       //act
-      util::quantity::Temperature testTemperature(id, value, unit, timestamp, descriptionText);
+      util::quantity::Temperature testTemperature(id, idGroup, value, unit, timestamp);
       //assert
       boolean validationResult = testTemperature.validate();
-      util::quantity::QuantityDescriptionId resultId = testTemperature.getDescriptionId();
-      util::Timestamp resultTimestamp = testTemperature.getTimestamp();
-      util::Value resultValue = testTemperature.getValue();
-      const char * resultUnit = testTemperature.getUnitText();
-      const char * resultDescriptionText = testTemperature.getDescriptionText();
+      util::quantity::Quantity::id_t resultId = testTemperature.getId();
+      util::quantity::Quantity::id_t resultIdGroup = testTemperature.getIdGroup();
+      util::quantity::Quantity::timestamp_t resultTimestamp = testTemperature.getTimestamp();
+      util::quantity::Quantity::value_t resultValue = testTemperature.getValue();
+      util::quantity::Quantity::text_t resultUnit = testTemperature.getUnitText();
       TEST_ASSERT(validationResult);
       TEST_ASSERT(id == resultId);
+      TEST_ASSERT(idGroup == resultIdGroup);
       TEST_ASSERT(resultTimestamp == timestamp);
       TEST_ASSERT(resultValue == value);
-      TEST_ASSERT(!strcmp(util::quantity::Temperature::getUnitTextByUnit(unit), resultUnit));
-      TEST_ASSERT(!strcmp(descriptionText, resultDescriptionText));
+      TEST_ASSERT(util::quantity::Temperature::getUnitTextByUnit(unit) == resultUnit);
       TEST_FUNC_END();
     }
     static void test_init(void) {
@@ -553,80 +438,85 @@ class TestTemperature {
     static void conversion_convertFromCelsiusToFahrenheitAndBack_expectCorrectData(void) {
       TEST_FUNC_START();
       //arrange
-      util::quantity::QuantityDescriptionId id(4);
-      util::Value value(100);
+      util::quantity::Quantity::id_t id(4);
+      util::quantity::Quantity::id_t idGroup(5);
+      util::quantity::Quantity::value_t value(100);
       util::quantity::Temperature::Unit unit = util::quantity::Temperature::Unit::CELSIUS;
-      util::Timestamp timestamp = util::getTimestamp();
-      const char descriptionText[] = "description";
-      util::quantity::Temperature testTemperature(id, value, unit, timestamp, descriptionText);
+      util::quantity::Quantity::timestamp_t timestamp = util::getTimestamp();
+      util::quantity::Temperature testTemperature(id, idGroup, value, unit, timestamp);
       static const size_t testValuesCount = 3;
-      util::Value result[testValuesCount] = {};
-      static const size_t resultUnitSize = 8;
-      char resultUnit[testValuesCount][resultUnitSize] = {};
-      const util::Value referenceResult[testValuesCount] = {util::Value(100), util::Value(212), util::Value(100)};
-      const char referenceResultUnit[testValuesCount][resultUnitSize] = {"C", "F", "C"};
-      const util::Value tolerance(1, 1); //0.1
+      util::quantity::Quantity::value_t result[testValuesCount] = {};
+      util::StrRef resultUnit[testValuesCount] = {};
+      const util::quantity::Quantity::value_t referenceResult[testValuesCount] = {util::quantity::Quantity::value_t(100), util::quantity::Quantity::value_t(212), util::quantity::Quantity::value_t(100)};
+      util::StrRef referenceResultUnit[testValuesCount] = {
+        util::quantity::Quantity::text_t(util::quantity::Temperature::getUnitTextByUnit(util::quantity::Temperature::Unit::CELSIUS)),
+        util::quantity::Quantity::text_t(util::quantity::Temperature::getUnitTextByUnit(util::quantity::Temperature::Unit::FAHRENHEIT)),
+        util::quantity::Quantity::text_t(util::quantity::Temperature::getUnitTextByUnit(util::quantity::Temperature::Unit::CELSIUS))
+      };
+      const util::quantity::Quantity::value_t tolerance(1, 1); //0.1
       size_t countResult = 0;
       size_t countResultUnit = 0;
       //act
       boolean validationResult = testTemperature.validate();
       result[countResult++] = testTemperature.getValue();
-      strcpy(resultUnit[countResultUnit++], testTemperature.getUnitText());
+      resultUnit[countResultUnit++] = testTemperature.getUnitText();
+
       testTemperature.convertToUnit(util::quantity::Temperature::Unit::FAHRENHEIT);
       result[countResult++] = testTemperature.getValue();
-      strcpy(resultUnit[countResultUnit++], testTemperature.getUnitText());
+      resultUnit[countResultUnit++] = testTemperature.getUnitText();
+
       testTemperature.convertToUnit(util::quantity::Temperature::Unit::CELSIUS);
       result[countResult++] = testTemperature.getValue();
-      strcpy(resultUnit[countResultUnit++], testTemperature.getUnitText());
+      resultUnit[countResultUnit++] = testTemperature.getUnitText();
+
       //assert
-      static const size_t nullTerminatorSize = 1;
-      TEST_ASSERT(resultUnitSize >= (util::quantity::Quantity::getUnitTextMaxSize() + nullTerminatorSize));
       TEST_ASSERT(validationResult);
       TEST_ASSERT(result[0] == referenceResult[0]);
-      TEST_ASSERT(!strcmp(resultUnit[0], referenceResultUnit[0]));
+      TEST_ASSERT(resultUnit[0] == referenceResultUnit[0]);
       TEST_ASSERT(result[1] == referenceResult[1]);
-      TEST_ASSERT(!strcmp(resultUnit[1], referenceResultUnit[1]));
+      TEST_ASSERT(resultUnit[1] == referenceResultUnit[1]);
       TEST_ASSERT(result[2] == referenceResult[2]);
-      TEST_ASSERT(!strcmp(resultUnit[2], referenceResultUnit[2]));
+      TEST_ASSERT(resultUnit[2] == referenceResultUnit[2]);
       TEST_FUNC_END();
     }
     static void conversion_convertFromFahrenheitToCelsiusAndBack_expectCorrectData(void) {
       TEST_FUNC_START();
       //arrange
-      util::quantity::QuantityDescriptionId id(4);
-      util::Value value(86);
+      util::quantity::Quantity::id_t id(4);
+      util::quantity::Quantity::id_t idGroup(4);
+      util::quantity::Quantity::value_t value(86);
       util::quantity::Temperature::Unit unit = util::quantity::Temperature::Unit::FAHRENHEIT;
-      util::Timestamp timestamp = util::getTimestamp();
-      const char descriptionText[] = "description";
-      util::quantity::Temperature testTemperature(id, value, unit, timestamp, descriptionText);
+      util::quantity::Quantity::timestamp_t timestamp = util::getTimestamp();
+      util::quantity::Temperature testTemperature(id, idGroup, value, unit, timestamp);
       static const size_t testValuesCount = 3;
-      util::Value result[testValuesCount] = {};
-      static const size_t resultUnitSize = 8;
-      char resultUnit[testValuesCount][resultUnitSize] = {};
-      const util::Value referenceResult[testValuesCount] = {util::Value(86), util::Value(30), util::Value(86)};
-      const char referenceResultUnit[testValuesCount][resultUnitSize] = {"F", "C", "F"};
+      util::quantity::Quantity::value_t result[testValuesCount] = {};
+      util::StrRef resultUnit[testValuesCount] = {};
+      const util::quantity::Quantity::value_t referenceResult[testValuesCount] = {util::quantity::Quantity::value_t(86), util::quantity::Quantity::value_t(30), util::quantity::Quantity::value_t(86)};
+      util::StrRef referenceResultUnit[testValuesCount] = {
+        util::quantity::Quantity::text_t(util::quantity::Temperature::getUnitTextByUnit(util::quantity::Temperature::Unit::FAHRENHEIT)),
+        util::quantity::Quantity::text_t(util::quantity::Temperature::getUnitTextByUnit(util::quantity::Temperature::Unit::CELSIUS)),
+        util::quantity::Quantity::text_t(util::quantity::Temperature::getUnitTextByUnit(util::quantity::Temperature::Unit::FAHRENHEIT))
+      };
       size_t countResult = 0;
       size_t countResultUnit = 0;
       //act
       boolean validationResult = testTemperature.validate();
       result[countResult++] = testTemperature.getValue();
-      strcpy(resultUnit[countResultUnit++], testTemperature.getUnitText());
+      resultUnit[countResultUnit++] = testTemperature.getUnitText();
       testTemperature.convertToUnit(util::quantity::Temperature::Unit::CELSIUS);
       result[countResult++] = testTemperature.getValue();
-      strcpy(resultUnit[countResultUnit++], testTemperature.getUnitText());
+      resultUnit[countResultUnit++] = testTemperature.getUnitText();
       testTemperature.convertToUnit(util::quantity::Temperature::Unit::FAHRENHEIT);
       result[countResult++] = testTemperature.getValue();
-      strcpy(resultUnit[countResultUnit++], testTemperature.getUnitText());
+      resultUnit[countResultUnit++] = testTemperature.getUnitText();
       //assert
-      static const size_t nullTerminatorSize = 1;
-      TEST_ASSERT(resultUnitSize >= (util::quantity::Quantity::getUnitTextMaxSize() + nullTerminatorSize));
       TEST_ASSERT(validationResult);
       TEST_ASSERT(result[0] == referenceResult[0]);
-      TEST_ASSERT(!strcmp(resultUnit[0], referenceResultUnit[0]));
+      TEST_ASSERT(resultUnit[0] == referenceResultUnit[0]);
       TEST_ASSERT(result[1] == referenceResult[1]);
-      TEST_ASSERT(!strcmp(resultUnit[1], referenceResultUnit[1]));
+      TEST_ASSERT(resultUnit[1] == referenceResultUnit[1]);
       TEST_ASSERT(result[2] == referenceResult[2]);
-      TEST_ASSERT(!strcmp(resultUnit[2], referenceResultUnit[2]));
+      TEST_ASSERT(resultUnit[2] == referenceResultUnit[2]);
       TEST_FUNC_END();
     }
     static void test_conversion(void) {
@@ -743,14 +633,13 @@ class TestQuantityIntrospectionReflection {
     static void testClassTypeMatch(void) {
       TEST_FUNC_START();
       //arrange
-      static const size_t numClasses = 4;
+      static const size_t numClasses = 3;
       Matrix<boolean> referenceClassMatchMatrix(numClasses, numClasses);
       for (size_t i = 0; i < numClasses; i++)
         for (size_t j = 0; j < numClasses; j++)
           referenceClassMatchMatrix.setValue(i, j, i == j ? true : false);
       //act
       const TestIntrospectionClassMatchMatrix<util::quantity::Quantity,
-            util::quantity::Quantity,
             util::quantity::Generic,
             util::quantity::Dimensionless,
             util::quantity::Temperature> testClassMatchMatrix;
@@ -761,23 +650,19 @@ class TestQuantityIntrospectionReflection {
     static void testObjectTypeMatch(void) {
       TEST_FUNC_START();
       //arrange
-      static const size_t numObjects = 8;
-      util::quantity::Quantity q1;
-      util::quantity::Quantity q2;
-      util::quantity::Generic g1(1, 2, "unit1");
-      util::quantity::Generic g2(3, 4, "unit2");
-      util::quantity::Dimensionless d1(1, 2, util::quantity::Dimensionless::Unit::NONE);
-      util::quantity::Dimensionless d2(3, 4, util::quantity::Dimensionless::Unit::PERCENT);
-      util::quantity::Temperature t1(1, 2, util::quantity::Temperature::Unit::CELSIUS);
-      util::quantity::Temperature t2(3, 4, util::quantity::Temperature::Unit::FAHRENHEIT);
-      util::quantity::Quantity * testObject1 = &q1;
-      util::quantity::Quantity * testObject2 = &q2;
-      util::quantity::Quantity * testObject3 = &g1;
-      util::quantity::Quantity * testObject4 = &g2;
-      util::quantity::Quantity * testObject5 = &d1;
-      util::quantity::Quantity * testObject6 = &d2;
-      util::quantity::Quantity * testObject7 = &t1;
-      util::quantity::Quantity * testObject8 = &t2;
+      static const size_t numObjects = 6;
+      util::quantity::Generic g1(1, 2, 3, "unit1");
+      util::quantity::Generic g2(4, 5, 6, "unit2");
+      util::quantity::Dimensionless d1(1, 2, 3, util::quantity::Dimensionless::Unit::NONE);
+      util::quantity::Dimensionless d2(4, 5, 6, util::quantity::Dimensionless::Unit::PERCENT);
+      util::quantity::Temperature t1(1, 2, 3, util::quantity::Temperature::Unit::CELSIUS);
+      util::quantity::Temperature t2(4, 5, 6, util::quantity::Temperature::Unit::FAHRENHEIT);
+      util::quantity::Quantity * testObject1 = &g1;
+      util::quantity::Quantity * testObject2 = &g2;
+      util::quantity::Quantity * testObject3 = &d1;
+      util::quantity::Quantity * testObject4 = &d2;
+      util::quantity::Quantity * testObject5 = &t1;
+      util::quantity::Quantity * testObject6 = &t2;
 
       Matrix<boolean> referenceObjectMatchMatrix(numObjects, numObjects);
       for (size_t i = 0; i < numObjects; i++)
@@ -790,9 +675,7 @@ class TestQuantityIntrospectionReflection {
         testObject3,
         testObject4,
         testObject5,
-        testObject6,
-        testObject7,
-        testObject8);
+        testObject6);
       //assert
       TEST_ASSERT(testObjectMatchMatrix == referenceObjectMatchMatrix);
       TEST_FUNC_END();
@@ -800,24 +683,20 @@ class TestQuantityIntrospectionReflection {
     static void testClassTypeAndObjectTypeMatch(void) {
       TEST_FUNC_START();
       //arrange
-      static const size_t numObjects = 8;
-      static const size_t numClasses = 4;
-      util::quantity::Quantity q1;
-      util::quantity::Quantity q2;
-      util::quantity::Generic g1(1, 2, "unit1");
-      util::quantity::Generic g2(3, 4, "unit2");
-      util::quantity::Dimensionless d1(1, 2, util::quantity::Dimensionless::Unit::NONE);
-      util::quantity::Dimensionless d2(3, 4, util::quantity::Dimensionless::Unit::PERCENT);
-      util::quantity::Temperature t1(1, 2, util::quantity::Temperature::Unit::CELSIUS);
-      util::quantity::Temperature t2(3, 4, util::quantity::Temperature::Unit::FAHRENHEIT);
-      util::quantity::Quantity * testObject1 = &q1;
-      util::quantity::Quantity * testObject2 = &q2;
-      util::quantity::Quantity * testObject3 = &g1;
-      util::quantity::Quantity * testObject4 = &g2;
-      util::quantity::Quantity * testObject5 = &d1;
-      util::quantity::Quantity * testObject6 = &d2;
-      util::quantity::Quantity * testObject7 = &t1;
-      util::quantity::Quantity * testObject8 = &t2;
+      static const size_t numObjects = 6;
+      static const size_t numClasses = 3;
+      util::quantity::Generic g1(1, 2, 3, "unit1");
+      util::quantity::Generic g2(4, 5, 6, "unit2");
+      util::quantity::Dimensionless d1(1, 2, 3, util::quantity::Dimensionless::Unit::NONE);
+      util::quantity::Dimensionless d2(4, 5, 6, util::quantity::Dimensionless::Unit::PERCENT);
+      util::quantity::Temperature t1(1, 2, 3, util::quantity::Temperature::Unit::CELSIUS);
+      util::quantity::Temperature t2(4, 5, 6, util::quantity::Temperature::Unit::FAHRENHEIT);
+      util::quantity::Quantity * testObject1 = &g1;
+      util::quantity::Quantity * testObject2 = &g2;
+      util::quantity::Quantity * testObject3 = &d1;
+      util::quantity::Quantity * testObject4 = &d2;
+      util::quantity::Quantity * testObject5 = &t1;
+      util::quantity::Quantity * testObject6 = &t2;
       Matrix<boolean> referenceClassVsObjectMatchMatrix(numClasses, numObjects);
       for (size_t i = 0; i < referenceClassVsObjectMatchMatrix.getRows(); i++)
         for (size_t j = 0; j < referenceClassVsObjectMatchMatrix.getColumns(); j++)
@@ -828,11 +707,8 @@ class TestQuantityIntrospectionReflection {
       referenceClassVsObjectMatchMatrix.setValue(1, 3, true);
       referenceClassVsObjectMatchMatrix.setValue(2, 4, true);
       referenceClassVsObjectMatchMatrix.setValue(2, 5, true);
-      referenceClassVsObjectMatchMatrix.setValue(3, 6, true);
-      referenceClassVsObjectMatchMatrix.setValue(3, 7, true);
       //act
       const TestIntrospectionClassVsObjectMatchMatrix<util::quantity::Quantity,
-            util::quantity::Quantity,
             util::quantity::Generic,
             util::quantity::Dimensionless,
             util::quantity::Temperature
@@ -842,9 +718,7 @@ class TestQuantityIntrospectionReflection {
               testObject3,
               testObject4,
               testObject5,
-              testObject6,
-              testObject7,
-              testObject8
+              testObject6
             );
       //assert
       TEST_ASSERT(testClassVsObjectMatchMatrix == referenceClassVsObjectMatchMatrix);
@@ -853,28 +727,35 @@ class TestQuantityIntrospectionReflection {
     static void testCopiedObjectTypeMatch(void) {
       TEST_FUNC_START();
       //arrange
-      util::quantity::Generic testGeneric(0, 1, "test");
-      util::quantity::Dimensionless testDimensionless(1, 2, util::quantity::Dimensionless::Unit::NONE);
+      util::quantity::Generic testGeneric(0, 1, 2, "test");
+      util::quantity::Dimensionless testDimensionless(1, 2, 3, util::quantity::Dimensionless::Unit::NONE);
+      util::quantity::Temperature testTemperature(2, 3, 4, util::quantity::Temperature::Unit::CELSIUS);
       util::quantity::Generic testGenericCopy(testGeneric);
       util::quantity::Dimensionless testDimensionlessCopy(testDimensionless);
-      util::quantity::Quantity * testGenericQuantity = &testGeneric;
-      util::quantity::Quantity * testDimensionlessQuantity = &testDimensionless;
-      util::quantity::Quantity testQuantity(*testGenericQuantity);
+      util::quantity::Temperature testTemperatureCopy(testTemperature);
+      util::quantity::Quantity * testGenericRef = &testGeneric;
+      util::quantity::Quantity * testDimensionlessRef = &testDimensionless;
+      util::quantity::Quantity * testTemperatureRef = &testTemperature;
+      util::quantity::Quantity testGenericQuantity(*testGenericRef);
+      util::quantity::Quantity testDimensionlessQuantity(*testDimensionlessRef);
+      util::quantity::Quantity testTemperatureQuantity(*testTemperatureRef);
       //act
       boolean genericCopyTest = (testGenericCopy.INTROSPECT_OBJECT() == INTROSPECT_CLASS(util::quantity::Generic));
       boolean dimensionlessCopyTest = (testDimensionlessCopy.INTROSPECT_OBJECT() == INTROSPECT_CLASS(util::quantity::Dimensionless));
-      boolean genericObjectTest = (testGenericQuantity->INTROSPECT_OBJECT() == INTROSPECT_CLASS(util::quantity::Generic));
-      boolean dimensionlessObjectTest = (testDimensionlessQuantity->INTROSPECT_OBJECT() == INTROSPECT_CLASS(util::quantity::Dimensionless));
-      boolean quantityObjectTest = (testQuantity.INTROSPECT_OBJECT() == INTROSPECT_CLASS(util::quantity::Quantity));
+      boolean temperatureCopyTest = (testTemperatureCopy.INTROSPECT_OBJECT() == INTROSPECT_CLASS(util::quantity::Temperature));
+      boolean genericObjectTest = (testGenericQuantity.INTROSPECT_OBJECT() == INTROSPECT_CLASS(util::quantity::Generic));
+      boolean dimensionlessObjectTest = (testDimensionlessQuantity.INTROSPECT_OBJECT() == INTROSPECT_CLASS(util::quantity::Dimensionless));
+      boolean temperatureObjectTest = (testTemperatureQuantity.INTROSPECT_OBJECT() == INTROSPECT_CLASS(util::quantity::Temperature));
       //assert
       TEST_ASSERT(INTROSPECT_CLASS(util::quantity::Quantity) != INTROSPECT_CLASS(util::quantity::Generic));
       TEST_ASSERT(INTROSPECT_CLASS(util::quantity::Quantity) != INTROSPECT_CLASS(util::quantity::Dimensionless));
       TEST_ASSERT(INTROSPECT_CLASS(util::quantity::Generic) != INTROSPECT_CLASS(util::quantity::Dimensionless));
       TEST_ASSERT(genericCopyTest);
       TEST_ASSERT(dimensionlessCopyTest);
+      TEST_ASSERT(temperatureCopyTest);
       TEST_ASSERT(genericObjectTest);
       TEST_ASSERT(dimensionlessObjectTest);
-      TEST_ASSERT(quantityObjectTest);
+      TEST_ASSERT(temperatureObjectTest);
       TEST_FUNC_END();
     }
     static void testIntrospection(void) {
@@ -887,114 +768,86 @@ class TestQuantityIntrospectionReflection {
     static void testReflectionGeneric(void) {
       TEST_FUNC_START();
       //arrange
-      util::quantity::QuantityDescriptionId id(3);
-      util::Value value(5);
-      const char unit[] = "gnrc";
-      util::Timestamp timestamp = util::getTimestamp();
-      const char descriptionText[] = "generic";
-      util::quantity::Generic testGeneric(id, value, unit, timestamp, descriptionText);
+      util::quantity::Quantity::id_t id(3);
+      util::quantity::Quantity::id_t idGroup(4);
+      util::quantity::Quantity::value_t value(5);
+      util::StrRef unit("gnrc");
+      util::quantity::Quantity::timestamp_t timestamp = util::getTimestamp();
+      util::quantity::Generic testGeneric(id, idGroup, value, unit, timestamp);
       util::quantity::Quantity * testQuantity = &testGeneric;
       //act
-      util::quantity::Generic testReflected(testQuantity);
-      util::quantity::Dimensionless testReflectedOther1(testQuantity);
-      util::quantity::Temperature   testReflectedOther2(testQuantity);
+      util::quantity::Generic testReflected = (*REFLECT_OBJECT (util::quantity::Generic, testQuantity));
+      util::quantity::Dimensionless testReflectedOther1 = (*REFLECT_OBJECT (util::quantity::Dimensionless, testQuantity));
+      util::quantity::Temperature   testReflectedOther2 = (*REFLECT_OBJECT (util::quantity::Temperature, testQuantity));
       //assert
+      TEST_ASSERT(VALIDATE_OBJECT_TYPE(testReflected));
       TEST_ASSERT(testReflected.validate());
-      TEST_ASSERT(testReflected.getDescriptionId() == id);
+      TEST_ASSERT(testReflected.getId() == id);
+      TEST_ASSERT(testReflected.getIdGroup() == idGroup);
       TEST_ASSERT(testReflected.getTimestamp() == timestamp);
       TEST_ASSERT(testReflected.getValue() == value);
-      TEST_ASSERT(!strcmp(testReflected.getUnitText(), unit));
-      TEST_ASSERT(!strcmp(testReflected.getDescriptionText(), descriptionText));
-      TEST_ASSERT(!testReflectedOther1.validate());
-      TEST_ASSERT(!testReflectedOther2.validate());
+      TEST_ASSERT(testReflected.getUnitText() == unit);
+      TEST_ASSERT(!VALIDATE_OBJECT_TYPE(testReflectedOther1));
+      TEST_ASSERT(!VALIDATE_OBJECT_TYPE(testReflectedOther2));
       TEST_FUNC_END();
     }
     static void testReflectionDimensionless(void) {
       TEST_FUNC_START();
       //arrange
-      util::quantity::QuantityDescriptionId id(3);
-      util::Value value(5);
+      util::quantity::Quantity::id_t id(3);
+      util::quantity::Quantity::id_t idGroup(4);
+      util::quantity::Quantity::value_t value(5);
       util::quantity::Dimensionless::Unit unit = util::quantity::Dimensionless::Unit::NONE;
-      char referenceUnitText[util::quantity::Quantity::getUnitTextMaxSize()];
-      strcpy (referenceUnitText, util::quantity::Dimensionless::getUnitTextByUnit(unit));
-      util::Timestamp timestamp = util::getTimestamp();
-      const char descriptionText[] = "dimensionless";
-      util::quantity::Dimensionless testDimensionless(id, value, unit, timestamp, descriptionText);
+      util::quantity::Quantity::text_t referenceUnitText = util::quantity::Dimensionless::getUnitTextByUnit(unit);
+      util::quantity::Quantity::timestamp_t timestamp = util::getTimestamp();
+      util::quantity::Dimensionless testDimensionless(id, idGroup, value, unit, timestamp);
       util::quantity::Quantity * testQuantity = &testDimensionless;
       //act
-      util::quantity::Dimensionless testReflected(testQuantity);
-      util::quantity::Generic       testReflectedOther1(testQuantity);
-      util::quantity::Temperature   testReflectedOther2(testQuantity);
+      util::quantity::Dimensionless testReflected       = (*REFLECT_OBJECT (util::quantity::Dimensionless, testQuantity));
+      util::quantity::Generic       testReflectedOther1 = (*REFLECT_OBJECT (util::quantity::Generic, testQuantity));
+      util::quantity::Temperature   testReflectedOther2 = (*REFLECT_OBJECT (util::quantity::Temperature, testQuantity));
       //assert
+      TEST_ASSERT(VALIDATE_OBJECT_TYPE(testReflected));
       TEST_ASSERT(testReflected.validate());
-      TEST_ASSERT(testReflected.getDescriptionId() == id);
+      TEST_ASSERT(testReflected.getId() == id);
+      TEST_ASSERT(testReflected.getIdGroup() == idGroup);
       TEST_ASSERT(testReflected.getTimestamp() == timestamp);
       TEST_ASSERT(testReflected.getValue() == value);
-      TEST_ASSERT(!strcmp(testReflected.getUnitText(), referenceUnitText));
-      TEST_ASSERT(!strcmp(testReflected.getDescriptionText(), descriptionText));
-      TEST_ASSERT(!testReflectedOther1.validate());
-      TEST_ASSERT(!testReflectedOther2.validate());
+      TEST_ASSERT(testReflected.getUnitText() == referenceUnitText);
+      TEST_ASSERT(!VALIDATE_OBJECT_TYPE(testReflectedOther1));
+      TEST_ASSERT(!VALIDATE_OBJECT_TYPE(testReflectedOther2));
       TEST_FUNC_END();
     }
     static void testReflectionTemperature(void) {
       TEST_FUNC_START();
       //arrange
-      util::quantity::QuantityDescriptionId id(3);
-      util::Value value(5);
+      util::quantity::Quantity::id_t id(3);
+      util::quantity::Quantity::id_t idGroup(4);
+      util::quantity::Quantity::value_t value(5);
       util::quantity::Temperature::Unit unit = util::quantity::Temperature::Unit::CELSIUS;
-      char referenceUnitText[util::quantity::Quantity::getUnitTextMaxSize()];
-      strcpy (referenceUnitText, util::quantity::Temperature::getUnitTextByUnit(unit));
-      util::Timestamp timestamp = util::getTimestamp();
-      const char descriptionText[] = "temperature";
-      util::quantity::Temperature testTemperature(id, value, unit, timestamp, descriptionText);
+      util::quantity::Quantity::text_t referenceUnitText = util::quantity::Temperature::getUnitTextByUnit(unit);
+      util::quantity::Quantity::timestamp_t timestamp = util::getTimestamp();
+      util::quantity::Temperature testTemperature(id, idGroup, value, unit, timestamp);
       util::quantity::Quantity * testQuantity = &testTemperature;
       //act
-      util::quantity::Temperature testReflected(testQuantity);
-      util::quantity::Generic       testReflectedOther1(testQuantity);
-      util::quantity::Dimensionless testReflectedOther2(testQuantity);
+      util::quantity::Temperature testReflected (*REFLECT_OBJECT (util::quantity::Temperature, testQuantity));
+      util::quantity::Generic       testReflectedOther1 (*REFLECT_OBJECT (util::quantity::Generic, testQuantity));
+      util::quantity::Dimensionless testReflectedOther2 (*REFLECT_OBJECT (util::quantity::Dimensionless, testQuantity));
       //assert
-      TEST_ASSERT(testReflected.validate());
-      TEST_ASSERT(testReflected.getDescriptionId() == id);
+      TEST_ASSERT(VALIDATE_OBJECT_TYPE(testReflected));
+      TEST_ASSERT(testReflected.getId() == id);
+      TEST_ASSERT(testReflected.getIdGroup() == idGroup);
       TEST_ASSERT(testReflected.getTimestamp() == timestamp);
       TEST_ASSERT(testReflected.getValue() == value);
-      TEST_ASSERT(!strcmp(testReflected.getUnitText(), referenceUnitText));
-      TEST_ASSERT(!strcmp(testReflected.getDescriptionText(), descriptionText));
-      TEST_ASSERT(!testReflectedOther1.validate());
-      TEST_ASSERT(!testReflectedOther2.validate());
-      TEST_FUNC_END();
-    }
-    static void testReflection_sourceModified_expectReflectedValueNotModified(void) {
-      TEST_FUNC_START();
-      //arrange
-      util::quantity::QuantityDescriptionId id(3);
-      util::Value value(5);
-      util::quantity::Dimensionless::Unit unit = util::quantity::Dimensionless::Unit::NONE;
-      char referenceUnitText[util::quantity::Quantity::getUnitTextMaxSize()];
-      strcpy (referenceUnitText, util::quantity::Dimensionless::getUnitTextByUnit(unit));
-      util::Timestamp timestamp = util::getTimestamp();
-      const char descriptionText[] = "dimensionless";
-      util::quantity::Dimensionless testDimensionless(id, value, unit, timestamp, descriptionText);
-      util::quantity::Quantity * testQuantity = &testDimensionless;
-      util::quantity::Dimensionless testReflected(testQuantity);
-      util::quantity::Dimensionless::Unit unitConverted = util::quantity::Dimensionless::Unit::PERCENT;
-      char referenceUnitConvertedText[util::quantity::Quantity::getUnitTextMaxSize()];
-      strcpy (referenceUnitConvertedText, util::quantity::Dimensionless::getUnitTextByUnit(unitConverted));
-      //act
-      testReflected.convertToUnit(unitConverted);
-      //assert
-      TEST_ASSERT(testDimensionless.validate());
-      TEST_ASSERT(testReflected.validate());
-      TEST_ASSERT(testDimensionless.getValue() == value);
-      TEST_ASSERT(testDimensionless.getValue() != testReflected.getValue());
-      TEST_ASSERT(!strcmp(testDimensionless.getUnitText(), referenceUnitText));
-      TEST_ASSERT(!strcmp(testReflected.getUnitText(), referenceUnitConvertedText));
+      TEST_ASSERT(testReflected.getUnitText() == referenceUnitText);
+      TEST_ASSERT(!VALIDATE_OBJECT_TYPE(testReflectedOther1));
+      TEST_ASSERT(!VALIDATE_OBJECT_TYPE(testReflectedOther2));
       TEST_FUNC_END();
     }
     static void testReflection(void) {
       testReflectionGeneric();
       testReflectionDimensionless();
       testReflectionTemperature();
-      testReflection_sourceModified_expectReflectedValueNotModified();
     }
 
   public:
@@ -1003,6 +856,13 @@ class TestQuantityIntrospectionReflection {
       testReflection();
     }
 };
+
+static void CheckClassSizes() {
+  TEST_PRINTLN_DATA(sizeof(util::quantity::Quantity));
+  TEST_PRINTLN_DATA(sizeof(util::quantity::Generic));
+  TEST_PRINTLN_DATA(sizeof(util::quantity::Dimensionless));
+  TEST_PRINTLN_DATA(sizeof(util::quantity::Temperature));
+}
 
 TEST_GLOBALS();
 
@@ -1013,6 +873,7 @@ void setup() {
   TestDimensionless::runTests();
   TestTemperature::runTests();
   TestQuantityIntrospectionReflection::runTests();
+  CheckClassSizes();
   TEST_END();
 }
 

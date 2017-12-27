@@ -17,6 +17,8 @@
 #ifndef MODULE_H
 #define MODULE_H
 
+#include "util_data.h"
+
 /// @brief Basic interface for a software module.
 /// @detials Implements singleton, Module Name C-String and module initialisation.
 /// @tparam T CRTP template parameter (derived class)
@@ -233,6 +235,74 @@ class ModuleWebServer {
     }
 };
 
+typedef uint8_t IOIndex;
+
+/// @brief Interface for the software module which exchanges input (e.g. temperature
+/// from sensor) and output (e.g. PWM value to be set) data.
+/// @details This interface allows to count inputs and outputs provided by the
+/// module, to get any input and to set any output, and to find an input & output
+/// by its identifier.
+/// @par The module implementing this interface has a fixed amount of inputs and
+/// outputs. Each input and output has an index, a number ranging from zero to
+/// input count or output count. The indecies, identifiers (if any) and purposes
+/// of the inputs are set at compile-time and cannot be changed at runtime.
+/// @par See individual methods for more details.
+/// @tparam T CRTP template parameter (derived class)
+/// @tparam IOValue Type for the actual values in IO data exchange
+/// @tparam IOValueIdentifier Type for value identifier which allows to find a
+/// value
+template <class T, typename IOValue>
+class TemplateModuleIO { ///TODO: comments
+  public:
+    /// @brief To be implemented by actual module if this functionality is required.
+    /// @details Get number of inputs for the module
+    /// @return Input count for this module or zero if the module has no inputs
+    IOIndex getInputCount (void) const {
+      return (0);
+    }
+    /// @brief To be implemented by actual module if this functionality is required.
+    /// @details Get number of outputs for the module
+    /// @return Output count for this module or zero if the module has no outputs
+    IOIndex getOutputCount (void) const {
+      return (0);
+    }
+    /// @brief To be implemented by actual module if this functionality is required.
+    /// @details Returns the value of input numbered index
+    /// @param index Number of input; if inputIndex exceeds input count, this method
+    /// returns default value
+    /// @return Value of the corresponding input or default value if index is out of 
+    /// range
+    IOValue getInput (IOIndex index) {
+      IOValue defaultValue {};
+      return (defaultValue);
+    }
+    /// @brief To be implemented by actual module if this functionality is required.
+    /// @details Returns the value of output numbered index
+    /// @param index Number of output; if outputIndex exceeds output count, this method
+    /// returns default value
+    /// @return Value of the corresponding output or default value if index is out of 
+    /// range
+    IOValue getOutput (IOIndex index) {
+      IOValue defaultValue {};
+      return (defaultValue);
+    }
+    /// @brief To be implemented by actual module if this functionality is required.
+    /// @details Sets the value of output numbered index from src
+    /// @par Additonal checks may or may not be performed during module implementation
+    /// (such as identifier check, range check, etc).
+    /// @par If an error occurs during the operation, value of the output is not
+    /// modified and method returns false.
+    /// @param index number of output; if outputIndex exceeds actual output count, this 
+    /// method returns false and does not modify any output
+    /// @return true if operation is completed successfully, false otherwise
+    boolean setOutput (const IOValue &src) {
+      return (false);
+    }
+};
+
+template <typename T>
+using ModuleIO = TemplateModuleIO <T, util::quantity::Quantity>;
+
 /// @brief Base class for a software module, combines all module interfaces.
 /// Software modules are inherited from this class.
 /// @tparam T CRTP template parameter
@@ -241,7 +311,8 @@ template <class T>
 class Module :
   public ModuleBase<T>,
   public ModuleTimings<T>,
-  public ModuleWebServer<T>
+  public ModuleWebServer<T>,
+  public ModuleIO<T>
 {};
 
 #endif
