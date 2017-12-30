@@ -318,39 +318,68 @@ class TestDimensionless {
       //arrange
       util::quantity::Quantity::id_t id(4);
       util::quantity::Quantity::id_t idGroup(5);
-      util::quantity::Quantity::value_t value(1);
+      util::quantity::Quantity::value_t value(2);
       util::quantity::Dimensionless::Unit unit = util::quantity::Dimensionless::Unit::NONE;
       util::quantity::Quantity::timestamp_t timestamp = util::getTimestamp();
-      util::quantity::Dimensionless testDimensionlessQuantity(id, idGroup, value, unit, timestamp);
+      boolean valid = true;
+      util::quantity::Quantity::value_t minRange(1);
+      util::quantity::Quantity::value_t maxRange(3);
+      util::quantity::Dimensionless testDimensionlessQuantity(id, idGroup, value, unit, timestamp, valid, minRange, maxRange);
       static const size_t testValuesCount = 3;
       util::quantity::Quantity::value_t result[testValuesCount] = {};
       util::StrRef resultUnit[testValuesCount] = {};
-      util::quantity::Quantity::value_t referenceResult[testValuesCount] = {util::quantity::Quantity::value_t(1), util::quantity::Quantity::value_t(100), util::quantity::Quantity::value_t(1)};
+      util::quantity::Quantity::value_t resultMinRange[testValuesCount] = {};
+      util::quantity::Quantity::value_t resultMaxRange[testValuesCount] = {};
+      util::quantity::Quantity::value_t referenceResult[testValuesCount] = {
+        util::quantity::Quantity::value_t(2),
+        util::quantity::Quantity::value_t(200),
+        util::quantity::Quantity::value_t(2)
+      };
+      util::quantity::Quantity::value_t referenceMinRange[testValuesCount] = {
+        util::quantity::Quantity::value_t(1),
+        util::quantity::Quantity::value_t(100),
+        util::quantity::Quantity::value_t(1)
+      };
+      util::quantity::Quantity::value_t referenceMaxRange[testValuesCount] = {
+        util::quantity::Quantity::value_t(3),
+        util::quantity::Quantity::value_t(300),
+        util::quantity::Quantity::value_t(3)
+      };
       util::StrRef referenceResultUnit[testValuesCount] = {
         util::quantity::Dimensionless::getUnitTextByUnit(util::quantity::Dimensionless::Unit::NONE),
         util::quantity::Dimensionless::getUnitTextByUnit(util::quantity::Dimensionless::Unit::PERCENT),
         util::quantity::Dimensionless::getUnitTextByUnit(util::quantity::Dimensionless::Unit::NONE)
       };
-      size_t countResult = 0;
-      size_t countResultUnit = 0;
       //act
       boolean validationResult = testDimensionlessQuantity.validate();
-      result[countResult++] = testDimensionlessQuantity.getValue();
-      resultUnit[countResultUnit++] = testDimensionlessQuantity.getUnitText();
+      result[0] = testDimensionlessQuantity.getValue();
+      resultUnit[0] = testDimensionlessQuantity.getUnitText();
+      resultMinRange[0] = testDimensionlessQuantity.getMinRange();
+      resultMaxRange[0] = testDimensionlessQuantity.getMaxRange();
       testDimensionlessQuantity.convertToUnit(util::quantity::Dimensionless::Unit::PERCENT);
-      result[countResult++] = testDimensionlessQuantity.getValue();
-      resultUnit[countResultUnit++] = testDimensionlessQuantity.getUnitText();
+      result[1] = testDimensionlessQuantity.getValue();
+      resultUnit[1] = testDimensionlessQuantity.getUnitText();
+      resultMinRange[1] = testDimensionlessQuantity.getMinRange();
+      resultMaxRange[1] = testDimensionlessQuantity.getMaxRange();
       testDimensionlessQuantity.convertToUnit(util::quantity::Dimensionless::Unit::NONE);
-      result[countResult++] = testDimensionlessQuantity.getValue();
-      resultUnit[countResultUnit++] = testDimensionlessQuantity.getUnitText();
+      result[2] = testDimensionlessQuantity.getValue();
+      resultUnit[2] = testDimensionlessQuantity.getUnitText();
+      resultMinRange[2] = testDimensionlessQuantity.getMinRange();
+      resultMaxRange[2] = testDimensionlessQuantity.getMaxRange();
       //assert
       TEST_ASSERT(validationResult);
       TEST_ASSERT(result[0] == referenceResult[0]);
       TEST_ASSERT(resultUnit[0] == referenceResultUnit[0]);
+      TEST_ASSERT(resultMinRange[0] == referenceMinRange[0]);
+      TEST_ASSERT(resultMaxRange[0] == referenceMaxRange[0]);
       TEST_ASSERT(result[1] == referenceResult[1]);
       TEST_ASSERT(resultUnit[1] == referenceResultUnit[1]);
+      TEST_ASSERT(resultMinRange[1] == referenceMinRange[1]);
+      TEST_ASSERT(resultMaxRange[1] == referenceMaxRange[1]);
       TEST_ASSERT(result[2] == referenceResult[2]);
       TEST_ASSERT(resultUnit[2] == referenceResultUnit[2]);
+      TEST_ASSERT(resultMinRange[2] == referenceMinRange[2]);
+      TEST_ASSERT(resultMaxRange[2] == referenceMaxRange[2]);
       TEST_FUNC_END();
     }
     static void conversion_convertFromPercentToNoneAndBack_expectCorrectData(void) {
@@ -361,36 +390,65 @@ class TestDimensionless {
       util::quantity::Quantity::value_t value(200);
       util::quantity::Dimensionless::Unit unit = util::quantity::Dimensionless::Unit::PERCENT;
       util::quantity::Quantity::timestamp_t timestamp = util::getTimestamp();
-      util::quantity::Dimensionless testDimensionlessQuantity(id, idGroup, value, unit, timestamp);
+      boolean valid = true;
+      util::quantity::Quantity::value_t minRange(100);
+      util::quantity::Quantity::value_t maxRange(300);
+      util::quantity::Dimensionless testDimensionlessQuantity(id, idGroup, value, unit, timestamp, valid, minRange, maxRange);
       static const size_t testValuesCount = 3;
       util::quantity::Quantity::value_t result[testValuesCount] = {};
       util::StrRef resultUnit[testValuesCount] = {};
-      const util::quantity::Quantity::value_t referenceResult[testValuesCount] = {util::quantity::Quantity::value_t(200), util::quantity::Quantity::value_t(2), util::quantity::Quantity::value_t(200)};
+      const util::quantity::Quantity::value_t referenceResult[testValuesCount] = {
+        util::quantity::Quantity::value_t(200),
+        util::quantity::Quantity::value_t(2),
+        util::quantity::Quantity::value_t(200)
+      };
+      util::quantity::Quantity::value_t referenceMinRange[testValuesCount] = {
+        util::quantity::Quantity::value_t(100),
+        util::quantity::Quantity::value_t(1),
+        util::quantity::Quantity::value_t(100)
+      };
+      util::quantity::Quantity::value_t referenceMaxRange[testValuesCount] = {
+        util::quantity::Quantity::value_t(300),
+        util::quantity::Quantity::value_t(3),
+        util::quantity::Quantity::value_t(300)
+      };
       util::StrRef referenceResultUnit[testValuesCount] = {
         util::quantity::Dimensionless::getUnitTextByUnit(util::quantity::Dimensionless::Unit::PERCENT),
         util::quantity::Dimensionless::getUnitTextByUnit(util::quantity::Dimensionless::Unit::NONE),
         util::quantity::Dimensionless::getUnitTextByUnit(util::quantity::Dimensionless::Unit::PERCENT)
       };
-      size_t countResult = 0;
-      size_t countResultUnit = 0;
+      util::quantity::Quantity::value_t resultMinRange[testValuesCount] = {};
+      util::quantity::Quantity::value_t resultMaxRange[testValuesCount] = {};
       //act
       boolean validationResult = testDimensionlessQuantity.validate();
-      result[countResult++] = testDimensionlessQuantity.getValue();
-      resultUnit[countResultUnit++] = testDimensionlessQuantity.getUnitText();
+      result[0] = testDimensionlessQuantity.getValue();
+      resultUnit[0] = testDimensionlessQuantity.getUnitText();
+      resultMinRange[0] = testDimensionlessQuantity.getMinRange();
+      resultMaxRange[0] = testDimensionlessQuantity.getMaxRange();
       testDimensionlessQuantity.convertToUnit(util::quantity::Dimensionless::Unit::NONE);
-      result[countResult++] = testDimensionlessQuantity.getValue();
-      resultUnit[countResultUnit++] = testDimensionlessQuantity.getUnitText();
+      result[1] = testDimensionlessQuantity.getValue();
+      resultUnit[1] = testDimensionlessQuantity.getUnitText();
+      resultMinRange[1] = testDimensionlessQuantity.getMinRange();
+      resultMaxRange[1] = testDimensionlessQuantity.getMaxRange();
       testDimensionlessQuantity.convertToUnit(util::quantity::Dimensionless::Unit::PERCENT);
-      result[countResult++] = testDimensionlessQuantity.getValue();
-      resultUnit[countResultUnit++] = testDimensionlessQuantity.getUnitText();
+      result[2] = testDimensionlessQuantity.getValue();
+      resultUnit[2] = testDimensionlessQuantity.getUnitText();
+      resultMinRange[2] = testDimensionlessQuantity.getMinRange();
+      resultMaxRange[2] = testDimensionlessQuantity.getMaxRange();
       //assert
       TEST_ASSERT(validationResult);
       TEST_ASSERT(result[0] == referenceResult[0]);
       TEST_ASSERT(resultUnit[0] == referenceResultUnit[0]);
+      TEST_ASSERT(resultMinRange[0] == referenceMinRange[0]);
+      TEST_ASSERT(resultMaxRange[0] == referenceMaxRange[0]);
       TEST_ASSERT(result[1] == referenceResult[1]);
       TEST_ASSERT(resultUnit[1] == referenceResultUnit[1]);
+      TEST_ASSERT(resultMinRange[1] == referenceMinRange[1]);
+      TEST_ASSERT(resultMaxRange[1] == referenceMaxRange[1]);
       TEST_ASSERT(result[2] == referenceResult[2]);
       TEST_ASSERT(resultUnit[2] == referenceResultUnit[2]);
+      TEST_ASSERT(resultMinRange[2] == referenceMinRange[2]);
+      TEST_ASSERT(resultMaxRange[2] == referenceMaxRange[2]);
       TEST_FUNC_END();
     }
     static void test_conversion(void) {
@@ -443,40 +501,66 @@ class TestTemperature {
       util::quantity::Quantity::value_t value(100);
       util::quantity::Temperature::Unit unit = util::quantity::Temperature::Unit::CELSIUS;
       util::quantity::Quantity::timestamp_t timestamp = util::getTimestamp();
-      util::quantity::Temperature testTemperature(id, idGroup, value, unit, timestamp);
+      boolean valid = true;
+      util::quantity::Quantity::value_t minRange(10);
+      util::quantity::Quantity::value_t maxRange(200);
+      util::quantity::Temperature testTemperature(id, idGroup, value, unit, timestamp, valid, minRange, maxRange);
       static const size_t testValuesCount = 3;
       util::quantity::Quantity::value_t result[testValuesCount] = {};
+      util::quantity::Quantity::value_t resultMinRange[testValuesCount] = {};
+      util::quantity::Quantity::value_t resultMaxRange[testValuesCount] = {};
       util::StrRef resultUnit[testValuesCount] = {};
-      const util::quantity::Quantity::value_t referenceResult[testValuesCount] = {util::quantity::Quantity::value_t(100), util::quantity::Quantity::value_t(212), util::quantity::Quantity::value_t(100)};
+      const util::quantity::Quantity::value_t referenceResult[testValuesCount] = {
+        util::quantity::Quantity::value_t(100),
+        util::quantity::Quantity::value_t(212),
+        util::quantity::Quantity::value_t(100)
+      };
+      util::quantity::Quantity::value_t referenceMinRange[testValuesCount] = {
+        util::quantity::Quantity::value_t(10),
+        util::quantity::Quantity::value_t(50),
+        util::quantity::Quantity::value_t(10)
+      };
+      util::quantity::Quantity::value_t referenceMaxRange[testValuesCount] = {
+        util::quantity::Quantity::value_t(200),
+        util::quantity::Quantity::value_t(392),
+        util::quantity::Quantity::value_t(200)
+      };
       util::StrRef referenceResultUnit[testValuesCount] = {
         util::quantity::Quantity::text_t(util::quantity::Temperature::getUnitTextByUnit(util::quantity::Temperature::Unit::CELSIUS)),
         util::quantity::Quantity::text_t(util::quantity::Temperature::getUnitTextByUnit(util::quantity::Temperature::Unit::FAHRENHEIT)),
         util::quantity::Quantity::text_t(util::quantity::Temperature::getUnitTextByUnit(util::quantity::Temperature::Unit::CELSIUS))
       };
       const util::quantity::Quantity::value_t tolerance(1, 1); //0.1
-      size_t countResult = 0;
-      size_t countResultUnit = 0;
       //act
       boolean validationResult = testTemperature.validate();
-      result[countResult++] = testTemperature.getValue();
-      resultUnit[countResultUnit++] = testTemperature.getUnitText();
-
+      result[0] = testTemperature.getValue();
+      resultUnit[0] = testTemperature.getUnitText();
+      resultMinRange[0] = testTemperature.getMinRange();
+      resultMaxRange[0] = testTemperature.getMaxRange();
       testTemperature.convertToUnit(util::quantity::Temperature::Unit::FAHRENHEIT);
-      result[countResult++] = testTemperature.getValue();
-      resultUnit[countResultUnit++] = testTemperature.getUnitText();
-
+      result[1] = testTemperature.getValue();
+      resultUnit[1] = testTemperature.getUnitText();
+      resultMinRange[1] = testTemperature.getMinRange();
+      resultMaxRange[1] = testTemperature.getMaxRange();
       testTemperature.convertToUnit(util::quantity::Temperature::Unit::CELSIUS);
-      result[countResult++] = testTemperature.getValue();
-      resultUnit[countResultUnit++] = testTemperature.getUnitText();
-
+      result[2] = testTemperature.getValue();
+      resultUnit[2] = testTemperature.getUnitText();
+      resultMinRange[2] = testTemperature.getMinRange();
+      resultMaxRange[2] = testTemperature.getMaxRange();
       //assert
       TEST_ASSERT(validationResult);
       TEST_ASSERT(result[0] == referenceResult[0]);
       TEST_ASSERT(resultUnit[0] == referenceResultUnit[0]);
+      TEST_ASSERT(resultMinRange[0] == referenceMinRange[0]);
+      TEST_ASSERT(resultMaxRange[0] == referenceMaxRange[0]);
       TEST_ASSERT(result[1] == referenceResult[1]);
       TEST_ASSERT(resultUnit[1] == referenceResultUnit[1]);
+      TEST_ASSERT(resultMinRange[1] == referenceMinRange[1]);
+      TEST_ASSERT(resultMaxRange[1] == referenceMaxRange[1]);
       TEST_ASSERT(result[2] == referenceResult[2]);
       TEST_ASSERT(resultUnit[2] == referenceResultUnit[2]);
+      TEST_ASSERT(resultMinRange[2] == referenceMinRange[2]);
+      TEST_ASSERT(resultMaxRange[2] == referenceMaxRange[2]);
       TEST_FUNC_END();
     }
     static void conversion_convertFromFahrenheitToCelsiusAndBack_expectCorrectData(void) {
@@ -487,36 +571,65 @@ class TestTemperature {
       util::quantity::Quantity::value_t value(86);
       util::quantity::Temperature::Unit unit = util::quantity::Temperature::Unit::FAHRENHEIT;
       util::quantity::Quantity::timestamp_t timestamp = util::getTimestamp();
-      util::quantity::Temperature testTemperature(id, idGroup, value, unit, timestamp);
+      boolean valid = true;
+      util::quantity::Quantity::value_t minRange(50);
+      util::quantity::Quantity::value_t maxRange(392);
+      util::quantity::Temperature testTemperature(id, idGroup, value, unit, timestamp, valid, minRange, maxRange);
       static const size_t testValuesCount = 3;
       util::quantity::Quantity::value_t result[testValuesCount] = {};
       util::StrRef resultUnit[testValuesCount] = {};
-      const util::quantity::Quantity::value_t referenceResult[testValuesCount] = {util::quantity::Quantity::value_t(86), util::quantity::Quantity::value_t(30), util::quantity::Quantity::value_t(86)};
+      util::quantity::Quantity::value_t resultMinRange[testValuesCount] = {};
+      util::quantity::Quantity::value_t resultMaxRange[testValuesCount] = {};
+      const util::quantity::Quantity::value_t referenceResult[testValuesCount] = {
+        util::quantity::Quantity::value_t(86),
+        util::quantity::Quantity::value_t(30),
+        util::quantity::Quantity::value_t(86)
+      };
+      util::quantity::Quantity::value_t referenceMinRange[testValuesCount] = {
+        util::quantity::Quantity::value_t(50),
+        util::quantity::Quantity::value_t(10),
+        util::quantity::Quantity::value_t(50)
+      };
+      util::quantity::Quantity::value_t referenceMaxRange[testValuesCount] = {
+        util::quantity::Quantity::value_t(392),
+        util::quantity::Quantity::value_t(200),
+        util::quantity::Quantity::value_t(392)
+      };
       util::StrRef referenceResultUnit[testValuesCount] = {
         util::quantity::Quantity::text_t(util::quantity::Temperature::getUnitTextByUnit(util::quantity::Temperature::Unit::FAHRENHEIT)),
         util::quantity::Quantity::text_t(util::quantity::Temperature::getUnitTextByUnit(util::quantity::Temperature::Unit::CELSIUS)),
         util::quantity::Quantity::text_t(util::quantity::Temperature::getUnitTextByUnit(util::quantity::Temperature::Unit::FAHRENHEIT))
       };
-      size_t countResult = 0;
-      size_t countResultUnit = 0;
       //act
       boolean validationResult = testTemperature.validate();
-      result[countResult++] = testTemperature.getValue();
-      resultUnit[countResultUnit++] = testTemperature.getUnitText();
+      result[0] = testTemperature.getValue();
+      resultUnit[0] = testTemperature.getUnitText();
+      resultMinRange[0] = testTemperature.getMinRange();
+      resultMaxRange[0] = testTemperature.getMaxRange();
       testTemperature.convertToUnit(util::quantity::Temperature::Unit::CELSIUS);
-      result[countResult++] = testTemperature.getValue();
-      resultUnit[countResultUnit++] = testTemperature.getUnitText();
+      result[1] = testTemperature.getValue();
+      resultUnit[1] = testTemperature.getUnitText();
+      resultMinRange[1] = testTemperature.getMinRange();
+      resultMaxRange[1] = testTemperature.getMaxRange();
       testTemperature.convertToUnit(util::quantity::Temperature::Unit::FAHRENHEIT);
-      result[countResult++] = testTemperature.getValue();
-      resultUnit[countResultUnit++] = testTemperature.getUnitText();
+      result[2] = testTemperature.getValue();
+      resultUnit[2] = testTemperature.getUnitText();
+      resultMinRange[2] = testTemperature.getMinRange();
+      resultMaxRange[2] = testTemperature.getMaxRange();
       //assert
       TEST_ASSERT(validationResult);
       TEST_ASSERT(result[0] == referenceResult[0]);
       TEST_ASSERT(resultUnit[0] == referenceResultUnit[0]);
+      TEST_ASSERT(resultMinRange[0] == referenceMinRange[0]);
+      TEST_ASSERT(resultMaxRange[0] == referenceMaxRange[0]);
       TEST_ASSERT(result[1] == referenceResult[1]);
       TEST_ASSERT(resultUnit[1] == referenceResultUnit[1]);
+      TEST_ASSERT(resultMinRange[1] == referenceMinRange[1]);
+      TEST_ASSERT(resultMaxRange[1] == referenceMaxRange[1]);
       TEST_ASSERT(result[2] == referenceResult[2]);
       TEST_ASSERT(resultUnit[2] == referenceResultUnit[2]);
+      TEST_ASSERT(resultMinRange[2] == referenceMinRange[2]);
+      TEST_ASSERT(resultMaxRange[2] == referenceMaxRange[2]);
       TEST_FUNC_END();
     }
     static void test_conversion(void) {
@@ -857,7 +970,7 @@ class TestQuantityIntrospectionReflection {
     }
 };
 
-static void CheckClassSizes() {
+static void CheckClassSizes(void) {
   TEST_PRINTLN_DATA(sizeof(util::quantity::Quantity));
   TEST_PRINTLN_DATA(sizeof(util::quantity::Generic));
   TEST_PRINTLN_DATA(sizeof(util::quantity::Dimensionless));

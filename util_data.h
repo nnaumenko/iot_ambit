@@ -8,7 +8,7 @@
 /**
  * @file
  * @brief Custom data structures and data handling for general use
- * @detail The following functionality is grouped into the namespaces:
+ * @details The following functionality is grouped into the namespaces:
  *  * arrays: data structures storing multiple units of data
  *  * checksum: checksum calculation
  *  * dsp: digital signal processing
@@ -86,18 +86,20 @@ class Ref {
       /// obtained via pgm() method
       return (pointer);
     }
-    inline operator bool() {
+    inline operator bool() const {
       /// @return true if pointer is nullptr, false otherwise
       return (pointer);
     }
   public:
     inline boolean operator == (const Ref<T> &rhs) const {
-      return ((pointer == rhs.pointer) && (progmem == rhs.progmem));
+      /// @details Two nullptr pointers are always considered equal regardless
+      /// of their memory areas
+      return ((pointer == rhs.pointer) && ((progmem == rhs.progmem) || !pointer));
     }
   private:
     const T * pointer = nullptr;  ///< Pointer itself
     boolean progmem = false;      ///< Is reference located in progmem
-} __attribute__((packed));
+};
 
 //////////////////////////////////////////////////////////////////////
 // StrRef
@@ -116,23 +118,39 @@ class StrRef : public Ref<char> {
     /// @brief Initialise from c-string in PROGMEM
     /// @param Pointer to c-string in PROGMEM
     StrRef (const __FlashStringHelper * progmemPointer) :
-      Ref<char>(reinterpret_cast<const char *>(progmemPointer), false) {}
+      Ref<char>(reinterpret_cast<const char *>(progmemPointer), true) {}
   public:
-    void get(char * buffer, size_t bufferSize) {
-      /// @brief Copy cstring referenced by this pointer to a
-      /// specified buffer
-      /// @param buffer Buffer to copy cstring to
-      /// @param bufferSize Size of the buffer in chars
-      if (!static_cast<boolean>(*this)) return;
-      static const size_t nullTerminator = '\0';
-      buffer[bufferSize - sizeof(nullTerminator)] = nullTerminator;
-      if (pgm()) {
-        strncpy_P(buffer, (const char *)*this, bufferSize - sizeof(nullTerminator));
+    void get(char * buffer, size_t bufferSize) const {
+      /// @brief Copy c-string referenced by this pointer to a specified buffer
+      /// @details If StrRef object pointer refers to nullptr then buffer will
+      /// contain an empty c-string
+      /// @param buffer Buffer to copy c-string to
+      /// @param bufferSize Size of the buffer in chars; if bufferSize is zero
+      /// then this method exits and buffer is not modified
+      if (!bufferSize) return;
+      static const char nullTerminator = '\0';
+      static const size_t nullTerminatorSize = 1;
+      if (!static_cast<boolean>(*this)) {
+        buffer[0] = nullTerminator;
         return;
       }
-      strncpy(buffer, (const char *)*this, bufferSize - sizeof(nullTerminator));
+      buffer[bufferSize - nullTerminatorSize] = nullTerminator;
+      if (pgm()) {
+        strncpy_P(buffer, static_cast<const char *>(*this), bufferSize - nullTerminatorSize);
+        return;
+      }
+      strncpy(buffer, static_cast<const char *>(*this), bufferSize - nullTerminatorSize);
     }
-} __attribute__((packed));
+    void print(Print &dst) const {
+      /// @brief Prints c-string referenced by this pointer
+      /// @param dst Destination to print to
+      if (!static_cast<boolean>(*this)) return;
+      if (pgm())
+        dst.print(FPSTR(static_cast<const char *>(*this)));
+      else
+        dst.print(static_cast<const char *>(*this));
+    }
+};
 
 //////////////////////////////////////////////////////////////////////
 // Introspection & basic reflection
@@ -657,7 +675,7 @@ class FixedPoint {
         }
       private:
         T val = {}; ///< Storage for value
-    } __attribute__((packed));
+    };
     Value value;
   protected:
     static const T tZero = static_cast<T>(0); ///< 0 constant of type T
@@ -667,7 +685,7 @@ class FixedPoint {
     static_assert(FractionBits < (sizeof(T) * 8), "Too many fraction bits");
     //Make sure that more than zero FractionBits are defined (if zero fraction bits required, simply use type T)
     static_assert(FractionBits > 0, "Too few fraction bits");
-} __attribute__((packed));
+};
 
 template <typename T, size_t FractionBits, typename U, T TMinRange, T TMaxRange>
 FixedPoint<T, FractionBits, U, TMinRange, TMaxRange>::FixedPoint(T value, size_t decimalsPrecision) {
@@ -1543,7 +1561,7 @@ class Quantity {
   private:
     //Introspection
     INTROSPECTED_BASE(INTROSPECTED_CLASS_TYPE_AUTO());
-} __attribute__((packed));
+};
 
 Quantity::Quantity(id_t id,
                    id_t idGroup,
@@ -1678,10 +1696,10 @@ class Dimensionless : public Quantity {
 // Temperature
 //////////////////////////////////////////////////////////////////////
 
+/// @brief Temperature as physical quantity
+/// @details The avaialble measurment units are CELSIUS and FAHRENHEIT,
+/// representing degrees Celsius and degrees Fahrenheit respectively
 class Temperature : public Quantity {
-    /// @brief Temperature as physical quantity
-    /// @details The avaialble measurment units are CELSIUS and FAHRENHEIT,
-    /// representing degrees Celsius and degrees Fahrenheit respectively
   public:
     enum class Unit : unit_t {
       CELSIUS,      ///< Degrees Celsius

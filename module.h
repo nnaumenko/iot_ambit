@@ -8,7 +8,7 @@
 /**
  * @file
  * @brief Defines interfaces for software modules.
- * @details Since module usage is fully defined at compile time,
+ * @par Since module usage is fully defined at compile time,
  * modules do not use virtual methods and rely on Curiously
  * Recurring Template Pattern (CRTP) instead.
  * @par Each software module is a singleton.
@@ -20,7 +20,7 @@
 #include "util_data.h"
 
 /// @brief Basic interface for a software module.
-/// @detials Implements singleton, Module Name C-String and module initialisation.
+/// @details Implements singleton, Module Name C-String and module initialisation.
 /// @tparam T CRTP template parameter (derived class)
 template <class T>
 class ModuleBase {

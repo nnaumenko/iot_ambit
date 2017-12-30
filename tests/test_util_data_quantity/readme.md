@@ -65,10 +65,10 @@ The following is expected in serial monitor window:
     PASSED
     Test function started: static void TestQuantityIntrospectionReflection::testReflectionTemperature(), file test_util_data_quantity.ino
     PASSED
-    sizeof(util::quantity::Quantity) 42
-    sizeof(util::quantity::Generic) 42
-    sizeof(util::quantity::Dimensionless) 42
-    sizeof(util::quantity::Temperature) 42
+    sizeof(util::quantity::Quantity) 52
+    sizeof(util::quantity::Generic) 52
+    sizeof(util::quantity::Dimensionless) 52
+    sizeof(util::quantity::Temperature) 52
     
     ---------------- TESTING FINISHED ---------------
     Test functions passed: 22

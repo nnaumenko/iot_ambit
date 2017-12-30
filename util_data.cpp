@@ -269,11 +269,11 @@ boolean Quantity::setConvertedValue(
   setUnitValue = value;
   setUnit = units;
   setUnitText = unitText;
-  if ((initMinRange != Value(0)) && (initMaxRange != Value(0))) {
+  if ((initMinRange != Value(0)) || (initMaxRange != Value(0))) {
     setUnitMinRange = minRange;
     setUnitMaxRange = maxRange;
-    if (this->setUnitValue < this->initMinRange) this->setUnitValue = minRange;
-    if (this->setUnitValue > this->initMaxRange) this->setUnitValue = maxRange;
+    if (this->setUnitValue < this->setUnitMinRange) this->setUnitValue = minRange;
+    if (this->setUnitValue > this->setUnitMaxRange) this->setUnitValue = maxRange;
   }
   return (true);
 }
@@ -388,7 +388,7 @@ Temperature::text_t Temperature::getUnitTextByUnit(Temperature::Unit unit) {
       //      return (unitTextFahrenheit);
       return (text_t(F("F")));
   }
-         return (StrRef());
+  return (StrRef());
   //return (nullptr);
 }
 
