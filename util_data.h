@@ -8,10 +8,11 @@
 /**
  * @file
  * @brief Custom data structures and data handling for general use
- * @detail The following functionality is grouped into the namespaces:
+ * @details The following functionality is grouped into the namespaces:
  *  * arrays: data structures storing multiple units of data
  *  * checksum: checksum calculation
  *  * dsp: digital signal processing
+ *  * quantity: physical quantities
  */
 
 #ifndef UTIL_DATA_H
@@ -25,6 +26,10 @@
 //void operator delete (void * ptr) { free (ptr); }
 
 namespace util {
+
+//////////////////////////////////////////////////////////////////////
+// TypeSelect
+//////////////////////////////////////////////////////////////////////
 
 /// @brief Selects one of two type based on boolean condition.
 /// @tparam conditon Boolean expression based on which the type
@@ -47,6 +52,136 @@ template<typename T1, typename T2>
 struct TypeSelect<true, T1, T2> {
   typedef T1 data_t;
 };
+
+//////////////////////////////////////////////////////////////////////
+// Ref
+//////////////////////////////////////////////////////////////////////
+
+/// @brief A pointer which also stores memory area (RAM of PROGMEM)
+/// @tparam T Pointer's type (e.g. Ref<int> uses pointer type
+/// const int *)
+/// @warning If pointer is located in RAM, this class does not
+/// guarantee pointer's validity and does not safely handle situations
+/// such as "use-after-delete"; it merely stores a pointer.
+template <typename T>
+class Ref {
+  public:
+    inline Ref(const T * pointer, boolean progmem) {
+      /// @param pointer Pointer itself
+      /// @param progmem True if memory area referenced by pointer is
+      /// located in PROGMEM, false if memory area is located in RAM
+      this->pointer = pointer;
+      this->progmem = progmem;
+    }
+  public:
+    inline boolean pgm(void) const {
+      /// @return true if memory area referenced by pointer is located in
+      /// PROGMEM, false if memory area is located in RAM
+      return (this->progmem);
+    }
+  public:
+    inline explicit operator const T* () const {
+      /// @return Pointer itself; the pointer contains no information
+      /// whether it refers to RAM or PROGMEM; this information is
+      /// obtained via pgm() method
+      return (pointer);
+    }
+    inline operator bool() const {
+      /// @return true if pointer is nullptr, false otherwise
+      return (pointer);
+    }
+  public:
+    inline boolean operator == (const Ref<T> &rhs) const {
+      /// @details Two nullptr pointers are always considered equal regardless
+      /// of their memory areas
+      return ((pointer == rhs.pointer) && ((progmem == rhs.progmem) || !pointer));
+    }
+  private:
+    const T * pointer = nullptr;  ///< Pointer itself
+    boolean progmem = false;      ///< Is reference located in progmem
+};
+
+//////////////////////////////////////////////////////////////////////
+// StrRef
+//////////////////////////////////////////////////////////////////////
+
+/// @brief Pointer to c-string (const char *) which also stores
+/// c-string's memory area (RAM or PROGMEM)
+class StrRef : public Ref<char> {
+  public:
+    /// @brief Initialise default pointer
+    StrRef() : Ref <char>(nullptr, false) {}
+    /// @brief Initialise from c-string in RAM
+    /// @param Pointer to c-string in RAM
+    StrRef (const char * ramPointer) :
+      Ref<char>(ramPointer, false) {}
+    /// @brief Initialise from c-string in PROGMEM
+    /// @param Pointer to c-string in PROGMEM
+    StrRef (const __FlashStringHelper * progmemPointer) :
+      Ref<char>(reinterpret_cast<const char *>(progmemPointer), true) {}
+  public:
+    void get(char * buffer, size_t bufferSize) const {
+      /// @brief Copy c-string referenced by this pointer to a specified buffer
+      /// @details If StrRef object pointer refers to nullptr then buffer will
+      /// contain an empty c-string
+      /// @param buffer Buffer to copy c-string to
+      /// @param bufferSize Size of the buffer in chars; if bufferSize is zero
+      /// then this method exits and buffer is not modified
+      if (!bufferSize) return;
+      static const char nullTerminator = '\0';
+      static const size_t nullTerminatorSize = 1;
+      if (!static_cast<boolean>(*this)) {
+        buffer[0] = nullTerminator;
+        return;
+      }
+      buffer[bufferSize - nullTerminatorSize] = nullTerminator;
+      if (pgm()) {
+        strncpy_P(buffer, static_cast<const char *>(*this), bufferSize - nullTerminatorSize);
+        return;
+      }
+      strncpy(buffer, static_cast<const char *>(*this), bufferSize - nullTerminatorSize);
+    }
+    void print(Print &dst) const {
+      /// @brief Prints c-string referenced by this pointer
+      /// @param dst Destination to print to
+      if (!static_cast<boolean>(*this)) return;
+      if (pgm())
+        dst.print(FPSTR(static_cast<const char *>(*this)));
+      else
+        dst.print(static_cast<const char *>(*this));
+    }
+};
+
+//////////////////////////////////////////////////////////////////////
+// Introspection & basic reflection
+//////////////////////////////////////////////////////////////////////
+
+#define INTROSPECTED_CLASS_TYPE_AUTO() __COUNTER__
+
+#define TYPE_ID uint16_t
+
+#define INTROSPECTED_SET_CLASS_TYPE(CLASS_TYPE) \
+  public: \
+  static const TYPE_ID classType = CLASS_TYPE
+
+#define INTROSPECT_THIS_CLASS() classType
+
+#define INTROSPECTED_BASE(CLASS_TYPE) \
+  public: \
+  INTROSPECTED_SET_CLASS_TYPE (CLASS_TYPE); \
+  inline TYPE_ID getObjectType(void) const {return (objectType);} \
+  protected: \
+  TYPE_ID objectType = INTROSPECT_THIS_CLASS()
+
+#define INTROSPECTED_SET_OBJECT_TYPE() objectType = INTROSPECT_THIS_CLASS()
+
+#define INTROSPECT_CLASS(T) T::INTROSPECT_THIS_CLASS()
+
+#define INTROSPECT_OBJECT() getObjectType()
+
+#define VALIDATE_OBJECT_TYPE(OBJECT) ((OBJECT).INTROSPECT_THIS_CLASS() == (OBJECT).INTROSPECT_OBJECT())
+
+#define REFLECT_OBJECT(TYPE,OBJREF) (reinterpret_cast<TYPE *>(OBJREF))
 
 namespace arrays {
 
@@ -139,7 +274,7 @@ template <typename T>
 RingBuffer<T>::~RingBuffer () {
   /// @brief Performs a ring buffer cleanup
   /// @details If no memory was allocated by this class, just calls pop() for every item in buffer
-  /// @par If memory was allocated by this class, it is released using delete() 
+  /// @par If memory was allocated by this class, it is released using delete()
   if (!validate()) return;
   if (memoryAllocated) {
     delete(ringBuffer);
@@ -504,7 +639,7 @@ class FixedPoint {
     T getValue(size_t decimalPrecision, boolean *status = nullptr) const;
   protected:
     /// @brief Internal value class, created to encapsulate the value and unify value assignment
-    class {
+    class Value {
       public:
         /// @brief Sets value from type T value
         /// @newValue New value of type T, consists of integer and fraction part at this point
@@ -540,7 +675,8 @@ class FixedPoint {
         }
       private:
         T val = {}; ///< Storage for value
-    } value;
+    };
+    Value value;
   protected:
     static const T tZero = static_cast<T>(0); ///< 0 constant of type T
     static const T tOne = static_cast<T>(1);  ///< 1 constant of type T
@@ -704,6 +840,54 @@ T FixedPoint<T, FractionBits, U, TMinRange, TMaxRange>::getValue(size_t decimalP
   return (static_cast<T>(tempValue));
 }
 
+}; //namespace dsp
+
+//////////////////////////////////////////////////////////////////////
+// Value
+//////////////////////////////////////////////////////////////////////
+
+typedef int32_t ValueBase;
+static const ValueBase ValueBaseMin = INT32_MIN;
+static const ValueBase ValueBaseMax = INT32_MAX;
+static const size_t ValueFractionBits = 10;
+typedef int64_t IntermediaryValue;
+
+using Value = dsp::FixedPoint<ValueBase, ValueFractionBits, IntermediaryValue, ValueBaseMin, ValueBaseMax>;
+
+static const Value ValuePi = Value(314159265, 8);
+
+/// @brief Checks whether the valve is overflown (out of range)
+/// @details This function is for compatibility only
+/// @par Reserved for the case when Value is a Plain-Old-Data type (e.g. float) and does not have methods
+/// @param value Value to check
+/// @return True if value is overflown, false if value is a regular number
+inline boolean overflow(const Value & value) {
+  return (value.overflow());
+}
+
+/// @brief Returns an integer value with known decimal precision
+/// @par For example for value 10.7 and precision 1 (1 digit after decimal point) will return 107
+/// @par This function is for compatibility only
+/// @par Reserved for the case when Value is a Plain-Old-Data type (e.g. float) and does not have methods
+/// @param value Value
+/// @return Converted value or zero if conversion failed
+inline ValueBase getValue(const Value & value, size_t decimals, boolean *status = nullptr) {
+  return (value.getValue(decimals, status));
+}
+
+//////////////////////////////////////////////////////////////////////
+// Timestamp
+//////////////////////////////////////////////////////////////////////
+
+typedef uint32_t Timestamp;
+
+inline Timestamp getTimestamp(void) {
+  return (millis());
+}
+
+const Value timestampPerSecond(1000); // 1000 milliseconds per second
+
+namespace dsp {
 
 //////////////////////////////////////////////////////////////////////
 // Filter
@@ -1178,51 +1362,6 @@ typename TemplateFilter<T, Timestamp>::Status SplineScale<T, Timestamp>::filterP
 }
 
 //////////////////////////////////////////////////////////////////////
-// Value
-//////////////////////////////////////////////////////////////////////
-
-typedef int32_t ValueBase;
-static const ValueBase ValueBaseMin = INT32_MIN;
-static const ValueBase ValueBaseMax = INT32_MAX;
-static const size_t ValueFractionBits = 10;
-typedef int64_t IntermediaryValue;
-
-using Value = FixedPoint<ValueBase, ValueFractionBits, IntermediaryValue, ValueBaseMin, ValueBaseMax>;
-
-static const Value ValuePi = Value(314159265, 8);
-
-/// @brief Checks whether the valve is overflown (out of range)
-/// @details This function is for compatibility only
-/// @par Reserved for the case when Value is a Plain-Old-Data type (e.g. float) and does not have methods
-/// @param value Value to check
-/// @return True if value is overflown, false if value is a regular number
-inline boolean overflow(const Value &value) {
-  return (value.overflow());
-}
-
-/// @brief Returns an integer value with known decimal precision
-/// @par For example for value 10.7 and precision 1 (1 digit after decimal point) will return 107
-/// @par This function is for compatibility only
-/// @par Reserved for the case when Value is a Plain-Old-Data type (e.g. float) and does not have methods
-/// @param value Value
-/// @return Converted value or zero if conversion failed
-inline ValueBase getValue(const Value &value, size_t decimals, boolean *status = nullptr) {
-  return (value.getValue(decimals, status));
-}
-
-//////////////////////////////////////////////////////////////////////
-// Timestamp
-//////////////////////////////////////////////////////////////////////
-
-typedef uint32_t Timestamp;
-
-inline Timestamp getTimestamp(void) {
-  return (millis());
-}
-
-const Value timestampPerSecond(1000); // 1000 milliseconds per second
-
-//////////////////////////////////////////////////////////////////////
 // Filters
 //////////////////////////////////////////////////////////////////////
 
@@ -1241,6 +1380,363 @@ enum class FilterType {
 };
 
 }; //namespace dsp
+
+//////////////////////////////////////////////////////////////////////
+// Physical Quantities (temperature, humidity, pressure, luminance, etc)
+//////////////////////////////////////////////////////////////////////
+
+namespace quantity {
+
+//////////////////////////////////////////////////////////////////////
+// Quantity
+//////////////////////////////////////////////////////////////////////
+
+/// @brief A templated/configurable class representing physical quantity, such as temperature,
+/// humidity, pressure, luminance, etc.
+/// @details Every Quantity object has the following properties:
+///
+/// * WHAT does the quantity represent?
+///
+/// * WHEN the quantity was measured?
+///
+/// * HOW MUCH is the numerical measurement result?
+///
+/// * IN WHICH UNITS the measurement result is represented?
+///
+/// * IS the measurement result valid?
+///
+/// * IN WHICH RANGE can measurement results possibly be?
+///
+/// @par For example consider the following physical quantity:
+/// @par     "outdoors temperature (id = 12) is 10.25 degrees Celsius as measured at 15381
+/// milliseconds from startup, measured in range -50 to 125 degrees Celsius"
+/// @par It will be represented as follows:
+/// @par     "outdoors temperature (identifier 12, group 3)":
+/// @par     id = 12
+/// @par     idGroup = 3
+/// @par     "measured at 15381 milliseconds from startup"
+/// @par     timestamp = 15381
+/// @par     "the measurement result was 10.25"
+/// @par     value = 10.25
+/// @par     "the result is in degrees Celsius"
+/// @par     unitText = "C"
+/// @par     "the measurement result is valid (no error occured while getting data
+/// from sensor)"
+/// @par     valid = true
+/// @par     "measured in range -50 to 125 degrees Celsius"
+/// @par     minRange = -50
+/// @par     maxRange = 125
+/// Acceptable range for the value is optional and can be omitted. If the range is specified,
+/// the values outside of this range will be clamped to high or low limit.
+/// @par This is the basic class, intended to be inherited by concrete physical quantity
+/// classes. It was designed not to make use of virtual methods. The descendant classes
+/// are able to set some of the fields (via setters).
+/// @par The quantity can be printed or passed to external systems even without knowing its
+/// concrete type, by acquiring the field values via getters.
+/// @par The object of this class is intended to be initialised only by constructor
+/// (protected and reserved for use by descendant classes) or by copy constructor from another
+/// quantity. Once initialised, the quantity's information cannot be modified. The numeric
+/// value cannot be modified as well but it can be converted to a different measurement unit.
+/// The conversion is handled by descendant classes.
+/// @par An identifier and identifier group define the meaning of the quantity (location, purpose,
+/// device, etc...). Identifier and identifier group are only stored in this class and are not
+/// processed or checked by its methods. The identifying scheme, uniquenes and other rules are
+/// defined and enforced by the object's creator.
+/// @par A validate() method can be used to evaluate whether the numeric value can be considered
+/// as a valid one.
+/// @par The value and measurment unit used during the initialisation is stored in the object
+/// (initValue and initUnit). When the conversion to other measurment unit is performed, the
+/// setValue and setUnit fields are modified via setter methods. This modification is to be
+/// handled in descendant classes. Obtaining value and unit of the quantity via getter methods
+/// will return setValue and setUnit.
+/// @par The class has introspection mechanism allowing to identify concrete type of object,
+/// even if the object is represented as a pointer to base class type.
+
+class Quantity {
+  public:
+    typedef Value value_t;
+    typedef Timestamp timestamp_t;
+    typedef uint8_t unit_t;
+    typedef uint16_t id_t;
+    typedef StrRef text_t;
+  protected:
+    inline Quantity(id_t id,
+                    id_t idGroup,
+                    value_t value,
+                    unit_t unit,
+                    text_t unitText,
+                    timestamp_t timestamp = {},
+                    boolean valid = true,
+                    value_t minRange = value_t(0),
+                    value_t maxRange = value_t(0));
+  public:
+    inline boolean validate(void) const {
+      /// @brief Checks whether the object was initialised
+      /// @return true if the value is valid, false otherwise
+      return (valid);
+    }
+  public:
+    inline id_t getId(void) const {
+      /// @brief Returns physical quantity identifier (location, sensor ID, etc...)
+      /// @returns Physical quantity identifier in numeric form
+      return (id);
+    }
+    inline id_t getIdGroup(void) const {
+      /// @brief Returns physical quantity identifier group
+      /// @returns Physical quantity group identifier in numeric form
+      return (idGroup);
+    }
+    inline timestamp_t getTimestamp(void) const {
+      /// @brief Returns timestamp representing the moment of measurement of
+      /// the physical quantity
+      /// @returns Timestamp for measurement moment
+      return (timestamp);
+    }
+    inline value_t getValue(void) const {
+      /// @return Physical quantity numeric value
+      return (setUnitValue);
+    }
+    inline text_t PROGMEM getUnitText(void) const {
+      /// @return C-string (in PROGMEM) with physical quantity measurement unit in
+      /// human-readable form or nullptr if human-readable form was not provided
+      return (setUnitText);
+    }
+    inline value_t getMinRange(void) {
+      /// @brief Returns minimum range for this quantity (if set)
+      /// @return Minimum range or zero if not set
+      return (setUnitMinRange);
+    }
+    inline value_t getMaxRange(void) {
+      /// @brief Returns minimum range for this quantity (if set)
+      /// @return Minimum range or zero if not set
+      return (setUnitMaxRange);
+    }
+  protected:
+    boolean setConvertedValue(value_t value,
+                              unit_t units,
+                              text_t unitText = {},
+                              value_t minRange = value_t(0),
+                              value_t maxRange = value_t(0));
+  protected:
+    inline value_t getInitValue(void) const {
+      /// @return Value used to initialise the object
+      return (initValue);
+    }
+    inline unit_t getInitUnit(void) const {
+      /// @return Measurement unit in numeric form used along with
+      /// initValue to initialise the object
+      return (initUnit);
+    }
+    inline value_t getInitMinRange(void) const {
+      /// @return Minimum range at initialisation (or 0 if not defined)
+      return (initMinRange);
+    }
+    inline value_t getInitMaxRange(void) const {
+      /// @return Maximum range at initialisation (or 0 if not defined)
+      return (initMaxRange);
+    }
+  private:
+    //Essential components of the quantity
+    //As an example the following physical quantity will be used:
+    //"outdoors temperature (id=12) is 10.25 degrees Celsius as measured at 15381 milliseconds from startup"
+    //WHAT does the quantity represent, e.g. "outdoors temperature, id=12, group=3"
+    id_t id {};                         ///< Identifier
+    id_t idGroup {};                    ///< Identifier group
+    //WHEN the quantity was measured, e.g. "at 15381 milliseconds from startup"
+    timestamp_t timestamp {};           ///< Timestamp at the moment of measurement
+    //HOW MUCH is the numerical measurement result, e.g. "10.25"
+    value_t initValue {};               ///< Value when initialised, expressed in initUnits
+    value_t setUnitValue {};            ///< initValue converted from initUnits to setUnits
+    //In WHICH UNITS the measurement result is represented, e.g. in degrees Celsius
+    unit_t initUnit {};                 ///< measurment unit when initialised
+    unit_t setUnit {};                  ///< measurment unit in which setUnitValue is expressed
+    text_t setUnitText;                 ///< setUnit in human-readable form
+    //IS the numerical result valid (true/false)
+    boolean valid = false;              ///< if false, the value of setUnitValue must be disregarded
+    //IN WHICH RANGE can measurement results possibly be
+    value_t initMinRange {};            ///< minimum range in initUnit units
+    value_t initMaxRange {};            ///< maximum range in initUnit units
+    value_t setUnitMinRange {};        ///< minimum range in setUnit units
+    value_t setUnitMaxRange {};        ///< maximum range in setUnit units
+  private:
+    //Introspection
+    INTROSPECTED_BASE(INTROSPECTED_CLASS_TYPE_AUTO());
+};
+
+Quantity::Quantity(id_t id,
+                   id_t idGroup,
+                   value_t value,
+                   unit_t unit,
+                   text_t unitText,
+                   timestamp_t timestamp,
+                   boolean valid,
+                   value_t minRange,
+                   value_t maxRange) {
+  /// @brief Initialises object by setting its data
+  /// @param id Identifier (designation) of the physical quantity (location, sensor ID, etc...)
+  /// @param idGroup Group to which id belongs
+  /// @param value A numerical value of the physical quantity
+  /// @param unit Identifier of the measurement unit in which value is represented
+  /// @param unitText Human-readable form of unit parameter
+  /// @param timestamp Represents the moment of time when the physical quantity was measured (if
+  /// available)
+  /// @param valid False if value is invalid (e.g. error occured during measurement), true otherwise
+  /// @param minRange Minimum possible value
+  /// @param minRange Maximum possible value
+  /// @details This constructor is reserved for use by descendant classes
+  INTROSPECTED_SET_OBJECT_TYPE();
+  this->id = id;
+  this->idGroup = idGroup;
+  this->timestamp = timestamp;
+  this->initValue = value;
+  this->initUnit = unit;
+  this->setUnit = unit;
+  this->setUnitText = unitText;
+  this->valid = valid;
+  this->initMinRange = minRange;
+  this->initMaxRange = maxRange;
+  this->setUnitMinRange = this->initMinRange;
+  this->setUnitMaxRange = this->initMaxRange;
+  if ((this->initMinRange != value_t(0)) || (this->initMaxRange != value_t(0))) {
+    if (this->initValue < this->initMinRange) this->initValue = minRange;
+    if (this->initValue > this->initMaxRange) this->initValue = maxRange;
+  }
+  this->setUnitValue = initValue;
+}
+
+//////////////////////////////////////////////////////////////////////
+// Generic Quantity
+//////////////////////////////////////////////////////////////////////
+
+/// @brief Generic physical quantity
+/// @details Used for physical quantities for which no concrete class exists or
+/// when the nature of quantity is defined by user and cannot be known at
+/// compile time.
+/// @par No conversion is possible.
+/// @par Measurement unit is defined in human-readable form only.
+/// @par Generic physical quantity value and measurment unit are always returned
+/// as they were set in constructor
+class Generic : public Quantity {
+  public:
+    ///@brief Measurement unit: only GENERIC is avaiable
+    enum class Unit : unit_t {
+      GENERIC,
+    };
+    INTROSPECTED_SET_CLASS_TYPE(INTROSPECTED_CLASS_TYPE_AUTO());
+  public:
+    inline Generic (id_t id,
+                    id_t idGroup,
+                    value_t value,
+                    text_t genericUnitText,
+                    timestamp_t timestamp = {},
+                    boolean valid = true,
+                    value_t minRange = {},
+                    value_t maxRange = {})
+      : Quantity(id,
+                 idGroup,
+                 value,
+                 static_cast<unit_t>(Unit::GENERIC),
+                 genericUnitText,
+                 timestamp,
+                 valid,
+                 minRange,
+                 maxRange)
+    {
+      INTROSPECTED_SET_OBJECT_TYPE();
+    }
+};
+
+//////////////////////////////////////////////////////////////////////
+// Dimensionless Quantity
+//////////////////////////////////////////////////////////////////////
+
+/// @brief Dimensionless physical quantities
+/// @details Used for dimensionless quantities such as ratios, factors,
+/// percentage, etc.
+/// @par The avaialble measurment units are NONE and PERCENT
+/// @par Unit NONE used for truly dimensionless qunatity such as factor
+/// @par Unit PERCENT used for percentages
+/// @par Conversion from NONE to PERCENT multiplies the value by 100%
+class Dimensionless : public Quantity {
+  public:
+    enum class Unit : unit_t {
+      NONE,     ///< Used for truly dimensionless qunatity such as factor
+      PERCENT,  ///< Used for percentages
+    };
+  public:
+    INTROSPECTED_SET_CLASS_TYPE(INTROSPECTED_CLASS_TYPE_AUTO());
+  public:
+    inline Dimensionless (id_t id,
+                          id_t idGroup,
+                          value_t value,
+                          Unit unit,
+                          timestamp_t timestamp = {},
+                          boolean valid = true,
+                          value_t minRange = {},
+                          value_t maxRange = {})
+      : Quantity(id,
+                 idGroup,
+                 value,
+                 static_cast<unit_t>(unit),
+                 getUnitTextByUnit(unit),
+                 timestamp,
+                 valid,
+                 minRange,
+                 maxRange)
+    {
+      INTROSPECTED_SET_OBJECT_TYPE();
+    }
+  public:
+    boolean convertToUnit(Dimensionless::Unit unit);
+    static text_t getUnitTextByUnit(Dimensionless::Unit unit);
+};
+
+
+//////////////////////////////////////////////////////////////////////
+// Temperature
+//////////////////////////////////////////////////////////////////////
+
+/// @brief Temperature as physical quantity
+/// @details The avaialble measurment units are CELSIUS and FAHRENHEIT,
+/// representing degrees Celsius and degrees Fahrenheit respectively
+class Temperature : public Quantity {
+  public:
+    enum class Unit : unit_t {
+      CELSIUS,      ///< Degrees Celsius
+      FAHRENHEIT,   ///< Degrees Fahrenheit
+    };
+  public:
+    INTROSPECTED_SET_CLASS_TYPE(INTROSPECTED_CLASS_TYPE_AUTO());
+  public:
+    inline Temperature (id_t id,
+                        id_t idGroup,
+                        value_t value,
+                        Unit unit,
+                        timestamp_t timestamp = {},
+                        boolean valid = true,
+                        value_t minRange = {},
+                        value_t maxRange = {})
+      : Quantity(id,
+                 idGroup,
+                 value,
+                 static_cast<unit_t>(unit),
+                 getUnitTextByUnit(unit),
+                 timestamp,
+                 valid,
+                 minRange,
+                 maxRange)
+    {
+      INTROSPECTED_SET_OBJECT_TYPE();
+    }
+  public:
+    boolean convertToUnit(Temperature::Unit unit);
+    static text_t getUnitTextByUnit(Temperature::Unit unit);
+  private:
+    static value_t celsiusToFahrenheit(value_t celsiusValue);
+    static value_t fahrenheitToCelsius(value_t fahrenheitValue);
+};
+
+}; //namespace quantity
 
 }; //namespace util
 

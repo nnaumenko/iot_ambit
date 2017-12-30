@@ -219,7 +219,6 @@ static uint16_t reverse16(uint16_t x) {
 /// @brief Reverse bit order in a 32-bit value
 /// @param x Input value
 /// @return Value with bits reversed
-
 static uint32_t reverse32(uint32_t x) {
   x = (((x & 0xAAAAAAAA) >> 1) | ((x & 0x55555555) << 1));
   x = (((x & 0xCCCCCCCC) >> 2) | ((x & 0x33333333) << 2));
@@ -251,5 +250,164 @@ uint16_t crc16(const void * buffer, size_t bufferSize, uint16_t poly, uint16_t i
 namespace dsp {
 
 }; //namespace dsp
+
+namespace quantity {
+
+boolean Quantity::setConvertedValue(
+  value_t value,
+  unit_t units,
+  text_t unitText,
+  value_t minRange,
+  value_t maxRange)
+{
+  /// @brief Sets converted value and measurement units (accessible via public getter methods)
+  /// @param value Value converted into units
+  /// @param units Measurement units in numeric form
+  /// @param unitText Measurement units in human-readable form
+  /// @return True if the value if valid and can be converted
+  if (!validate()) return (false);
+  setUnitValue = value;
+  setUnit = units;
+  setUnitText = unitText;
+  if ((initMinRange != Value(0)) || (initMaxRange != Value(0))) {
+    setUnitMinRange = minRange;
+    setUnitMaxRange = maxRange;
+    if (this->setUnitValue < this->setUnitMinRange) this->setUnitValue = minRange;
+    if (this->setUnitValue > this->setUnitMaxRange) this->setUnitValue = maxRange;
+  }
+  return (true);
+}
+
+boolean Dimensionless::convertToUnit(Dimensionless::Unit unit) {
+  /// @brief Performs conversion to a measurement unit
+  /// @param unit Measurement unit to convert to
+  /// @return true if conversion was successful,
+  /// false if error occured during conversion
+  const Unit initDimensionlessUnit = static_cast<Unit>(getInitUnit());
+  static const value_t percentFactor(100);
+  //If not initialised, fail
+  if (!validate()) return (false);
+  //If init and target units are the same, revert to init values
+  if (unit == initDimensionlessUnit) {
+    setConvertedValue(getInitValue(),
+                      getInitUnit(),
+                      getUnitTextByUnit(initDimensionlessUnit),
+                      getInitMinRange(),
+                      getInitMaxRange());
+    return (true);
+  }
+  //Convert from no-unit to percent (multiply by 100%)
+  if (initDimensionlessUnit == Unit::NONE && unit == Unit::PERCENT) {
+    setConvertedValue(getInitValue() * percentFactor,
+                      static_cast <unit_t>(Unit::PERCENT),
+                      getUnitTextByUnit(Unit::PERCENT),
+                      getInitMinRange() * percentFactor,
+                      getInitMaxRange() * percentFactor);
+    return (true);
+  }
+  //Convert from percent to no-unit (divide by 100%)
+  if (initDimensionlessUnit == Unit::PERCENT && unit == Unit::NONE) {
+    setConvertedValue(getInitValue() / percentFactor,
+                      static_cast <unit_t>(Unit::NONE),
+                      getUnitTextByUnit (Unit::NONE),
+                      getInitMinRange() / percentFactor,
+                      getInitMaxRange() / percentFactor);
+    return (true);
+  }
+  //Unit not found or conversion not defined, fail
+  return (false);
+}
+
+Dimensionless::text_t Dimensionless::getUnitTextByUnit(Dimensionless::Unit unit) {
+  /// @brief Returns human-readable form of a measurement unit
+  /// @param Measurement unit
+  /// @return A cstring in RAM with human-readable form of unit
+  //  static const char unitTextNone[] = "";
+  //static const char unitTextPercent[] = "%";
+  switch (unit) {
+    case Unit::NONE:
+      //  return (unitTextNone);
+      return (StrRef(F("")));
+    case Unit::PERCENT:
+      //      return (unitTextPercent);
+      return (StrRef(F("%")));
+  }
+  return (StrRef());
+}
+
+boolean Temperature::convertToUnit(Temperature::Unit unit) {
+  /// @brief Performs conversion to a measurement unit
+  /// @param unit Measurement unit to convert to
+  /// @return true if conversion was successful,
+  /// false if error occured during conversion
+  const Unit initTempUnit = static_cast<Unit>(getInitUnit());
+  //If not initialised, fail
+  if (!validate()) return (false);
+  //If init and target units are the same, revert to init values
+  if (unit == initTempUnit) {
+    setConvertedValue(getInitValue(),
+                      getInitUnit(),
+                      getUnitTextByUnit(initTempUnit),
+                      getInitMinRange(),
+                      getInitMaxRange());
+    return (true);
+  }
+  //Convert Celsius to Fahrenheit
+  if (initTempUnit == Unit::CELSIUS && unit == Unit::FAHRENHEIT) {
+    setConvertedValue(celsiusToFahrenheit(getInitValue()),
+                      static_cast <unit_t>(Unit::FAHRENHEIT),
+                      getUnitTextByUnit(Unit::FAHRENHEIT),
+                      celsiusToFahrenheit(getInitMinRange()),
+                      celsiusToFahrenheit(getInitMaxRange()));
+    return (true);
+  }
+  //Convert Fahrenheit to Celsius
+  if (initTempUnit == Unit::FAHRENHEIT && unit == Unit::CELSIUS) {
+    setConvertedValue(fahrenheitToCelsius(getInitValue()),
+                      static_cast <unit_t>(Unit::CELSIUS),
+                      getUnitTextByUnit (Unit::CELSIUS),
+                      fahrenheitToCelsius(getInitMinRange()),
+                      fahrenheitToCelsius(getInitMaxRange()));
+    return (true);
+  }
+  //Unit not found or conversion not defined, fail
+  return (false);
+}
+
+Temperature::text_t Temperature::getUnitTextByUnit(Temperature::Unit unit) {
+  /// @brief Returns human-readable form of a measurement unit
+  /// @param Measurement unit
+  /// @return A cstring in RAM with human-readable form of unit
+  //static const char unitTextCelsius[] = "C";
+  //static const char unitTextFahrenheit[] = "F";
+  switch (unit) {
+    case Unit::CELSIUS:
+      //      return (unitTextCelsius);
+      return (text_t(F("C")));
+    case Unit::FAHRENHEIT:
+      //      return (unitTextFahrenheit);
+      return (text_t(F("F")));
+  }
+  return (StrRef());
+  //return (nullptr);
+}
+
+Temperature::value_t Temperature::celsiusToFahrenheit(value_t celsiusValue) {
+  ///Convert temperature from degrees Celsius to degrees Fahrenheit
+  static const value_t celsiusFahrenheitA1(9);
+  static const value_t celsiusFahrenheitA2(5);
+  static const value_t celsiusFahrenheitB(32);
+  return ((celsiusValue * celsiusFahrenheitA1 / celsiusFahrenheitA2) + celsiusFahrenheitB);
+}
+
+Temperature::value_t Temperature::fahrenheitToCelsius(value_t fahrenheitValue) {
+  ///Convert temperature from degrees Fahrenheit to degrees Celsius
+  static const value_t fahrenheitCelsiusA1(5);
+  static const value_t fahrenheitCelsiusA2(9);
+  static const value_t fahrenheitCelsiusB(32);
+  return ((fahrenheitValue - fahrenheitCelsiusB) * fahrenheitCelsiusA1 / fahrenheitCelsiusA2);
+}
+
+}; //namespace quantity
 
 }; //namespace util
