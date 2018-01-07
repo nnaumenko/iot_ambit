@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2017 Nick Naumenko (https://github.com/nnaumenko)
+ * Copyright (C) 2016-2018 Nick Naumenko (https://github.com/nnaumenko)
  * All rights reserved
  * This software may be modified and distributed under the terms
  * of the MIT license. See the LICENSE file for details.
@@ -202,6 +202,7 @@ class DiagLog : public Module<DiagLog<Storage>> {
     inline void disablePrintOutput(void);
   public:
     inline const char * PROGMEM moduleName (void);
+    inline ModuleId moduleId(void);
     inline const char * PROGMEM getMainPath(void);
   public:
     inline boolean onHTTPReqStart(void);
@@ -357,15 +358,21 @@ const __FlashStringHelper * DiagLog<Storage, LogSeparatorChar>::severityString(S
   }
 }
 
-/// @brief Returns human-readable module name as a c-string in PROGMEM.
 template <class Storage, char LogSeparatorChar>
 const char * PROGMEM DiagLog<Storage, LogSeparatorChar>::moduleName (void) {
+  /// @return Human-readable module name as a c-string in PROGMEM
   return (texts.moduleName);
 }
 
-/// @brief Returns default webserver path for this module, implements interface method ModuleWebServer::getMainPath().
+template <class Storage, char LogSeparatorChar>
+ModuleId DiagLog<Storage, LogSeparatorChar>::moduleId (void) {
+  /// @return Numeric module identifier
+  return (ModuleIdDiag);
+}
+
 template <class Storage, char LogSeparatorChar>
 const char * PROGMEM DiagLog<Storage, LogSeparatorChar>::getMainPath (void) {
+  /// @return Default webserver path for this module
   return (texts.diagLogConsolePath);
 }
 

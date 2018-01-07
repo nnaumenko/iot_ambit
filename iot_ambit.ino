@@ -1,5 +1,5 @@
 /*
-* Copyright (C) 2016-2017 Nick Naumenko (https://github.com/nnaumenko)
+* Copyright (C) 2016-2018 Nick Naumenko (https://github.com/nnaumenko)
 * All rights reserved
 * This software may be modified and distributed under the terms
 * of the MIT license. See the LICENSE file for details.
@@ -24,6 +24,9 @@ extern "C" {
 #include "diag.h"
 #include "webcc.h"
 #include "webconfig.h"
+#include "wifi.h"
+
+#include "dhts.h"
 
 const boolean CONFIG_MODE_WIFI_OPEN = true; //change to false to create password-protected WiFi network in config mode
 
@@ -32,10 +35,20 @@ WiFiServer webServer(WEB_SERVER_PORT);
 
 
 using DiagLog = diag::DiagLog<>;
+
 using WebConfig = webconfig::WebConfig <DiagLog>;
+
+using WiFiModule = wifi::WiFiModule <DiagLog>;
+
+using DHTModule = dhts::DHTModule <DiagLog>;
+
 using WebConfigControl = webcc::WebConfigControl <DiagLog, webcc::HTTPReqParserStateMachine, webcc::BufferedPrint, webcc::WebccForm,
       WebConfig,
-      DiagLog>;
+      DiagLog,
+      WiFiModule,
+      
+      DHTModule
+      >;
 
 //#define BLYNK_PRINT Serial
 

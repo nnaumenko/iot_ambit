@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Nick Naumenko (https://github.com/nnaumenko)
+ * Copyright (C) 2016-2018 Nick Naumenko (https://github.com/nnaumenko)
  * All rights reserved
  * This software may be modified and distributed under the terms
  * of the MIT license. See the LICENSE file for details.
@@ -65,8 +65,8 @@ class TextsUI {
 
     MODULE_TEXT(rootCaption, "WebConfigControl");
     MODULE_TEXT(moduleIndex, "Modules");
-    MODULE_TEXT(moduleIndexNameCaption, "Name");
-    MODULE_TEXT(moduleIndexLinkCaption, "Link");
+    MODULE_TEXT(moduleIndexIdCaption, "Identifier");
+    MODULE_TEXT(moduleIndexNameLinkCaption, "Name & Webserver Link");
 
 } __attribute__((packed));
 
@@ -139,6 +139,7 @@ class WebConfigControl : public Module<WebConfigControl<Diag, Parser, OutputStre
     inline WiFiServer * getServer(void);
   public:
     inline const char * PROGMEM moduleName (void);
+    inline ModuleId moduleId (void);
     inline const char * PROGMEM getMainPath(void);
   public:
     void onBegin(void);
@@ -185,7 +186,6 @@ class WebConfigControl : public Module<WebConfigControl<Diag, Parser, OutputStre
   private:
     static const size_t outputBufferSize = WIFICLIENT_MAX_PACKET_SIZE;
     uint8_t outputBuffer[outputBufferSize];
-
 };
 
 
@@ -201,13 +201,20 @@ WiFiServer * WebConfigControl<Diag, Parser, OutputStream, WebForm, WebModules...
 
 template <class Diag, class Parser, class OutputStream, class WebForm, class... WebModules>
 const char * PROGMEM WebConfigControl<Diag, Parser, OutputStream, WebForm, WebModules...>::moduleName (void) {
-  /// Returns human-readable module name, implements interface method ModuleBase::moduleName().
+  /// @return Human-readable module name
   return (texts.moduleName);
 }
 
 template <class Diag, class Parser, class OutputStream, class WebForm, class... WebModules>
+ModuleId WebConfigControl<Diag, Parser, OutputStream, WebForm, WebModules...>::moduleId (void) {
+  /// @return Numeric module identifier
+  return (ModuleIdWebCC);
+}
+
+
+template <class Diag, class Parser, class OutputStream, class WebForm, class... WebModules>
 const char * PROGMEM WebConfigControl<Diag, Parser, OutputStream, WebForm, WebModules...>::getMainPath (void) {
-  /// Returns default webserver path for this module, implements interface method ModuleWebServer::getMainPath().
+  /// @teturn Default webserver path for this module
   return (texts.indexPath);
 }
 
@@ -405,7 +412,7 @@ boolean WebConfigControl<Diag, Parser, OutputStream, WebForm, WebModules...>::ca
 }
 
 template <class Diag, class Parser, class OutputStream, class WebForm, class... WebModules>
-boolean WebConfigControl<Diag, Parser, OutputStream, WebForm, WebModules...>::callWebModulesOnRespond(size_t index, Print &client) {
+boolean WebConfigControl<Diag, Parser, OutputStream, WebForm, WebModules...>::callWebModulesOnRespond(size_t index, Print & client) {
   /// @brief Calls onRespond method of one module from WebModules parameter pack.
   /// @param index Index of the module in the parameter pack or WebCC::webModulesCallThisAccepted if this module
   /// previously accepted the path from HTTP request
@@ -476,7 +483,7 @@ boolean WebConfigControl<Diag, Parser, OutputStream, WebForm, WebModules...>::on
 }
 
 template <class Diag, class Parser, class OutputStream, class WebForm, class... WebModules>
-boolean WebConfigControl<Diag, Parser, OutputStream, WebForm, WebModules...>::onRespond(Print &client) {
+boolean WebConfigControl<Diag, Parser, OutputStream, WebForm, WebModules...>::onRespond(Print & client) {
   /// @brief Interface to integrate into webserver, implements interface method ModuleWebServer::onRespond()
   /// @details Produces HTML page with the list of the modules passed as a template parameter pack WebModules
   Diag * diagLog = Diag::instance();
@@ -486,6 +493,7 @@ boolean WebConfigControl<Diag, Parser, OutputStream, WebForm, WebModules...>::on
     return (true);
   }
   diagLog->log(Diag::Severity::INFORMATIONAL, FPSTR(textsUI.sendModuleIndexBegin));
+  ModuleId ids[] = { (WebModules::instance()->moduleId())... };
   const char * paths[] = { (WebModules::instance()->getMainPath())... };
   const char * names[] = { (WebModules::instance()->moduleName())... };
   int moduleCount = sizeof...(WebModules);
@@ -494,10 +502,15 @@ boolean WebConfigControl<Diag, Parser, OutputStream, WebForm, WebModules...>::on
   index.bodyBegin(NULL, textsUI.rootCaption);
   index.sectionBegin(textsUI.moduleIndex);
   index.subsectionBegin(textsUI.moduleIndex);
-  index.plaintext(textsUI.moduleIndexNameCaption, textsUI.moduleIndexLinkCaption);
-  index.link(this->moduleName(), this->getMainPath(), this->getMainPath());
+  index.plaintext(textsUI.moduleIndexIdCaption, textsUI.moduleIndexNameLinkCaption);
+  static const size_t idTextSize = 16;
+  char idText[idTextSize] = "";
+  static const int decimalRadix = 10;
+  utoa(moduleId(), idText , decimalRadix);
+  index.link(idText, this->getMainPath(), this->moduleName());
   for (int i = 0; i < moduleCount; i++) {
-    index.link(names[i], paths[i], paths[i]);
+    utoa(ids[i], idText , decimalRadix);
+    index.link(idText, paths[i], names[i]);
   }
   index.bodyEnd();
   diagLog->log(Diag::Severity::DEBUG, FPSTR(textsUI.sendModuleIndexEnd));
@@ -505,7 +518,7 @@ boolean WebConfigControl<Diag, Parser, OutputStream, WebForm, WebModules...>::on
 }
 
 template <class Diag, class Parser, class OutputStream, class WebForm, class... WebModules>
-void WebConfigControl<Diag, Parser, OutputStream, WebForm, WebModules...>::handleErrors(OutputStream &output, WebccError error, const Parser &parser) {
+void WebConfigControl<Diag, Parser, OutputStream, WebForm, WebModules...>::handleErrors(OutputStream & output, WebccError error, const Parser & parser) {
   /// @brief Handles HTTP Request Parser errors and WebCC errors
   /// @param output Output which receives error data in form of HTTP Responses
   /// @param error Error generated by WebCC itself
@@ -1244,7 +1257,7 @@ class BufferedPrint : public Print {
 
 /// Initialises client and buffer data
 /// @param client Client to send data to
-/// @param buffer Buffer to use for temporarily storing data 
+/// @param buffer Buffer to use for temporarily storing data
 /// @param bufferSize size of the buffer in bytes
 BufferedPrint::BufferedPrint (Print & client, uint8_t * buffer, size_t bufferSize) {
   this->client = &client;

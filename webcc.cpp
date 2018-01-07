@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2017 Nick Naumenko (https://github.com/nnaumenko)
+ * Copyright (C) 2017-2018 Nick Naumenko (https://github.com/nnaumenko)
  * All rights reserved
  * This software may be modified and distributed under the terms
  * of the MIT license. See the LICENSE file for details.
@@ -204,6 +204,10 @@ void WebccForm::link (const char * displayName,
                       const char * tooltipText,
                       boolean progmemStrings) {
   if (!client) return;
+  if (!linkURL) {
+    plaintext(displayName, linkText, tooltipText, progmemStrings);
+    return;
+  }
   client->print(FPSTR(webccFormHTML.link1));
   print(displayName, progmemStrings);
   client->print(FPSTR(webccFormHTML.link2));

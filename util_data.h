@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2017 Nick Naumenko (https://github.com/nnaumenko)
+ * Copyright (C) 2016-2018 Nick Naumenko (https://github.com/nnaumenko)
  * All rights reserved
  * This software may be modified and distributed under the terms
  * of the MIT license. See the LICENSE file for details.
@@ -19,6 +19,8 @@
 #define UTIL_DATA_H
 
 #include <Arduino.h>
+
+#include <new>
 
 //new, placement new and delete are already defined in ESP8266 libraries
 //void * operator new (size_t size) { return malloc (size); }
@@ -893,8 +895,10 @@ namespace dsp {
 // Filter
 //////////////////////////////////////////////////////////////////////
 
-template <typename T, typename Timestamp>
-class TemplateFilter {
+class Filter {
+  public:
+    typedef Value value_t;
+    typedef Timestamp timestamp_t;
   public:
     enum class Status {
       NONE,                               ///< No status returned
@@ -907,30 +911,29 @@ class TemplateFilter {
       ERROR_TOO_FEW_INPUTS,               ///< Error: too few inputs provided for the filter
     };
   public:
-    virtual ~TemplateFilter() {};
-    inline const T& filter(Timestamp timestamp = 0);
-    template <typename... Inputs> const T& filter(Timestamp timestamp, const Inputs... inputs);
+    virtual ~Filter() {};
+    inline const value_t& filter(timestamp_t timestamp = 0);
+    template <typename... Inputs> const value_t& filter(timestamp_t timestamp, const Inputs... inputs);
     Status getStatus(void);
   protected:
-    virtual Status filterProcess(const T *inputs, size_t inputsNumber, T &output, Timestamp timestamp) = 0;
+    virtual Status filterProcess(const value_t *inputs, size_t inputsNumber, value_t &output, timestamp_t timestamp) = 0;
   protected:
-    Timestamp getDeltaTime(Timestamp currentTime);
+    Timestamp getDeltaTime(timestamp_t currentTime);
   protected:
     void setInitStatus(Status initStatus);
     void setInputsNumber(size_t min, size_t max);
   private:
     Status status = Status::NONE;
   private:
-    T outputValue = static_cast<T>(0);
-    Timestamp lastTime = static_cast<Timestamp>(0);
+    value_t outputValue = value_t(0);
+    timestamp_t lastTime = timestamp_t(0);
   private:
     size_t minInputs = 0;
     size_t maxInputs = 0;
 };
 
-template <typename T, typename Timestamp>
-const T& TemplateFilter<T, Timestamp>::filter(Timestamp timestamp) {
-  outputValue = static_cast<T>(0);
+const Filter::value_t& Filter::filter(Filter::timestamp_t timestamp) {
+  outputValue = value_t(0);
   if ((status == Status::ERROR_INIT_DATA_INCORRECT) ||
       (status == Status::ERROR_INIT_NOT_ENOUGH_MEMORY) ||
       (status == Status::ERROR_INIT_FAILED)) {
@@ -947,10 +950,9 @@ const T& TemplateFilter<T, Timestamp>::filter(Timestamp timestamp) {
   return (outputValue);
 }
 
-template <typename T, typename Timestamp>
-template <typename... Inputs> const T& TemplateFilter<T, Timestamp>::filter(Timestamp timestamp, const Inputs... inputs) {
-  T inputsArray[] = { T(inputs)... };
-  outputValue = static_cast<T>(0);
+template <typename... Inputs> const Filter::value_t& Filter::filter(timestamp_t timestamp, const Inputs... inputs) {
+  value_t inputsArray[] = { value_t(inputs)... };
+  outputValue = value_t(0);
   if ((status == Status::ERROR_INIT_DATA_INCORRECT) ||
       (status == Status::ERROR_INIT_NOT_ENOUGH_MEMORY) ||
       (status == Status::ERROR_INIT_FAILED)) {
@@ -970,407 +972,85 @@ template <typename... Inputs> const T& TemplateFilter<T, Timestamp>::filter(Time
   return (outputValue);
 }
 
-template <typename T, typename Timestamp>
-Timestamp TemplateFilter<T, Timestamp>::getDeltaTime(Timestamp currentTime) {
-  if (!lastTime) return (static_cast<Timestamp>(0));
-  return (currentTime - lastTime);
-}
-
-template <typename T, typename Timestamp>
-typename TemplateFilter<T, Timestamp>::Status TemplateFilter<T, Timestamp>::getStatus(void) {
+inline Filter::Status Filter::getStatus(void) {
   return (status);
 }
 
-template <typename T, typename Timestamp>
-void TemplateFilter<T, Timestamp>::setInitStatus(Status initStatus) {
+inline void Filter::setInitStatus(Filter::Status initStatus) {
   status = initStatus;
 }
 
-template <typename T, typename Timestamp>
-void TemplateFilter<T, Timestamp>::setInputsNumber(size_t min, size_t max) {
+inline void Filter::setInputsNumber(size_t min, size_t max) {
   if (min > max) return;
   minInputs = min;
   maxInputs = max;
 }
 
-
-//////////////////////////////////////////////////////////////////////
-// MovingAverage
-//////////////////////////////////////////////////////////////////////
-
-template <typename T, typename Timestamp>
-class MovingAverage : public TemplateFilter<T, Timestamp> {
+class MovingAverage : public Filter {
   public:
     MovingAverage(size_t numValues);
-    virtual typename TemplateFilter<T, Timestamp>::Status filterProcess(const T *inputs, size_t inputsNumber, T &output, Timestamp timestamp);
+    virtual Filter::Status filterProcess(const value_t *inputs, size_t inputsNumber, value_t &output, timestamp_t timestamp);
     virtual ~MovingAverage() {}
   private:
-    arrays::RingBuffer<T> ringBuffer;
-    T lastValue = static_cast<T>(0);
+    arrays::RingBuffer<value_t> ringBuffer;
+    value_t lastValue = value_t(0);
 };
 
-template <typename T, typename Timestamp>
-MovingAverage<T, Timestamp>::MovingAverage(size_t numValues) : ringBuffer(numValues) {
-  static const size_t inputNumber = 1;
-  TemplateFilter<T, Timestamp>::setInputsNumber(inputNumber, inputNumber);
-  if (!ringBuffer.validate()) {
-    TemplateFilter<T, Timestamp>::setInitStatus(TemplateFilter<T, Timestamp>::Status::ERROR_INIT_NOT_ENOUGH_MEMORY);
-    return;
-  }
-  TemplateFilter<T, Timestamp>::setInitStatus(TemplateFilter<T, Timestamp>::Status::OK);
-}
-
-template <typename T, typename Timestamp>
-typename TemplateFilter<T, Timestamp>::Status MovingAverage<T, Timestamp>::filterProcess(const T * inputs, size_t inputsNumber, T & output, Timestamp timestamp) {
-  (void)timestamp;
-  if (!inputsNumber) return (TemplateFilter<T, Timestamp>::Status::ERROR_TOO_FEW_INPUTS);
-  ringBuffer.push(inputs[0]);
-  T total = static_cast<T>(0);
-  T subtotal = static_cast<T>(0);
-  for (int i = 0; i < ringBuffer.count(); i++) {
-    T backupSubtotal = subtotal;
-    subtotal += ringBuffer[i];
-    if (overflow(subtotal)) {
-      //When overflow occurs we divide part of the sum (subtotal) by amount of items and add it to total (precision is lost but overflow avoided)
-      total += (backupSubtotal / static_cast<T>(ringBuffer.count()));
-      subtotal = ringBuffer[i];
-    }
-  }
-  if (ringBuffer.count()) {
-    total += (subtotal / static_cast<T>(ringBuffer.count())); //if there was no overflow, then total is still zero at this point
-  }
-  output = total;
-  return (TemplateFilter<T, Timestamp>::Status::OK);
-};
-
-//////////////////////////////////////////////////////////////////////
-// LowPass
-//////////////////////////////////////////////////////////////////////
-
-template <typename T, typename Timestamp>
-class LowPass : public TemplateFilter<T, Timestamp> {
+class LowPass : public Filter {
   public:
-    LowPass(const T &fc, const T &pi, const T & fcDivider = static_cast<T>(1));
-    virtual typename TemplateFilter<T, Timestamp>::Status filterProcess(const T *inputs, size_t inputsNumber, T &output, Timestamp timestamp);
+    LowPass(const value_t &fc, const value_t &pi, const value_t & fcDivider = value_t(1));
+    virtual Filter::Status filterProcess(const value_t *inputs, size_t inputsNumber, value_t &output, timestamp_t timestamp);
     virtual ~LowPass() {}
   private:
-    T fc = static_cast<T>(0);
-    T fcDivider = static_cast<T>(1);
-    T fcPi2 = static_cast<T>(0);
-    T lastOutput = static_cast<T>(0);
+    value_t fc = value_t(0);
+    value_t fcDivider = value_t(1);
+    value_t fcPi2 = value_t(0);
+    value_t lastOutput = value_t(0);
 };
 
-template <typename T, typename Timestamp>
-LowPass<T, Timestamp>::LowPass(const T & fc, const T & pi, const T & fcDivider) {
-  static const size_t inputNumber = 1;
-  TemplateFilter<T, Timestamp>::setInputsNumber(inputNumber, inputNumber);
-  if ((fc <= static_cast<T>(0)) || (fcDivider <= static_cast<T>(0)) || overflow (fc / fcDivider)) {
-    this->fc = static_cast<T>(0);
-    this->fcDivider = static_cast<T>(1);
-    TemplateFilter<T, Timestamp>::setInitStatus(TemplateFilter<T, Timestamp>::Status::ERROR_INIT_DATA_INCORRECT);
-    return;
-  }
-  this->fc = fc;
-  this->fcDivider = fcDivider;
-  fcPi2 = fc * pi * static_cast<T>(2);
-  TemplateFilter<T, Timestamp>::setInitStatus(TemplateFilter<T, Timestamp>::Status::OK);
-}
-
-template <typename T, typename Timestamp>
-typename TemplateFilter<T, Timestamp>::Status LowPass<T, Timestamp>::filterProcess(const T * inputs, size_t inputsNumber, T & output, Timestamp timestamp) {
-
-  Timestamp deltaTime (this->getDeltaTime(timestamp));
-  if (!inputsNumber) {
-    return (TemplateFilter<T, Timestamp>::Status::ERROR_TOO_FEW_INPUTS);
-  }
-  if (!deltaTime) {
-    output = static_cast<T>(inputs[0]);
-    lastOutput = static_cast<T>(inputs[0]);
-  }
-  else {
-    T dt = static_cast<T>(deltaTime);
-    output = lastOutput + (dt * fcPi2 * (inputs[0] - lastOutput)) / (dt * fcPi2 / fcDivider + static_cast<T>(1)) / fcDivider;
-    lastOutput = output;
-  }
-  return (TemplateFilter<T, Timestamp>::Status::OK);
-}
-
-//////////////////////////////////////////////////////////////////////
-// LinearScale
-//////////////////////////////////////////////////////////////////////
-
-template <typename T, typename Timestamp>
-class LinearScale : public TemplateFilter<T, Timestamp> {
+class LinearScale : public Filter {
   public:
-    LinearScale(const T &x1, const T &y1, const T &x2, const T &y2);
-    LinearScale(const T &a, const T &b);
-    LinearScale(const T &b);
-    virtual typename TemplateFilter<T, Timestamp>::Status filterProcess(const T *inputs, size_t inputsNumber, T &output, Timestamp timestamp);
+    LinearScale(const value_t &x1, const value_t &y1, const value_t &x2, const value_t &y2);
+    LinearScale(const value_t &a, const value_t &b);
+    LinearScale(const value_t &b);
+    virtual Filter::Status filterProcess(const value_t *inputs, size_t inputsNumber, value_t &output, timestamp_t timestamp);
   private:
-    T a = static_cast<T>(1);
-    T b = static_cast<T>(0);
+    value_t a = value_t(1);
+    value_t b = value_t(0);
 };
 
-template <typename T, typename Timestamp>
-LinearScale<T, Timestamp>::LinearScale(const T & x1, const T & y1, const T & x2, const T & y2) {
-  static const size_t inputNumber = 1;
-  TemplateFilter<T, Timestamp>::setInputsNumber(inputNumber, inputNumber);
-  if (x1 == x2) {
-    TemplateFilter<T, Timestamp>::setInitStatus(TemplateFilter<T, Timestamp>::Status::ERROR_INIT_DATA_INCORRECT);
-    return;
-  }
-  a = (y1 - y2) / (x1 - x2);
-  b = y1 - a * x1;
-  if (overflow(a) || overflow(b) || (a == static_cast<T>(0))) {
-    TemplateFilter<T, Timestamp>::setInitStatus(TemplateFilter<T, Timestamp>::Status::ERROR_INIT_FAILED);
-    return;
-  }
-  TemplateFilter<T, Timestamp>::setInitStatus(TemplateFilter<T, Timestamp>::Status::OK);
-}
-
-template <typename T, typename Timestamp>
-LinearScale<T, Timestamp>::LinearScale(const T & a, const T & b) {
-  static const size_t inputNumber = 1;
-  TemplateFilter<T, Timestamp>::setInputsNumber(inputNumber, inputNumber);
-  this->a = a;
-  this->b = b;
-  if (overflow(a) || overflow(b)) {
-    TemplateFilter<T, Timestamp>::setInitStatus(TemplateFilter<T, Timestamp>::Status::ERROR_INIT_DATA_INCORRECT);
-    return;
-  }
-  TemplateFilter<T, Timestamp>::setInitStatus(TemplateFilter<T, Timestamp>::Status::OK);
-}
-
-template <typename T, typename Timestamp>
-LinearScale<T, Timestamp>::LinearScale(const T & b) {
-  static const size_t inputNumber = 1;
-  TemplateFilter<T, Timestamp>::setInputsNumber(inputNumber, inputNumber);
-  this->a = static_cast<T>(1);
-  this->b = b;
-  if (overflow(b)) {
-    TemplateFilter<T, Timestamp>::setInitStatus(TemplateFilter<T, Timestamp>::Status::ERROR_INIT_DATA_INCORRECT);
-    return;
-  }
-  TemplateFilter<T, Timestamp>::setInitStatus(TemplateFilter<T, Timestamp>::Status::OK);
-}
-
-template <typename T, typename Timestamp>
-typename TemplateFilter<T, Timestamp>::Status LinearScale<T, Timestamp>::filterProcess(const T * inputs, size_t inputsNumber, T & output, Timestamp timestamp) {
-  (void)timestamp;
-  if (!inputsNumber) return (TemplateFilter<T, Timestamp>::Status::ERROR_TOO_FEW_INPUTS);
-  output = a * inputs[0] + b;
-  return (TemplateFilter<T, Timestamp>::Status::OK);
-}
-
-//////////////////////////////////////////////////////////////////////
-// SquareScale
-//////////////////////////////////////////////////////////////////////
-
-template <typename T, typename Timestamp>
-class SquareScale : public TemplateFilter<T, Timestamp> {
+class SquareScale : public Filter {
   public:
-    SquareScale(const T &x1, const T &y1,
-                const T &x2, const T &y2,
-                const T &x3, const T &y3);
-    SquareScale(const T &a, const T &b, const T&c);
-    virtual typename TemplateFilter<T, Timestamp>::Status filterProcess(const T *inputs, size_t inputsNumber, T &output, Timestamp timestamp);
+    SquareScale(const value_t &x1, const value_t &y1,
+                const value_t &x2, const value_t &y2,
+                const value_t &x3, const value_t &y3);
+    SquareScale(const value_t &a, const value_t &b, const value_t &c);
+    virtual Filter::Status filterProcess(const value_t *inputs, size_t inputsNumber, value_t &output, timestamp_t timestamp);
   private:
-    T a = static_cast<T>(0);
-    T b = static_cast<T>(1);
-    T c = static_cast<T>(0);
-    T h = static_cast<T>(0);
+    value_t a = value_t(0);
+    value_t b = value_t(1);
+    value_t c = value_t(0);
+    value_t h = value_t(0);
 };
 
-template <typename T, typename Timestamp>
-SquareScale<T, Timestamp>::SquareScale(
-  const T & x1, const T & y1,
-  const T & x2, const T & y2,
-  const T & x3, const T & y3) {
-  //Set input number
-  static const size_t inputNumber = 1;
-  TemplateFilter<T, Timestamp>::setInputsNumber(inputNumber, inputNumber);
-  //Calculate square function a, b, c coefficients
-  const T denominator1 = (x1 - x2);
-  const T denominator2 = (x1 - x3);
-  const T denominator3 = (x2 - x3);
-  if ((denominator1 == static_cast<T>(0)) ||
-      (denominator2 == static_cast<T>(0)) ||
-      (denominator3 == static_cast<T>(0))) {
-    TemplateFilter<T, Timestamp>::setInitStatus(TemplateFilter<T, Timestamp>::Status::ERROR_INIT_DATA_INCORRECT);
-    return;
-  }
-  a = x3 * (y2 - y1) + x2 * (y1 - y3) + x1 * (y3 - y2);
-  a /= denominator1;
-  a /= denominator2;
-  a /= denominator3;
-  b = (y1 - y2) * x3 * x3 + (y3 - y1) * x2 * x2 + (y2 - y3) * x1 * x1;
-  b /= denominator1;
-  b /= denominator2;
-  b /= denominator3;
-  c = y1 * (x2 - x3) * x2 * x3 + y2 * (x3 - x1) * x3 * x1 + y3 * (x1 - x2) * x1 * x2;
-  c /= denominator1;
-  c /= denominator2;
-  c /= denominator3;
-  if (overflow(a) || overflow(b) || overflow(c)) {
-    TemplateFilter<T, Timestamp>::setInitStatus(TemplateFilter<T, Timestamp>::Status::ERROR_INIT_FAILED);
-    return;
-  }
-  //Check parabola vertex position
-  if (a == static_cast<T>(0)) {
-    TemplateFilter<T, Timestamp>::setInitStatus(TemplateFilter<T, Timestamp>::Status::OK);
-    return;
-  }
-  h = b / a / static_cast<T>(-2);
-  //k = c - h * h;
-  if (overflow(h)) return;
-  T xmin = x1;
-  if (x2 < xmin) xmin = x2;
-  if (x3 < xmin) xmin = x3;
-  T xmax = x3;
-  if (x2 > xmax) xmax = x2;
-  if (x1 > xmax) xmax = x1;
-  if ((h > xmin) && (h < xmax)) {
-    TemplateFilter<T, Timestamp>::setInitStatus(TemplateFilter<T, Timestamp>::Status::WARNING_INIT_DATA_INCORRECT);
-    return;
-  }
-  TemplateFilter<T, Timestamp>::setInitStatus(TemplateFilter<T, Timestamp>::Status::OK);
-}
-
-template <typename T, typename Timestamp>
-SquareScale<T, Timestamp>::SquareScale(const T & a, const T & b, const T & c) {
-  static const size_t inputNumber = 1;
-  TemplateFilter<T, Timestamp>::setInputsNumber(inputNumber, inputNumber);
-  this->a = a;
-  this->b = b;
-  this->c = c;
-  if (overflow(a) || overflow(b) || overflow (c)) {
-    TemplateFilter<T, Timestamp>::setInitStatus(TemplateFilter<T, Timestamp>::Status::ERROR_INIT_DATA_INCORRECT);
-    return;
-  }
-  TemplateFilter<T, Timestamp>::setInitStatus(TemplateFilter<T, Timestamp>::Status::OK);
-}
-
-template <typename T, typename Timestamp>
-typename TemplateFilter<T, Timestamp>::Status SquareScale<T, Timestamp>::filterProcess(const T * inputs, size_t inputsNumber, T & output, Timestamp timestamp) {
-  (void)timestamp;
-  if (!inputsNumber) return (TemplateFilter<T, Timestamp>::Status::ERROR_TOO_FEW_INPUTS);
-  output = a * inputs[0] * inputs[0] + b * inputs[0] + c;
-  return (TemplateFilter<T, Timestamp>::Status::OK);
-}
-
-//////////////////////////////////////////////////////////////////////
-// SplineScale
-//////////////////////////////////////////////////////////////////////
-
-template <typename T, typename Timestamp>
-class SplineScale : public TemplateFilter<T, Timestamp> {
+class SplineScale : public Filter {
   public:
-    SplineScale(const T &x1, const T &y1,
-                const T &x2, const T &y2,
-                const T &x3, const T &y3);
-    virtual typename TemplateFilter<T, Timestamp>::Status filterProcess(const T *inputs, size_t inputsNumber, T &output, Timestamp timestamp);
+    SplineScale(const value_t &x1, const value_t &y1,
+                const value_t &x2, const value_t &y2,
+                const value_t &x3, const value_t &y3);
+    virtual Filter::Status filterProcess(const value_t *inputs, size_t inputsNumber, value_t &output, timestamp_t timestamp);
   private:
-    T a1 = static_cast<T>(0);
-    T b1 = static_cast<T>(1);
-    T a2 = static_cast<T>(0);
-    T b2 = static_cast<T>(1);
-    T x1 = static_cast<T>(0);
-    T y1 = static_cast<T>(0);
-    T x2 = static_cast<T>(0);
-    T y2 = static_cast<T>(0);
-    T x3 = static_cast<T>(0);
-    T y3 = static_cast<T>(0);
+    value_t a1 = value_t(0);
+    value_t b1 = value_t(1);
+    value_t a2 = value_t(0);
+    value_t b2 = value_t(1);
+    value_t x1 = value_t(0);
+    value_t y1 = value_t(0);
+    value_t x2 = value_t(0);
+    value_t y2 = value_t(0);
+    value_t x3 = value_t(0);
+    value_t y3 = value_t(0);
 };
-
-template <typename T, typename Timestamp>
-SplineScale<T, Timestamp>::SplineScale(
-  const T & xMin, const T & yMin,
-  const T & xMid, const T & yMid,
-  const T & xMax, const T & yMax) {
-  //Set input number
-  static const size_t inputNumber = 1;
-  TemplateFilter<T, Timestamp>::setInputsNumber(inputNumber, inputNumber);
-  //Initialise points
-  x1 = xMin;
-  y1 = yMin;
-  x2 = xMid;
-  y2 = yMid;
-  x3 = xMax;
-  y3 = yMax;
-  //Sort points by x in accending order
-  struct TSwapHelper {
-    inline static void swap(T &a, T &b) {
-      T temp = a;
-      a = b;
-      b = temp;
-    }
-  };
-  if (x1 > x2) {
-    TSwapHelper::swap(x1, x2);
-    TSwapHelper::swap(y1, y2);
-  }
-  if (x2 > x3) {
-    TSwapHelper::swap(x2, x3);
-    TSwapHelper::swap(y2, y3);
-  }
-  if (x1 > x2) {
-    TSwapHelper::swap(x1, x2);
-    TSwapHelper::swap(y1, y2);
-  }
-
-  //Calculate cubic spline coefficients
-  const T denominator1 = 2 * (x1 - x2);
-  const T denominator2 = x1 - x3;
-  const T denominator3 = x2 - x3;
-  if ((denominator1 == static_cast<T>(0)) ||
-      (denominator2 == static_cast<T>(0)) ||
-      (denominator3 == static_cast<T>(0))) {
-    TemplateFilter<T, Timestamp>::setInitStatus(TemplateFilter<T, Timestamp>::Status::ERROR_INIT_DATA_INCORRECT);
-    return;
-  }
-  a1 = x1 * (y2 - y3) + x2 * (y3 - y1) + x3 * (y1 - y2);
-  a1 /= denominator1;
-  a1 /= denominator2;
-  a1 /= denominator3;
-  a1 /= (x1 - x2);
-  a2 = a1 * (x2 - x1);
-  a2 /= (x2 - x3);
-  b1 = x1 * x1 * (y3 - y2) - x1 * (x2 * (-3 * y1 + y2 + 2 * y3) + 3 * x3 * (y1 - y2)) + x2 * x2 * (y3 - y1) + x2 * x3 * (y2 - y1) + 2 * x3 * x3 * (y1 - y2);
-  b1 /= denominator1;
-  b1 /= denominator2;
-  b1 /= denominator3;
-  b2 = 2 * x1 * x1 * (y2 - y3) + x2 * (x1 * (y3 - y2) + x3 * (2 * y1 + y2 - 3 * y3)) + 3 * x1 * x3 * (y3 - y2) + x2 * x2 * (y3 - y1) + x3 * x3 * (y2 - y1);
-  b2 /= denominator1;
-  b2 /= denominator2;
-  b2 /= denominator3;
-  //Check validity
-  if (overflow(a1) || overflow(a2) || overflow(b1) || overflow(b2)) {
-    TemplateFilter<T, Timestamp>::setInitStatus(TemplateFilter<T, Timestamp>::Status::ERROR_INIT_FAILED);
-    return;
-  }
-  TemplateFilter<T, Timestamp>::setInitStatus(TemplateFilter<T, Timestamp>::Status::OK);
-}
-
-template <typename T, typename Timestamp>
-typename TemplateFilter<T, Timestamp>::Status SplineScale<T, Timestamp>::filterProcess(const T * inputs, size_t inputsNumber, T & output, Timestamp timestamp) {
-  (void)timestamp;
-  if (!inputsNumber) return (TemplateFilter<T, Timestamp>::Status::ERROR_TOO_FEW_INPUTS);
-  output = (inputs[0] < x2) ?
-           (a1 * (inputs[0] - x1) * (inputs[0] - x1) * (inputs[0] - x1) + b1 * (inputs[0] - x1) + y1) :
-           (a2 * (inputs[0] - x3) * (inputs[0] - x3) * (inputs[0] - x3) + b2 * (inputs[0] - x3) + y3);
-  return (TemplateFilter<T, Timestamp>::Status::OK);
-}
-
-//////////////////////////////////////////////////////////////////////
-// Filters
-//////////////////////////////////////////////////////////////////////
-
-using Filter = TemplateFilter<Value, Timestamp>;
-using FilterMovingAverage = MovingAverage<Value, Timestamp>;
-using FilterLowPass = LowPass<Value, Timestamp>;
-using FilterLinearScale = LinearScale<Value, Timestamp>;
-using FilterSquareScale = SquareScale<Value, Timestamp>;
-using FilterSplineScale = SplineScale<Value, Timestamp>;
 
 enum class FilterType {
   MOVING_AVERAGE,

@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2017 Nick Naumenko (https://github.com/nnaumenko)
+ * Copyright (C) 2016-2018 Nick Naumenko (https://github.com/nnaumenko)
  * All rights reserved
  * This software may be modified and distributed under the terms
  * of the MIT license. See the LICENSE file for details.
@@ -113,8 +113,9 @@ class WebConfig : public Module <WebConfig<Diag>> {
     boolean onRespond(Print &client);
     boolean onHTTPReqEnd(boolean error);
   public:
-    const char * PROGMEM moduleName(void);
-    const char * PROGMEM getMainPath(void);
+    inline const char * PROGMEM moduleName(void);
+    inline ModuleId moduleId(void);
+    inline const char * PROGMEM getMainPath(void);
   public:
     inline void enable(void);
     inline void disable(void);
@@ -216,15 +217,21 @@ void WebConfig<Diag>::disable(void) {
   enabled = false;
 }
 
-/// Returns human-readable module name, implements interface method ModuleBase::moduleName().
 template <class Diag>
 const char * PROGMEM WebConfig<Diag>::moduleName (void) {
+  /// @return Human-readable module name
   return (texts.moduleName);
 }
 
-/// Returns default webserver path for this module, implements interface method ModuleWebServer::getMainPath()
+template <class Diag>
+ModuleId WebConfig<Diag>::moduleId (void) {
+  /// @return Numeric module identifier
+  return (ModuleIdWebConfig);
+}
+
 template <class Diag>
 const char * PROGMEM WebConfig<Diag>::getMainPath(void) {
+  /// @return Default webserver path for this module
   return (texts.pathForm);
 }
 

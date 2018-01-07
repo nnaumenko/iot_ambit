@@ -5,11 +5,11 @@
  * of the MIT license. See the LICENSE file for details.
  */
 
-#include "webconfig.h"
+#include "dhts.h"
 
-namespace webconfig {
+namespace dhts {
 
 const Texts PROGMEM texts;
 const TextsUI PROGMEM textsUI;
 
-}; // namespace webconfig
+} //namespace dht

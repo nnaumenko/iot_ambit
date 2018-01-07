@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2017 Nick Naumenko (https://github.com/nnaumenko)
+ * Copyright (C) 2016-2018 Nick Naumenko (https://github.com/nnaumenko)
  * All rights reserved
  * This software may be modified and distributed under the terms
  * of the MIT license. See the LICENSE file for details.
@@ -194,6 +194,10 @@ size_t PrintToBuffer::write(const uint8_t *buffer, size_t size) {
 
 namespace checksum {
 
+//////////////////////////////////////////////////////////////////////
+// crc functions
+//////////////////////////////////////////////////////////////////////
+
 /// @brief Reverse bit order in a 8-bit value
 /// @param x Input value
 /// @return Value with bits reversed
@@ -249,9 +253,304 @@ uint16_t crc16(const void * buffer, size_t bufferSize, uint16_t poly, uint16_t i
 
 namespace dsp {
 
+//////////////////////////////////////////////////////////////////////
+// Filter
+//////////////////////////////////////////////////////////////////////
+
+Filter::timestamp_t Filter::getDeltaTime(Filter::timestamp_t currentTime) {
+  if (!lastTime) return (static_cast<timestamp_t>(0));
+  return (currentTime - lastTime);
+}
+
+//////////////////////////////////////////////////////////////////////
+// MovingAverage
+//////////////////////////////////////////////////////////////////////
+
+MovingAverage::MovingAverage(size_t numValues) : ringBuffer(numValues) {
+  static const size_t inputNumber = 1;
+  Filter::setInputsNumber(inputNumber, inputNumber);
+  if (!ringBuffer.validate()) {
+    setInitStatus(Filter::Status::ERROR_INIT_NOT_ENOUGH_MEMORY);
+    return;
+  }
+  setInitStatus(Filter::Status::OK);
+}
+
+Filter::Status MovingAverage::filterProcess(const value_t * inputs, size_t inputsNumber, value_t & output, timestamp_t timestamp) {
+  (void)timestamp;
+  if (!inputsNumber) return (Filter::Status::ERROR_TOO_FEW_INPUTS);
+  ringBuffer.push(inputs[0]);
+  value_t total = value_t(0);
+  value_t subtotal = value_t(0);
+  for (size_t i = 0; i < ringBuffer.count(); i++) {
+    value_t backupSubtotal = subtotal;
+    subtotal += ringBuffer[i];
+    if (overflow(subtotal)) {
+      //When overflow occurs we divide part of the sum (subtotal) by amount of items and add it to total (precision is lost but overflow avoided)
+      total += (backupSubtotal / value_t(ringBuffer.count()));
+      subtotal = ringBuffer[i];
+    }
+  }
+  if (ringBuffer.count()) {
+    total += (subtotal / value_t(ringBuffer.count())); //if there was no overflow, then total is still zero at this point
+  }
+  output = total;
+  return (Filter::Status::OK);
+};
+
+//////////////////////////////////////////////////////////////////////
+// LowPass
+//////////////////////////////////////////////////////////////////////
+
+LowPass::LowPass(const value_t & fc, const value_t & pi, const value_t & fcDivider) {
+  static const size_t inputNumber = 1;
+  Filter::setInputsNumber(inputNumber, inputNumber);
+  if ((fc <= value_t(0)) || (fcDivider <= value_t(0)) || overflow (fc / fcDivider)) {
+    this->fc = value_t(0);
+    this->fcDivider = value_t(1);
+    setInitStatus(Filter::Status::ERROR_INIT_DATA_INCORRECT);
+    return;
+  }
+  this->fc = fc;
+  this->fcDivider = fcDivider;
+  fcPi2 = fc * pi * value_t(2);
+  setInitStatus(Filter::Status::OK);
+}
+
+Filter::Status LowPass::filterProcess(const value_t * inputs, size_t inputsNumber, value_t & output, timestamp_t timestamp) {
+  timestamp_t deltaTime (this->getDeltaTime(timestamp));
+  if (!inputsNumber) {
+    return (Filter::Status::ERROR_TOO_FEW_INPUTS);
+  }
+  if (!deltaTime) {
+    output = value_t(inputs[0]);
+    lastOutput = value_t(inputs[0]);
+  }
+  else {
+    const value_t dt = value_t(deltaTime);
+    output = lastOutput + (dt * fcPi2 * (inputs[0] - lastOutput)) / (dt * fcPi2 / fcDivider + value_t(1)) / fcDivider;
+    lastOutput = output;
+  }
+  return (Filter::Status::OK);
+}
+
+//////////////////////////////////////////////////////////////////////
+// LinearScale
+//////////////////////////////////////////////////////////////////////
+
+LinearScale::LinearScale(const value_t & x1, const value_t & y1, const value_t & x2, const value_t & y2) {
+  static const size_t inputNumber = 1;
+  Filter::setInputsNumber(inputNumber, inputNumber);
+  if (x1 == x2) {
+    Filter::setInitStatus(Filter::Status::ERROR_INIT_DATA_INCORRECT);
+    return;
+  }
+  a = (y1 - y2) / (x1 - x2);
+  b = y1 - a * x1;
+  if (overflow(a) || overflow(b) || (a == value_t(0))) {
+    Filter::setInitStatus(Filter::Status::ERROR_INIT_FAILED);
+    return;
+  }
+  setInitStatus(Filter::Status::OK);
+}
+
+LinearScale::LinearScale(const value_t & a, const value_t & b) {
+  static const size_t inputNumber = 1;
+  Filter::setInputsNumber(inputNumber, inputNumber);
+  this->a = a;
+  this->b = b;
+  if (overflow(a) || overflow(b)) {
+    Filter::setInitStatus(Filter::Status::ERROR_INIT_DATA_INCORRECT);
+    return;
+  }
+  Filter::setInitStatus(Filter::Status::OK);
+}
+
+LinearScale::LinearScale(const value_t & b) {
+  static const size_t inputNumber = 1;
+  Filter::setInputsNumber(inputNumber, inputNumber);
+  this->a = value_t(1);
+  this->b = b;
+  if (overflow(b)) {
+    Filter::setInitStatus(Filter::Status::ERROR_INIT_DATA_INCORRECT);
+    return;
+  }
+  Filter::setInitStatus(Filter::Status::OK);
+}
+
+Filter::Status LinearScale::filterProcess(const value_t * inputs, size_t inputsNumber, value_t & output, timestamp_t timestamp) {
+  (void)timestamp;
+  if (!inputsNumber) return (Filter::Status::ERROR_TOO_FEW_INPUTS);
+  output = a * inputs[0] + b;
+  return (Filter::Status::OK);
+}
+
+//////////////////////////////////////////////////////////////////////
+// SquareScale
+//////////////////////////////////////////////////////////////////////
+
+SquareScale::SquareScale(
+  const value_t & x1, const value_t & y1,
+  const value_t & x2, const value_t & y2,
+  const value_t & x3, const value_t & y3) {
+  //Set input number
+  static const size_t inputNumber = 1;
+  Filter::setInputsNumber(inputNumber, inputNumber);
+  //Calculate square function a, b, c coefficients
+  const value_t denominator1 = (x1 - x2);
+  const value_t denominator2 = (x1 - x3);
+  const value_t denominator3 = (x2 - x3);
+  if ((denominator1 == value_t(0)) ||
+      (denominator2 == value_t(0)) ||
+      (denominator3 == value_t(0))) {
+    Filter::setInitStatus(Filter::Status::ERROR_INIT_DATA_INCORRECT);
+    return;
+  }
+  a = x3 * (y2 - y1) + x2 * (y1 - y3) + x1 * (y3 - y2);
+  a /= denominator1;
+  a /= denominator2;
+  a /= denominator3;
+  b = (y1 - y2) * x3 * x3 + (y3 - y1) * x2 * x2 + (y2 - y3) * x1 * x1;
+  b /= denominator1;
+  b /= denominator2;
+  b /= denominator3;
+  c = y1 * (x2 - x3) * x2 * x3 + y2 * (x3 - x1) * x3 * x1 + y3 * (x1 - x2) * x1 * x2;
+  c /= denominator1;
+  c /= denominator2;
+  c /= denominator3;
+  if (overflow(a) || overflow(b) || overflow(c)) {
+    Filter::setInitStatus(Filter::Status::ERROR_INIT_FAILED);
+    return;
+  }
+  //Check parabola vertex position
+  if (a == value_t(0)) {
+    Filter::setInitStatus(Filter::Status::OK);
+    return;
+  }
+  h = b / a / value_t(-2);
+  //k = c - h * h;
+  if (overflow(h)) return;
+  value_t xmin = x1;
+  if (x2 < xmin) xmin = x2;
+  if (x3 < xmin) xmin = x3;
+  value_t xmax = x3;
+  if (x2 > xmax) xmax = x2;
+  if (x1 > xmax) xmax = x1;
+  if ((h > xmin) && (h < xmax)) {
+    Filter::setInitStatus(Filter::Status::WARNING_INIT_DATA_INCORRECT);
+    return;
+  }
+  Filter::setInitStatus(Filter::Status::OK);
+}
+
+SquareScale::SquareScale(const value_t & a, const value_t & b, const value_t & c) {
+  static const size_t inputNumber = 1;
+  Filter::setInputsNumber(inputNumber, inputNumber);
+  this->a = a;
+  this->b = b;
+  this->c = c;
+  if (overflow(a) || overflow(b) || overflow (c)) {
+    Filter::setInitStatus(Filter::Status::ERROR_INIT_DATA_INCORRECT);
+    return;
+  }
+  Filter::setInitStatus(Filter::Status::OK);
+}
+
+Filter::Status SquareScale::filterProcess(const value_t * inputs, size_t inputsNumber, value_t & output, timestamp_t timestamp) {
+  (void)timestamp;
+  if (!inputsNumber) return (Filter::Status::ERROR_TOO_FEW_INPUTS);
+  output = a * inputs[0] * inputs[0] + b * inputs[0] + c;
+  return (Filter::Status::OK);
+}
+
+//////////////////////////////////////////////////////////////////////
+// SplineScale
+//////////////////////////////////////////////////////////////////////
+
+SplineScale::SplineScale(
+  const value_t & xMin, const value_t & yMin,
+  const value_t & xMid, const value_t & yMid,
+  const value_t & xMax, const value_t & yMax) {
+  //Set input number
+  static const size_t inputNumber = 1;
+  Filter::setInputsNumber(inputNumber, inputNumber);
+  //Initialise points
+  x1 = xMin;
+  y1 = yMin;
+  x2 = xMid;
+  y2 = yMid;
+  x3 = xMax;
+  y3 = yMax;
+  //Sort points by x in accending order
+  struct ValueTSwapHelper {
+    inline static void swap(value_t &a, value_t &b) {
+      value_t temp = a;
+      a = b;
+      b = temp;
+    }
+  };
+  if (x1 > x2) {
+    ValueTSwapHelper::swap(x1, x2);
+    ValueTSwapHelper::swap(y1, y2);
+  }
+  if (x2 > x3) {
+    ValueTSwapHelper::swap(x2, x3);
+    ValueTSwapHelper::swap(y2, y3);
+  }
+  if (x1 > x2) {
+    ValueTSwapHelper::swap(x1, x2);
+    ValueTSwapHelper::swap(y1, y2);
+  }
+
+  //Calculate cubic spline coefficients
+  const value_t denominator1 = 2 * (x1 - x2);
+  const value_t denominator2 = x1 - x3;
+  const value_t denominator3 = x2 - x3;
+  if ((denominator1 == value_t(0)) ||
+      (denominator2 == value_t(0)) ||
+      (denominator3 == value_t(0))) {
+    Filter::setInitStatus(Filter::Status::ERROR_INIT_DATA_INCORRECT);
+    return;
+  }
+  a1 = x1 * (y2 - y3) + x2 * (y3 - y1) + x3 * (y1 - y2);
+  a1 /= denominator1;
+  a1 /= denominator2;
+  a1 /= denominator3;
+  a1 /= (x1 - x2);
+  a2 = a1 * (x2 - x1);
+  a2 /= (x2 - x3);
+  b1 = x1 * x1 * (y3 - y2) - x1 * (x2 * (-3 * y1 + y2 + 2 * y3) + 3 * x3 * (y1 - y2)) + x2 * x2 * (y3 - y1) + x2 * x3 * (y2 - y1) + 2 * x3 * x3 * (y1 - y2);
+  b1 /= denominator1;
+  b1 /= denominator2;
+  b1 /= denominator3;
+  b2 = 2 * x1 * x1 * (y2 - y3) + x2 * (x1 * (y3 - y2) + x3 * (2 * y1 + y2 - 3 * y3)) + 3 * x1 * x3 * (y3 - y2) + x2 * x2 * (y3 - y1) + x3 * x3 * (y2 - y1);
+  b2 /= denominator1;
+  b2 /= denominator2;
+  b2 /= denominator3;
+  //Check validity
+  if (overflow(a1) || overflow(a2) || overflow(b1) || overflow(b2)) {
+    Filter::setInitStatus(Filter::Status::ERROR_INIT_FAILED);
+    return;
+  }
+  Filter::setInitStatus(Filter::Status::OK);
+}
+
+Filter::Status SplineScale::filterProcess(const value_t * inputs, size_t inputsNumber, value_t & output, timestamp_t timestamp) {
+  (void)timestamp;
+  if (!inputsNumber) return (Filter::Status::ERROR_TOO_FEW_INPUTS);
+  output = (inputs[0] < x2) ?
+           (a1 * (inputs[0] - x1) * (inputs[0] - x1) * (inputs[0] - x1) + b1 * (inputs[0] - x1) + y1) :
+           (a2 * (inputs[0] - x3) * (inputs[0] - x3) * (inputs[0] - x3) + b2 * (inputs[0] - x3) + y3);
+  return (Filter::Status::OK);
+}
+
 }; //namespace dsp
 
 namespace quantity {
+
+//////////////////////////////////////////////////////////////////////
+// Quantity
+//////////////////////////////////////////////////////////////////////
 
 boolean Quantity::setConvertedValue(
   value_t value,
@@ -277,6 +576,10 @@ boolean Quantity::setConvertedValue(
   }
   return (true);
 }
+
+//////////////////////////////////////////////////////////////////////
+// Dimensionless
+//////////////////////////////////////////////////////////////////////
 
 boolean Dimensionless::convertToUnit(Dimensionless::Unit unit) {
   /// @brief Performs conversion to a measurement unit
@@ -334,6 +637,10 @@ Dimensionless::text_t Dimensionless::getUnitTextByUnit(Dimensionless::Unit unit)
   }
   return (StrRef());
 }
+
+//////////////////////////////////////////////////////////////////////
+// Temperature
+//////////////////////////////////////////////////////////////////////
 
 boolean Temperature::convertToUnit(Temperature::Unit unit) {
   /// @brief Performs conversion to a measurement unit

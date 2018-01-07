@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2016-2017 Nick Naumenko (https://github.com/nnaumenko)
+ * Copyright (C) 2016-2018 Nick Naumenko (https://github.com/nnaumenko)
  * All rights reserved
  * This software may be modified and distributed under the terms
  * of the MIT license. See the LICENSE file for details.
@@ -17,10 +17,13 @@
 #ifndef MODULE_H
 #define MODULE_H
 
+#include "metadata.h"
+
 #include "util_data.h"
 
 /// @brief Basic interface for a software module.
-/// @details Implements singleton, Module Name C-String and module initialisation.
+/// @details Implements singleton, Module Name C-String, module initialisation,
+/// module identifier.
 /// @tparam T CRTP template parameter (derived class)
 template <class T>
 class ModuleBase {
@@ -35,9 +38,14 @@ class ModuleBase {
       return (&inst);
     }
   public:
-    const char * PROGMEM moduleName (void) {
+    inline ModuleId moduleId (void) {
       /// @brief To be implemented by actual module if this functionality is required.
-      ///
+      /// @return Numerical identifier of this module or UndefinedModuleId if an
+      /// identifier has not been defined for this module.
+      return(ModuleIdUndefined);
+    }
+    inline const char * PROGMEM moduleName (void) {
+      /// @brief To be implemented by actual module if this functionality is required.
       /// @return C-string in PROGMEM representing human-readable module name or NULL.
       /// if no module name is specified.
       return (NULL);
@@ -49,8 +57,7 @@ class ModuleBase {
     }
     void onBegin(void) {
       /// @brief To be implemented by actual module if this functionality is required.
-      ///
-      /// In this method the module initialisation is performed.
+      /// @details In this method the module initialisation is performed.
     }
 };
 
@@ -205,6 +212,7 @@ class ModuleWebServer {
       /// @param client Print class to send the response to.
       /// @return If no error occured during request generation, this method returns
       /// true; otherwise it returns false.
+      static_cast<void>(client);
       return (false);
     }
     boolean onHTTPReqEnd(boolean error) {
@@ -236,6 +244,8 @@ class ModuleWebServer {
 };
 
 typedef uint8_t IOIndex;
+typedef util::quantity::Quantity IOValue;
+typedef util::StrRef IOText;
 
 /// @brief Interface for the software module which exchanges input (e.g. temperature
 /// from sensor) and output (e.g. PWM value to be set) data.
@@ -248,11 +258,8 @@ typedef uint8_t IOIndex;
 /// of the inputs are set at compile-time and cannot be changed at runtime.
 /// @par See individual methods for more details.
 /// @tparam T CRTP template parameter (derived class)
-/// @tparam IOValue Type for the actual values in IO data exchange
-/// @tparam IOValueIdentifier Type for value identifier which allows to find a
-/// value
-template <class T, typename IOValue>
-class TemplateModuleIO { ///TODO: comments
+template <class T>
+class ModuleIO {
   public:
     /// @brief To be implemented by actual module if this functionality is required.
     /// @details Get number of inputs for the module
@@ -270,7 +277,7 @@ class TemplateModuleIO { ///TODO: comments
     /// @details Returns the value of input numbered index
     /// @param index Number of input; if inputIndex exceeds input count, this method
     /// returns default value
-    /// @return Value of the corresponding input or default value if index is out of 
+    /// @return Value of the corresponding input or default value if index is out of
     /// range
     IOValue getInput (IOIndex index) {
       IOValue defaultValue {};
@@ -280,7 +287,7 @@ class TemplateModuleIO { ///TODO: comments
     /// @details Returns the value of output numbered index
     /// @param index Number of output; if outputIndex exceeds output count, this method
     /// returns default value
-    /// @return Value of the corresponding output or default value if index is out of 
+    /// @return Value of the corresponding output or default value if index is out of
     /// range
     IOValue getOutput (IOIndex index) {
       IOValue defaultValue {};
@@ -292,16 +299,27 @@ class TemplateModuleIO { ///TODO: comments
     /// (such as identifier check, range check, etc).
     /// @par If an error occurs during the operation, value of the output is not
     /// modified and method returns false.
-    /// @param index number of output; if outputIndex exceeds actual output count, this 
+    /// @param index number of output; if outputIndex exceeds actual output count, this
     /// method returns false and does not modify any output
     /// @return true if operation is completed successfully, false otherwise
-    boolean setOutput (const IOValue &src) {
+    boolean setOutput (IOIndex index, const IOValue &src) {
       return (false);
     }
+    /// @brief To be implemented by actual module if this functionality is required.
+    /// @return Input description in human-readable form or nullptr reference if index
+    /// is out of acceptable range or no description is available for this particular
+    /// input or module does not support this functionality
+    IOText getInputText(IOIndex index) {
+      return (IOText(nullptr));
+    }
+    /// @brief To be implemented by actual module if this functionality is required.
+    /// @return Output description in human-readable form or nullptr reference if index
+    /// is out of acceptable range or no description is available for this particular
+    /// input or module does not support this functionality
+    IOText getOutputText(IOIndex index) {
+      return (IOText(nullptr));
+    }
 };
-
-template <typename T>
-using ModuleIO = TemplateModuleIO <T, util::quantity::Quantity>;
 
 /// @brief Base class for a software module, combines all module interfaces.
 /// Software modules are inherited from this class.

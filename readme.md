@@ -12,7 +12,7 @@ After setup is complete, the device is powered off-then-on with Config Button re
 * Monitor room air temperature, humidity and CO2 concentration
 * Uses [Blynk]( http://www.blynk.cc/) for data viewing & archiving
 * Hardware platform is based on standalone ESP8266 (ESP-12 module); no Arduino required
-* Project uses Arduino IDE for ESP8266 programming, can be adapted for Arduino & WiFi or Ethernet Shields with minimum effort
+* Project uses Arduino IDE for ESP8266 programming (probably still can be adapted for Arduino & WiFi or Ethernet Shields, though at this point some functionality might not "fit" into Arduino, memory constraints being the main concern).
 * AM2302 temperature/humidity sensor (e.g. for room temperature)
 * Optional DS18B20 temperature sensor (e.g. for outside temperature)
 * MG811 CO2 concentration sensor for the room CO2 concentration with calibration capability

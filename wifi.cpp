@@ -5,11 +5,11 @@
  * of the MIT license. See the LICENSE file for details.
  */
 
-#include "webconfig.h"
+#include "wifi.h"
 
-namespace webconfig {
+namespace wifi {
 
 const Texts PROGMEM texts;
 const TextsUI PROGMEM textsUI;
 
-}; // namespace webconfig
+} //namespace wifi
